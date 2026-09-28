@@ -9,7 +9,7 @@ export const TOPICS: Topic[] = [
     name: 'One Piece',
     description: 'From the East Blue to the New World. How well do you know the Pirate King journey?',
     imageUrl: 'https://image.tmdb.org/t/p/w500/cMD9Ygz11yjEzAeiUR954aPczfl.jpg',
-    questionCount: 120,
+    questionCount: 150,
     popularityRank: 1,
     isActive: true,
   },
