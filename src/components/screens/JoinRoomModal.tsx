@@ -1,22 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
-import { X, LogIn, Hash, User, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { X, LogIn, Hash, User, ShieldCheck, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function JoinRoomModal() {
   const { isJoinModalOpen, setIsJoinModalOpen, joinRoom } = useGame();
+  const { currentUser } = useAuth();
 
-  const [displayName, setDisplayName] = useState('Challenger');
+  const [displayName, setDisplayName] = useState(currentUser?.username || 'Challenger');
   const [roomCode, setRoomCode] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    if (currentUser?.username) {
+      setDisplayName(currentUser.username);
+    }
+  }, [currentUser]);
 
   if (!isJoinModalOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roomCode.trim()) return;
-    joinRoom(roomCode, displayName);
+    setErrorMsg('');
+    const clean = roomCode.trim().toUpperCase();
+    if (!clean) return;
+    const success = joinRoom(clean, displayName);
+    if (!success) {
+      setErrorMsg('Room not found or max capacity reached. Please verify the 6-character room code.');
+    }
   };
 
   return (
@@ -87,6 +101,13 @@ export function JoinRoomModal() {
             <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>Real-time presence syncs scores and answers instantly.</span>
           </div>
+
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
 
           {/* Submit */}
           <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl">

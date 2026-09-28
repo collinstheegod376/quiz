@@ -49,13 +49,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [globalStats, setGlobalStats] = useState({
-    totalRoomsCreated: 1,
+    totalRoomsCreated: 0,
     totalMatchesPlayed: 0,
-    totalPlayersCount: 1,
-    overallAccuracy: 100,
+    totalPlayersCount: 0,
+    overallAccuracy: 0,
   });
 
-  // Load active session and global stats on mount
+  // Load active session and authentic global stats on mount
   useEffect(() => {
     try {
       const savedSession = localStorage.getItem(SESSION_KEY);
@@ -74,20 +74,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsAuthModalOpen(true);
       }
 
-      // Load global stats
-      const savedStatsStr = localStorage.getItem(GLOBAL_STATS_KEY);
-      if (savedStatsStr) {
-        setGlobalStats(JSON.parse(savedStatsStr));
-      } else {
-        const initial = {
-          totalRoomsCreated: 1,
-          totalMatchesPlayed: 0,
-          totalPlayersCount: Math.max(1, accounts.length),
-          overallAccuracy: 100,
-        };
-        localStorage.setItem(GLOBAL_STATS_KEY, JSON.stringify(initial));
-        setGlobalStats(initial);
-      }
+      // Compute authentic global stats from real accounts
+      const totalAnswers = accounts.reduce((acc, a) => acc + (a.stats?.totalAnswers || 0), 0);
+      const correctAnswers = accounts.reduce((acc, a) => acc + (a.stats?.correctAnswers || 0), 0);
+      const computedAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+      const totalMatches = accounts.reduce((acc, a) => acc + (a.stats?.matchesPlayed || 0), 0);
+      const totalRooms = accounts.reduce((acc, a) => acc + (a.stats?.roomsCreated || 0), 0);
+
+      const realStats = {
+        totalRoomsCreated: totalRooms,
+        totalMatchesPlayed: totalMatches,
+        totalPlayersCount: accounts.length,
+        overallAccuracy: computedAccuracy,
+      };
+      localStorage.setItem(GLOBAL_STATS_KEY, JSON.stringify(realStats));
+      setGlobalStats(realStats);
     } catch {
       setIsAuthModalOpen(true);
     }

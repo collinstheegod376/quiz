@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import {
   CategoryId,
   Room,
@@ -88,22 +88,70 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
   const [isGlobalLeaderboardOpen, setIsGlobalLeaderboardOpen] = useState<boolean>(false);
 
-  // Sync rooms across browser tabs via storage listener
+  // Multi-tab channel for instant live room sync
+  const channelRef = useRef<BroadcastChannel | null>(null);
+
+  // Sync rooms across browser tabs via BroadcastChannel & Storage Event
   useEffect(() => {
+    const handleRoomData = (incomingRoom: Room) => {
+      if (!incomingRoom) return;
+
+      setRoom((currentRoom) => {
+        if (!currentRoom || currentRoom.code !== incomingRoom.code) {
+          return currentRoom;
+        }
+
+        // Sync questions if provided
+        if (incomingRoom.questions && incomingRoom.questions.length > 0) {
+          setGameQuestions(incomingRoom.questions);
+        }
+
+        // Auto-switch view to 'game' when match starts
+        if (
+          incomingRoom.status === 'QUESTION' ||
+          incomingRoom.status === 'REVEAL' ||
+          incomingRoom.status === 'FINAL_RESULTS' ||
+          incomingRoom.status === 'FINISHED'
+        ) {
+          setCurrentView('game');
+        }
+
+        return incomingRoom;
+      });
+    };
+
+    // 1. BroadcastChannel
+    let channel: BroadcastChannel | null = null;
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      channel = new BroadcastChannel('quiz_arena_sync');
+      channelRef.current = channel;
+      channel.onmessage = (event) => {
+        if (event.data?.type === 'ROOM_UPDATE' && event.data?.data) {
+          handleRoomData(event.data.data);
+        }
+      };
+    }
+
+    // 2. Storage Event fallback
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === ROOMS_STORE_KEY && e.newValue && room) {
         try {
           const rooms: Record<string, Room> = JSON.parse(e.newValue);
           if (rooms[room.code]) {
-            setRoom(rooms[room.code]);
+            handleRoomData(rooms[room.code]);
           }
         } catch {
           // Ignore
         }
       }
     };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [room]);
 
   const saveRoomToStorage = (updatedRoom: Room) => {
@@ -112,6 +160,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
       rooms[updatedRoom.code] = updatedRoom;
       localStorage.setItem(ROOMS_STORE_KEY, JSON.stringify(rooms));
+
+      // Post update to BroadcastChannel for instant live sync across open tabs
+      if (channelRef.current) {
+        channelRef.current.postMessage({ type: 'ROOM_UPDATE', data: updatedRoom });
+      }
     } catch {
       // Ignore
     }
@@ -207,43 +260,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!targetRoom) {
       if (room && room.code === cleanCode) {
         targetRoom = room;
-      } else {
-        // Fallback create mock room for seamless experience
-        targetRoom = {
-          id: 'room_' + Math.random().toString(36).substring(2, 9),
-          code: cleanCode,
-          hostId: 'host_player_1',
-          categoryId: selectedCategoryId,
-          topicId: selectedTopicId,
-          difficultyLevel: selectedDifficultyLevel,
-          status: 'LOBBY',
-          maxPlayers: 4,
-          playerCountAtStart: 0,
-          calculatedQuestionCount: 10,
-          timePerQuestion: 15,
-          currentQuestionIndex: 0,
-          questionStartedAt: null,
-          players: [
-            {
-              id: 'host_player_1',
-              userId: 'host_player_1',
-              displayName: 'Captain Roger',
-              avatarUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Roger',
-              isHost: true,
-              score: 0,
-              correctAnswers: 0,
-              totalResponseTimeMs: 0,
-              isReady: true,
-              isOnline: true,
-            },
-          ],
-        };
       }
+    }
+
+    // Do NOT generate mock rooms with fake players: return false if room does not exist
+    if (!targetRoom) {
+      return false;
     }
 
     const maxAllowed = targetRoom.maxPlayers || 4;
     if (targetRoom.players.length >= maxAllowed) {
-      alert(`Room is full (Maximum ${maxAllowed} players allowed).`);
       return false;
     }
 
@@ -271,7 +297,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     setCurrentPlayer(joinedPlayer);
     setRoom(updatedRoom);
-    setCurrentView('lobby');
+    if (updatedRoom.questions && updatedRoom.questions.length > 0) {
+      setGameQuestions(updatedRoom.questions);
+    }
+    setCurrentView(
+      updatedRoom.status === 'QUESTION' || updatedRoom.status === 'REVEAL' ? 'game' : 'lobby'
+    );
     setIsJoinModalOpen(false);
     logActivity(`${joinedPlayer.displayName} joined the room`, 'join');
     return true;
@@ -354,10 +385,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // Start game (Authoritative logic: calculates question count from confirmed players)
   const startGame = () => {
     if (!room) return;
-    if (room.players.length < 2) {
-      alert('Minimum 2 players required to start the match.');
-      return;
-    }
     sound.playClick();
 
     const confirmedPlayerCount = room.players.length;
@@ -374,6 +401,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       calculatedQuestionCount: calculatedCount,
       currentQuestionIndex: 0,
       questionStartedAt: Date.now(),
+      questions: questions,
       players: room.players.map((p) => ({
         ...p,
         score: 0,
@@ -389,14 +417,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setCurrentView('game');
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
-    setTimerSeconds(room.timePerQuestion);
+    setTimerSeconds(room.timePerQuestion || 15);
     setAnswerTimeStart(Date.now());
     logActivity('Match commenced! Question 1 underway.', 'system');
   };
 
   const currentQuestion =
-    room && room.status !== 'LOBBY' && gameQuestions.length > room.currentQuestionIndex
-      ? gameQuestions[room.currentQuestionIndex]
+    room && room.status !== 'LOBBY'
+      ? (gameQuestions.length > room.currentQuestionIndex
+          ? gameQuestions[room.currentQuestionIndex]
+          : room.questions && room.questions.length > room.currentQuestionIndex
+          ? room.questions[room.currentQuestionIndex]
+          : null)
       : null;
 
   // Submit Answer

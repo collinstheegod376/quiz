@@ -80,6 +80,7 @@ export interface Room {
   currentQuestionIndex: number; // 0-indexed
   questionStartedAt: number | null; // timestamp ms
   players: Player[];
+  questions?: Question[];
 }
 
 export interface AnswerSubmissionResult {

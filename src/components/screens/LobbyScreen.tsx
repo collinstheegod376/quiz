@@ -57,11 +57,11 @@ export function LobbyScreen() {
   const isHost = currentPlayer.isHost;
   const playerCount = room.players.length;
   const maxCapacity = room.maxPlayers || 4;
-  const canStart = isHost && playerCount >= 2;
+  const canStart = isHost;
   const isFull = playerCount >= maxCapacity;
 
   const calculatedQuestionCount =
-    playerCount === 2 ? 10 : playerCount === 3 ? 12 : 15;
+    playerCount <= 2 ? 10 : playerCount === 3 ? 12 : 15;
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fadeIn">
@@ -132,8 +132,10 @@ export function LobbyScreen() {
 
             {isFull ? (
               <Badge variant="warning">Room Full ({playerCount}/{maxCapacity})</Badge>
+            ) : playerCount === 1 ? (
+              <Badge variant="info">Solo Ready • Add Rivals Below</Badge>
             ) : (
-              <Badge variant="success">Waiting for {2 - Math.min(2, playerCount)} more to start</Badge>
+              <Badge variant="success">{playerCount} Combatants Ready</Badge>
             )}
           </div>
 
@@ -314,7 +316,7 @@ export function LobbyScreen() {
                 className="w-full shadow-2xl"
               >
                 <Play className="w-5 h-5 fill-current" />
-                {playerCount < 2 ? 'Need 2+ Players to Start' : 'Start Match'}
+                {playerCount === 1 ? 'Start Match (Solo Mode)' : 'Start Match'}
               </Button>
             ) : (
               <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center text-xs font-semibold text-amber-700 dark:text-amber-400">

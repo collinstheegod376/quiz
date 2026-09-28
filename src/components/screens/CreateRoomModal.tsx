@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 import { TOPICS } from '@/data/topics';
 import { CATEGORIES } from '@/data/categories';
 import {
@@ -26,10 +27,17 @@ export function CreateRoomModal() {
     setSelectedTopicId,
     setSelectedDifficultyLevel,
   } = useGame();
+  const { currentUser } = useAuth();
 
-  const [displayName, setDisplayName] = useState('PlayerOne');
+  const [displayName, setDisplayName] = useState(currentUser?.username || 'PlayerOne');
   const [timePerQ, setTimePerQ] = useState(15);
   const [targetPlayers, setTargetPlayers] = useState<2 | 3 | 4>(2);
+
+  useEffect(() => {
+    if (currentUser?.username) {
+      setDisplayName(currentUser.username);
+    }
+  }, [currentUser]);
 
   if (!isCreateModalOpen) return null;
 
