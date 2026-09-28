@@ -1,0 +1,51 @@
+# QUIZ//ARENA — Progress Log
+
+- Bootstrapped full Next.js 15 TypeScript project with App Router, Tailwind CSS, and PostCSS config.
+- Built complete dark-mode-first design system in `globals.css` with CSS custom properties, gradients, and animation tokens.
+- Added Google Fonts (Inter + Outfit) via `next/font` in `layout.tsx`.
+- Extended `tailwind.config.ts` with custom font families, color palette, shadow scale, and keyframe animations.
+- Created `ThemeContext` to persist dark/light mode preference in localStorage with default dark.
+- Built `AuthContext` with localStorage-only username+password auth — no email, no Supabase dependency.
+- Auth modal auto-opens on every page load if no active session; non-dismissable until signed in.
+- Register and Login tabs in `AuthModal` — Register is the default tab, no email field.
+- Route guard in `page.tsx` bounces unauthenticated users from all protected views back to landing.
+- Built `LandingScreen` with hero section, glassmorphism card, live stats row, and One Piece quick-start button.
+- Built `CategoryScreen` with TMDB poster images, category cards, and auth-gated navigation.
+- Built `TopicScreen` with topic grid, SafeImage fallbacks, and popularity ranks.
+- Built `DifficultyScreen` with 10-tier difficulty selector and match preview.
+- Built `LobbyScreen` with room code display, player list, activity log, bot simulator, and host controls.
+- Built `QuestionScreen` with 15-second countdown timer, option grid, and answer submission.
+- Built `AnswerRevealScreen` with 3-second auto-advance, XP display, and no mid-game leaderboard.
+- Built `FinalResultsScreen` with podium, player rankings, and match stats.
+- Built `GameContext` state machine managing full LOBBY → QUESTION → REVEAL → FINAL_RESULTS flow.
+- Bypassed LEADERBOARD state entirely — game auto-advances from REVEAL to next QUESTION after 3 seconds.
+- Created `CreateRoomModal` with category, topic, difficulty, player count, and timer selectors.
+- Created `JoinRoomModal` with 6-character room code input and proper error messaging for invalid codes.
+- Created `GlobalLeaderboardModal` reading live from localStorage accounts — no demo data, shows empty state if no players.
+- Created `SettingsModal` with profile edit (username, password, avatar) and account deletion.
+- Created `ModalsContainer` to host all modals globally in `layout.tsx`.
+- Fixed mobile nav leaderboard button — wired `setIsGlobalLeaderboardOpen(true)` with auth guard.
+- Moved Create Room and Join Room buttons out of normal screen into navbar and mobile nav only.
+- Replaced all emoji usage across UI with Lucide React icons.
+- Removed vibecoded-style alert box pattern; replaced with styled inline banners.
+- Reduced question answer timer to 10 seconds on initial request, then revised to 15 seconds.
+- Fixed player count selector in Create Room modal — buttons are now clickable and stateful.
+- Created `SafeImage` component with shimmer skeleton, lazy loading, decoding async, and fallback chain.
+- Updated all TMDB image URLs in `topics.ts` and `categories.ts` to use w500/w780 sizes.
+- Fixed light mode broken image loading with SafeImage shimmer and fallback text.
+- Added `.env.local` and all `.env*` patterns to `.gitignore` to prevent secret leaks.
+- Set global stats (`Active Combatants`, `Arenas Created`, `Arena Accuracy`) to compute live from real account data — removed all hardcoded fake values.
+- Removed `generateProceduralQuestion` fake question generator from `questions.ts` entirely.
+- Rewrote `getQuestionsForMatch` with a real 3-tier fallback: exact topic+level → same topic any level → cross-topic shuffle — no fake questions ever generated.
+- Wrote 150 canonical One Piece questions arranged across 10 difficulty tiers (15 questions each).
+- Updated `topics.ts` One Piece `questionCount` to 150.
+- Created `SHOWS_AND_QUESTIONS_GUIDE.md` documenting all topicIds, tiers, question schema, and match rules.
+- Fixed `joinRoom` to return `false` and show an error if the room code does not exist in localStorage — removed fake Captain Roger fallback room.
+- Pre-filled `displayName` in Create Room and Join Room modals with the logged-in user's username.
+- Added `BroadcastChannel` multi-tab sync in `GameContext` so two browser tabs share live room state instantly.
+- Stored `questions` array inside the Room object so joining players receive the question set without regeneration.
+- Upgraded `currentQuestion` lookup to fall back to `room.questions` if `gameQuestions` state is empty.
+- Removed mandatory 2-player gate from `startGame` so host can start solo for testing.
+- Updated lobby badge and Start Match button label to reflect solo vs. multiplayer mode.
+- Fixed `isSupabaseConfigured` to correctly reject `your-project-id` and `your-anon-key-here` placeholder values.
+- Pushed all changes to `https://github.com/collinstheegod376/quiz.git` on branch `main`.
