@@ -56,8 +56,9 @@ export function LobbyScreen() {
 
   const isHost = currentPlayer.isHost;
   const playerCount = room.players.length;
+  const maxCapacity = room.maxPlayers || 4;
   const canStart = isHost && playerCount >= 2;
-  const isFull = playerCount >= 4;
+  const isFull = playerCount >= maxCapacity;
 
   const calculatedQuestionCount =
     playerCount === 2 ? 10 : playerCount === 3 ? 12 : 15;
@@ -125,12 +126,12 @@ export function LobbyScreen() {
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-red-600 dark:text-red-400" />
               <h2 className="text-lg font-bold font-display text-slate-900 dark:text-white">
-                Combatants ({playerCount} / 4)
+                Combatants ({playerCount} / {maxCapacity})
               </h2>
             </div>
 
             {isFull ? (
-              <Badge variant="warning">Room Full (4/4)</Badge>
+              <Badge variant="warning">Room Full ({playerCount}/{maxCapacity})</Badge>
             ) : (
               <Badge variant="success">Waiting for {2 - Math.min(2, playerCount)} more to start</Badge>
             )}
@@ -206,7 +207,7 @@ export function LobbyScreen() {
             })}
 
             {/* Empty slots placeholders */}
-            {Array.from({ length: 4 - playerCount }).map((_, idx) => (
+            {Array.from({ length: Math.max(0, maxCapacity - playerCount) }).map((_, idx) => (
               <div
                 key={`empty-${idx}`}
                 className="flex items-center justify-center p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/20 text-xs text-slate-400 dark:text-slate-500"

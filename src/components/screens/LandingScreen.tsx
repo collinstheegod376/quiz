@@ -38,8 +38,8 @@ export function LandingScreen() {
           {/* Left Hero Content */}
           <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
             {/* Live badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold tracking-wider uppercase animate-pulse-subtle">
-              <span className="w-2 h-2 rounded-full bg-red-500 inline-block animate-ping" />
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900/90 border border-slate-700/80 text-slate-300 text-xs font-semibold tracking-wide shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block shadow-sm shadow-emerald-500/50" />
               <span>Real-Time Multiplayer Arena</span>
             </div>
 

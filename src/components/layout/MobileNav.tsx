@@ -5,7 +5,14 @@ import { useGame } from '@/context/GameContext';
 import { Home, Compass, Trophy, Plus, LogIn } from 'lucide-react';
 
 export function MobileNav() {
-  const { currentView, setCurrentView, setIsCreateModalOpen, setIsJoinModalOpen, room } = useGame();
+  const {
+    currentView,
+    setCurrentView,
+    setIsCreateModalOpen,
+    setIsJoinModalOpen,
+    setIsGlobalLeaderboardOpen,
+    isGlobalLeaderboardOpen,
+  } = useGame();
 
   // If in active quiz gameplay, hide bottom bar for full focus
   if (currentView === 'game') return null;
@@ -53,19 +60,13 @@ export function MobileNav() {
       </button>
 
       <button
-        onClick={() => {
-          if (room) {
-            setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game');
-          } else {
-            setCurrentView('categories');
-          }
-        }}
+        onClick={() => setIsGlobalLeaderboardOpen(true)}
         className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-          currentView === 'lobby' ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
+          isGlobalLeaderboardOpen ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
         }`}
       >
         <Trophy className="w-5 h-5" />
-        <span>Lobby</span>
+        <span>Leaderboard</span>
       </button>
     </nav>
   );

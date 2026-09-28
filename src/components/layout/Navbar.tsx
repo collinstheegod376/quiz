@@ -2,14 +2,9 @@
 
 import React from 'react';
 import { useGame } from '@/context/GameContext';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import {
   Zap,
-  Moon,
-  Sun,
-  Volume2,
-  VolumeX,
   Plus,
   LogIn,
   Trophy,
@@ -26,13 +21,10 @@ export function Navbar() {
     setCurrentView,
     room,
     currentPlayer,
-    isSoundMuted,
-    toggleSound,
     setIsCreateModalOpen,
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
   } = useGame();
-  const { theme, toggleTheme } = useTheme();
   const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
 
   return (
@@ -91,40 +83,21 @@ export function Navbar() {
 
         {/* Actions & Utilities */}
         <div className="flex items-center gap-2.5">
-          {/* Sound Toggle */}
-          <button
-            onClick={toggleSound}
-            aria-label="Toggle sound"
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800/60 transition-colors"
-          >
-            {isSoundMuted ? (
-              <VolumeX className="w-4 h-4 text-slate-400" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-emerald-500" />
-            )}
-          </button>
-
-          {/* Theme Toggle (Light / Dark) */}
-          <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-800/60 transition-colors"
-          >
-            {theme === 'dark' ? (
-              <Sun className="w-4 h-4 text-amber-400" />
-            ) : (
-              <Moon className="w-4 h-4 text-indigo-600" />
-            )}
-          </button>
-
           {/* Room quick controls */}
           {room && room.status !== 'FINISHED' ? (
             <button
               onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-              className="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs font-bold tracking-wider animate-pulse flex items-center gap-1.5"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700/80 hover:border-slate-500 shadow-sm transition-all"
             >
-              <span className="w-2 h-2 rounded-full bg-red-500 inline-block animate-ping" />
-              ROOM {room.code}
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                Room
+              </span>
+              <span className="font-mono text-xs font-bold tracking-widest text-white">
+                {room.code}
+              </span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 dark:bg-slate-700 text-slate-300 border border-slate-700/80">
+                {room.status === 'LOBBY' ? 'Lobby' : 'Live'}
+              </span>
             </button>
           ) : (
             <div className="hidden sm:flex items-center gap-2">

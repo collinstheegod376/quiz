@@ -26,48 +26,7 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
     try {
       const savedAccountsStr = localStorage.getItem('quiz_arena_accounts');
       const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
-
-      // Include starter hall of fame if few accounts
-      const defaultLegends = [
-        {
-          username: 'ZoroFan',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Zoro',
-          stats: { totalScore: 18450, matchesPlayed: 14, wins: 11, correctAnswers: 89, totalAnswers: 100 },
-        },
-        {
-          username: 'LuffyGoat',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Luffy',
-          stats: { totalScore: 16200, matchesPlayed: 12, wins: 9, correctAnswers: 78, totalAnswers: 92 },
-        },
-        {
-          username: 'Nami_Chan',
-          avatarUrl: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Nami',
-          stats: { totalScore: 14100, matchesPlayed: 11, wins: 7, correctAnswers: 64, totalAnswers: 80 },
-        },
-      ];
-
-      // Merge real registered accounts with legends
-      const merged = [...accounts];
-      defaultLegends.forEach((leg) => {
-        if (!merged.some((a) => a.username.toLowerCase() === leg.username.toLowerCase())) {
-          merged.push({
-            username: leg.username,
-            passwordHash: '',
-            avatarUrl: leg.avatarUrl,
-            createdAt: new Date().toISOString(),
-            stats: {
-              roomsCreated: 3,
-              matchesPlayed: leg.stats.matchesPlayed,
-              wins: leg.stats.wins,
-              totalScore: leg.stats.totalScore,
-              correctAnswers: leg.stats.correctAnswers,
-              totalAnswers: leg.stats.totalAnswers,
-            },
-          });
-        }
-      });
-
-      return merged.sort((a, b) => (b.stats?.totalScore || 0) - (a.stats?.totalScore || 0));
+      return accounts.sort((a, b) => (b.stats?.totalScore || 0) - (a.stats?.totalScore || 0));
     } catch {
       return [];
     }
@@ -96,80 +55,94 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
             Global Leaderboard
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Real-time standings of top combatants ranked by total arena experience points and match victories.
+            Real-time standings of registered combatants ranked by total arena experience points and match victories.
           </p>
         </div>
 
-        {/* Table */}
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
-          <div className="grid grid-cols-12 p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
-            <div className="col-span-2 text-center">Rank</div>
-            <div className="col-span-5">Combatant</div>
-            <div className="col-span-3 text-right">Score (XP)</div>
-            <div className="col-span-2 text-center">Wins</div>
+        {/* Content: Empty State or Table */}
+        {leaderboardEntries.length === 0 ? (
+          <div className="py-14 px-6 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto">
+              <Trophy className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              No Combatants Ranked Yet
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto leading-relaxed">
+              Create an account, play live matches, and win questions to climb to the top of the global arena leaderboard.
+            </p>
           </div>
+        ) : (
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
+            <div className="grid grid-cols-12 p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
+              <div className="col-span-2 text-center">Rank</div>
+              <div className="col-span-5">Combatant</div>
+              <div className="col-span-3 text-right">Score (XP)</div>
+              <div className="col-span-2 text-center">Wins</div>
+            </div>
 
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {leaderboardEntries.map((player, index) => {
-              const rank = index + 1;
-              const isCurrent = currentUser && player.username.toLowerCase() === currentUser.username.toLowerCase();
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {leaderboardEntries.map((player, index) => {
+                const rank = index + 1;
+                const isCurrent = currentUser && player.username.toLowerCase() === currentUser.username.toLowerCase();
 
-              return (
-                <div
-                  key={player.username}
-                  className={`grid grid-cols-12 items-center p-3 text-xs transition-colors ${
-                    isCurrent
-                      ? 'bg-red-500/10 dark:bg-red-950/30 font-semibold'
-                      : 'hover:bg-white dark:hover:bg-slate-800/40'
-                  }`}
-                >
-                  <div className="col-span-2 flex items-center justify-center">
-                    <div
-                      className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-xs ${
-                        rank === 1
-                          ? 'bg-amber-500 text-white shadow'
-                          : rank === 2
-                          ? 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
-                          : rank === 3
-                          ? 'bg-amber-800 text-white'
-                          : 'text-slate-400'
-                      }`}
-                    >
-                      {rank === 1 ? <Crown className="w-3.5 h-3.5 fill-current" /> : rank}
+                return (
+                  <div
+                    key={player.username}
+                    className={`grid grid-cols-12 items-center p-3 text-xs transition-colors ${
+                      isCurrent
+                        ? 'bg-red-500/10 dark:bg-red-950/30 font-semibold'
+                        : 'hover:bg-white dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <div className="col-span-2 flex items-center justify-center">
+                      <div
+                        className={`w-7 h-7 rounded-full flex items-center justify-center font-display font-black text-xs ${
+                          rank === 1
+                            ? 'bg-amber-500 text-white shadow'
+                            : rank === 2
+                            ? 'bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200'
+                            : rank === 3
+                            ? 'bg-amber-800 text-white'
+                            : 'text-slate-400'
+                        }`}
+                      >
+                        {rank === 1 ? <Crown className="w-3.5 h-3.5 fill-current" /> : rank}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="col-span-5 flex items-center gap-2.5 truncate">
-                    <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-300 dark:border-slate-700">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={player.avatarUrl}
-                        alt={player.username}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <span className="font-bold text-slate-900 dark:text-white truncate">
-                      {player.username}
-                    </span>
-                    {isCurrent && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-500/10 text-red-500 font-bold">
-                        You
+                    <div className="col-span-5 flex items-center gap-2.5 truncate">
+                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 overflow-hidden shrink-0 border border-slate-300 dark:border-slate-700">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={player.avatarUrl}
+                          alt={player.username}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <span className="font-bold text-slate-900 dark:text-white truncate">
+                        {player.username}
                       </span>
-                    )}
-                  </div>
+                      {isCurrent && (
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-500/10 text-red-500 font-bold">
+                          You
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="col-span-3 text-right font-mono font-bold text-slate-900 dark:text-white">
-                    {(player.stats?.totalScore || 0).toLocaleString()}
-                  </div>
+                    <div className="col-span-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                      {(player.stats?.totalScore || 0).toLocaleString()}
+                    </div>
 
-                  <div className="col-span-2 text-center text-slate-600 dark:text-slate-400 font-bold">
-                    {player.stats?.wins || 0}
+                    <div className="col-span-2 text-center text-slate-600 dark:text-slate-400 font-bold">
+                      {player.stats?.wins || 0}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -73,9 +73,10 @@ export interface Room {
   topicId: string;
   difficultyLevel: number;
   status: GameStatus;
+  maxPlayers?: number;
   playerCountAtStart: number;
   calculatedQuestionCount: number;
-  timePerQuestion: number; // in seconds, default 15 or 20
+  timePerQuestion: number; // in seconds, default 15
   currentQuestionIndex: number; // 0-indexed
   questionStartedAt: number | null; // timestamp ms
   players: Player[];

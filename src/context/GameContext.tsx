@@ -31,7 +31,7 @@ interface GameContextType {
   currentPlayer: Player | null;
   room: Room | null;
   activityLogs: RoomActivityLog[];
-  createRoom: (displayName: string, topicId: string, levelNumber: number, timePerQ?: number) => void;
+  createRoom: (displayName: string, topicId: string, levelNumber: number, timePerQ?: number, maxPlayers?: number) => void;
   joinRoom: (roomCode: string, displayName: string) => boolean;
   leaveRoom: () => void;
   togglePlayerReady: () => void;
@@ -79,7 +79,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const [selectedOption, setSelectedOption] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
-  const [timerSeconds, setTimerSeconds] = useState<number>(20);
+  const [timerSeconds, setTimerSeconds] = useState<number>(15);
   const [lastRevealResult, setLastRevealResult] = useState<AnswerSubmissionResult | null>(null);
   const [answerTimeStart, setAnswerTimeStart] = useState<number>(0);
 
@@ -139,7 +139,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     displayName: string,
     topicId: string,
     levelNumber: number,
-    timePerQ: number = 20
+    timePerQ: number = 15,
+    maxPlayers: number = 2
   ) => {
     sound.playClick();
     const finalName = displayName.trim() || currentUser?.username || 'HostPlayer';
@@ -166,8 +167,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       topicId: topicId,
       difficultyLevel: levelNumber,
       status: 'LOBBY',
+      maxPlayers: maxPlayers,
       playerCountAtStart: 0,
-      calculatedQuestionCount: 10,
+      calculatedQuestionCount: calculateGameLength(maxPlayers),
       timePerQuestion: timePerQ,
       currentQuestionIndex: 0,
       questionStartedAt: null,
@@ -215,9 +217,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           topicId: selectedTopicId,
           difficultyLevel: selectedDifficultyLevel,
           status: 'LOBBY',
+          maxPlayers: 4,
           playerCountAtStart: 0,
           calculatedQuestionCount: 10,
-          timePerQuestion: 20,
+          timePerQuestion: 15,
           currentQuestionIndex: 0,
           questionStartedAt: null,
           players: [
@@ -238,8 +241,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (targetRoom.players.length >= 4) {
-      alert('Room is full (Maximum 4 players allowed).');
+    const maxAllowed = targetRoom.maxPlayers || 4;
+    if (targetRoom.players.length >= maxAllowed) {
+      alert(`Room is full (Maximum ${maxAllowed} players allowed).`);
       return false;
     }
 
@@ -277,7 +281,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const addMockBotPlayer = () => {
     sound.playClick();
     if (!room) return;
-    if (room.players.length >= 4) return;
+    const maxCapacity = room.maxPlayers || 4;
+    if (room.players.length >= maxCapacity) return;
 
     const botNames = ['ZoroFan', 'LuffyGoat', 'Nami_Chan', 'SanjiCook', 'ShadowNinja', 'Valkyrie'];
     const availableNames = botNames.filter((n) => !room.players.some((p) => p.displayName === n));
