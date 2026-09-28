@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useGame } from '@/context/GameContext';
+import { useAuth } from '@/context/AuthContext';
 import { Home, Compass, Trophy, Plus, LogIn } from 'lucide-react';
 
 export function MobileNav() {
@@ -13,6 +14,7 @@ export function MobileNav() {
     setIsGlobalLeaderboardOpen,
     isGlobalLeaderboardOpen,
   } = useGame();
+  const { currentUser, setIsAuthModalOpen } = useAuth();
 
   // If in active quiz gameplay, hide bottom bar for full focus
   if (currentView === 'game') return null;
@@ -32,7 +34,13 @@ export function MobileNav() {
       </button>
 
       <button
-        onClick={() => setCurrentView('categories')}
+        onClick={() => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+            return;
+          }
+          setCurrentView('categories');
+        }}
         className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
           currentView === 'categories' || currentView === 'topics' || currentView === 'difficulty'
             ? 'text-red-600 dark:text-red-400'
@@ -45,14 +53,26 @@ export function MobileNav() {
 
       {/* Main Action FAB */}
       <button
-        onClick={() => setIsCreateModalOpen(true)}
+        onClick={() => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+            return;
+          }
+          setIsCreateModalOpen(true);
+        }}
         className="w-12 h-12 -mt-5 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-red-600/40 border-2 border-white dark:border-slate-900 active:scale-95 transition-transform"
       >
         <Plus className="w-6 h-6" strokeWidth={2.5} />
       </button>
 
       <button
-        onClick={() => setIsJoinModalOpen(true)}
+        onClick={() => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+            return;
+          }
+          setIsJoinModalOpen(true);
+        }}
         className="flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold text-slate-500 dark:text-slate-400"
       >
         <LogIn className="w-5 h-5" />
@@ -60,7 +80,13 @@ export function MobileNav() {
       </button>
 
       <button
-        onClick={() => setIsGlobalLeaderboardOpen(true)}
+        onClick={() => {
+          if (!currentUser) {
+            setIsAuthModalOpen(true);
+            return;
+          }
+          setIsGlobalLeaderboardOpen(true);
+        }}
         className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
           isGlobalLeaderboardOpen ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
         }`}

@@ -5,6 +5,7 @@ import { useGame } from '@/context/GameContext';
 import { CATEGORIES } from '@/data/categories';
 import { CategoryId } from '@/types/quiz';
 import { Compass, ArrowRight, Layers, Flame } from 'lucide-react';
+import { SafeImage } from '../ui/SafeImage';
 
 export function CategoryScreen() {
   const { setSelectedCategoryId, setCurrentView } = useGame();
@@ -50,8 +51,7 @@ export function CategoryScreen() {
           >
             {/* Image Banner */}
             <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <SafeImage
                 src={category.bannerImage}
                 alt={category.name}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

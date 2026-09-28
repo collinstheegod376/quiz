@@ -165,10 +165,16 @@ To enable Supabase for real-time multiplayer:
 │   └── types/                 # TypeScript interfaces
 ├── supabase/
 │   └── migrations/            # Complete PostgreSQL SQL schemas & functions
-├── .env.example               # Environment variables template
-├── .env.local                 # Local environment config
+├── .env.example               # Environment variables template (safe to commit)
+├── SHOWS_AND_QUESTIONS_GUIDE.md # Catalog of 23 shows, split requirements & schemas
 └── README.md                  # Documentation and deployment guide
 ```
+
+---
+
+## Shows & Questions Customization
+
+To view the breakdown of all **5 Categories**, **23 Shows & Topics**, **10 Difficulty Levels**, and instructions on replacing question sets, see [SHOWS_AND_QUESTIONS_GUIDE.md](SHOWS_AND_QUESTIONS_GUIDE.md).
 
 ---
 

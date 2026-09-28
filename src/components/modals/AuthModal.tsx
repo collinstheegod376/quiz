@@ -9,19 +9,21 @@ import {
   ShieldCheck,
   AlertCircle,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function AuthModal() {
   const { isAuthModalOpen, login, register, isAuthenticated } = useAuth();
-  const [tab, setTab] = useState<'login' | 'register'>('login');
+  const [tab, setTab] = useState<'login' | 'register'>('register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('Ace');
   const [errorMsg, setErrorMsg] = useState('');
 
-  if (!isAuthModalOpen && isAuthenticated) return null;
+  // Hide only when authenticated AND modal is explicitly closed
+  if (isAuthenticated && !isAuthModalOpen) return null;
+  // If not authenticated, always force-show regardless of isAuthModalOpen flag
+  // (AuthContext will set isAuthModalOpen=true on load, but this is a belt-and-suspenders guard)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

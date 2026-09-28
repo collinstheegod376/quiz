@@ -62,7 +62,13 @@ export function Navbar() {
             Home
           </button>
           <button
-            onClick={() => setCurrentView('categories')}
+            onClick={() => {
+              if (!currentUser) {
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setCurrentView('categories');
+            }}
             className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
               currentView === 'categories' || currentView === 'topics' || currentView === 'difficulty'
                 ? 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm'
@@ -73,7 +79,13 @@ export function Navbar() {
             Categories
           </button>
           <button
-            onClick={() => setIsGlobalLeaderboardOpen(true)}
+            onClick={() => {
+              if (!currentUser) {
+                setIsAuthModalOpen(true);
+                return;
+              }
+              setIsGlobalLeaderboardOpen(true);
+            }}
             className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all"
           >
             <Trophy className="w-3.5 h-3.5" />
@@ -104,7 +116,13 @@ export function Navbar() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsJoinModalOpen(true)}
+                onClick={() => {
+                  if (!currentUser) {
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
+                  setIsJoinModalOpen(true);
+                }}
               >
                 <LogIn className="w-3.5 h-3.5" />
                 Join
@@ -112,7 +130,13 @@ export function Navbar() {
               <Button
                 variant="arena"
                 size="sm"
-                onClick={() => setIsCreateModalOpen(true)}
+                onClick={() => {
+                  if (!currentUser) {
+                    setIsAuthModalOpen(true);
+                    return;
+                  }
+                  setIsCreateModalOpen(true);
+                }}
               >
                 <Plus className="w-3.5 h-3.5" />
                 Create Room

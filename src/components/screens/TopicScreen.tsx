@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { EmptyState } from '../ui/EmptyState';
 import { Button } from '../ui/Button';
+import { SafeImage } from '../ui/SafeImage';
 
 export function TopicScreen() {
   const {
@@ -97,8 +98,7 @@ export function TopicScreen() {
               className="group rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col justify-between"
             >
               <div className="relative h-44 w-full overflow-hidden bg-slate-950">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <SafeImage
                   src={topic.imageUrl}
                   alt={topic.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"

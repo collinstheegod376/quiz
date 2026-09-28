@@ -541,50 +541,44 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [room, timerSeconds, handleQuestionEnd]);
 
-  // State machine progression: REVEAL -> LEADERBOARD -> QUESTION (or FINAL_RESULTS)
-  const advanceToNextState = () => {
+  // State machine progression: REVEAL -> QUESTION (or FINAL_RESULTS) — no intermediate leaderboard
+  const advanceToNextState = useCallback(() => {
     if (!room) return;
     sound.playClick();
 
-    if (room.status === 'REVEAL') {
-      const updated: Room = { ...room, status: 'LEADERBOARD' };
-      saveRoomToStorage(updated);
-      setRoom(updated);
-    } else if (room.status === 'LEADERBOARD') {
-      const nextIndex = room.currentQuestionIndex + 1;
-      if (nextIndex >= room.calculatedQuestionCount) {
-        const finalRoom: Room = { ...room, status: 'FINAL_RESULTS' };
-        saveRoomToStorage(finalRoom);
-        setRoom(finalRoom);
+    const nextIndex = room.currentQuestionIndex + 1;
+    if (nextIndex >= room.calculatedQuestionCount) {
+      const finalRoom: Room = { ...room, status: 'FINAL_RESULTS' };
+      saveRoomToStorage(finalRoom);
+      setRoom(finalRoom);
 
-        // Record completed match
-        incrementStat('matchesPlayed');
-        const sorted = [...room.players].sort((a, b) => b.score - a.score);
-        if (sorted[0]?.id === currentPlayer?.id) {
-          incrementStat('wins');
-        }
-      } else {
-        // Reset for next question
-        const nextQRoom: Room = {
-          ...room,
-          status: 'QUESTION',
-          currentQuestionIndex: nextIndex,
-          questionStartedAt: Date.now(),
-          players: room.players.map((p) => ({
-            ...p,
-            hasAnswered: false,
-            selectedOption: undefined,
-          })),
-        };
-        saveRoomToStorage(nextQRoom);
-        setRoom(nextQRoom);
-        setSelectedOption(null);
-        setIsAnswerSubmitted(false);
-        setTimerSeconds(room.timePerQuestion);
-        setAnswerTimeStart(Date.now());
+      // Record completed match
+      incrementStat('matchesPlayed');
+      const sorted = [...room.players].sort((a, b) => b.score - a.score);
+      if (sorted[0]?.id === currentPlayer?.id) {
+        incrementStat('wins');
       }
+    } else {
+      // Reset for next question
+      const nextQRoom: Room = {
+        ...room,
+        status: 'QUESTION',
+        currentQuestionIndex: nextIndex,
+        questionStartedAt: Date.now(),
+        players: room.players.map((p) => ({
+          ...p,
+          hasAnswered: false,
+          selectedOption: undefined,
+        })),
+      };
+      saveRoomToStorage(nextQRoom);
+      setRoom(nextQRoom);
+      setSelectedOption(null);
+      setIsAnswerSubmitted(false);
+      setTimerSeconds(room.timePerQuestion || 15);
+      setAnswerTimeStart(Date.now());
     }
-  };
+  }, [room, currentPlayer, incrementStat]);
 
   const playAgain = () => {
     if (!room) return;

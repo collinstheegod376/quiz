@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGame } from '@/context/GameContext';
 import {
   CheckCircle2,
@@ -10,7 +10,6 @@ import {
   ArrowRight,
   TrendingUp,
   Sparkles,
-  Trophy,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -22,6 +21,23 @@ export function AnswerRevealScreen() {
     lastRevealResult,
     advanceToNextState,
   } = useGame();
+
+  const [countdown, setCountdown] = useState(3);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          advanceToNextState();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [advanceToNextState]);
 
   if (!room || !lastRevealResult || !currentQuestion || !currentPlayer) return null;
 
@@ -88,7 +104,7 @@ export function AnswerRevealScreen() {
             {isCorrect ? 'CORRECT!' : 'INCORRECT'}
           </h2>
 
-          <div className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white">
+          <div className="text-3xl sm:text-5xl font-black font-display text-slate-900 dark:text-white animate-scaleUp">
             {isCorrect ? `+${pointsAwarded.toLocaleString()} XP` : '+0 XP'}
           </div>
 
@@ -98,6 +114,33 @@ export function AnswerRevealScreen() {
               <span>Time Bonus: +{timeBonus} XP</span>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Auto-advance Timer Bar */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md space-y-2.5">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-600 dark:text-slate-300">
+          <span className="flex items-center gap-1.5">
+            <Zap className="w-4 h-4 text-amber-500 fill-current" />
+            XP Added • Advancing to Next Question
+          </span>
+          <span className="font-mono text-red-600 dark:text-red-400 font-black">{countdown}s</span>
+        </div>
+        <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-red-600 via-rose-500 to-amber-500 transition-all duration-1000 ease-linear rounded-full"
+            style={{ width: `${((4 - countdown) / 3) * 100}%` }}
+          />
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-slate-400">
+          <span>Auto-moving to next question in {countdown}s...</span>
+          <button
+            onClick={() => advanceToNextState()}
+            className="text-red-600 dark:text-red-400 font-semibold hover:underline flex items-center gap-0.5"
+          >
+            Skip delay
+            <ArrowRight className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
@@ -122,7 +165,7 @@ export function AnswerRevealScreen() {
         </div>
       </div>
 
-      {/* Stats Summary Row: Score, Rank, Rank movement */}
+      {/* Stats Summary Row: Score, Rank, Base XP */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
           <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -158,20 +201,6 @@ export function AnswerRevealScreen() {
             +{basePoints}
           </span>
         </div>
-      </div>
-
-      {/* Continue Button */}
-      <div className="pt-4">
-        <Button
-          variant="arena"
-          size="xl"
-          onClick={advanceToNextState}
-          className="w-full shadow-2xl"
-        >
-          <Trophy className="w-5 h-5" />
-          View Live Leaderboard
-          <ArrowRight className="w-5 h-5" />
-        </Button>
       </div>
     </div>
   );

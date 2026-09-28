@@ -7,7 +7,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Otaku Championship',
     description: 'From classics to hidden gems. Test your knowledge on legendary arcs, power scales, and iconic moments.',
     topicCount: 15,
-    bannerImage: 'https://image.tmdb.org/t/p/original/cMD9Ygz11yjEzAeiUR954aPczfl.jpg', // Official One Piece Anime
+    bannerImage: 'https://image.tmdb.org/t/p/w780/cMD9Ygz11yjEzAeiUR954aPczfl.jpg', // Official One Piece Anime
     accentColor: '#DC2626', // Red
   },
   {
@@ -16,7 +16,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Binge-Worthy TV',
     description: 'Test your knowledge on the most iconic TV series of all time, from gripping dramas to sci-fi thrillers.',
     topicCount: 12,
-    bannerImage: 'https://image.tmdb.org/t/p/original/ztkUQFLlC19CCMYHW9o1zWhJImg.jpg', // Official Breaking Bad
+    bannerImage: 'https://image.tmdb.org/t/p/w780/ztkUQFLlC19CCMYHW9o1zWhJImg.jpg', // Official Breaking Bad
     accentColor: '#D97706', // Amber
   },
   {
@@ -25,7 +25,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Cinematic Universe',
     description: 'From Hollywood blockbusters to cult classics. How many directors, characters, and plot twists can you name?',
     topicCount: 12,
-    bannerImage: 'https://image.tmdb.org/t/p/original/qJ2tW6WMUDux911r6m7haRef0WH.jpg', // Official The Dark Knight
+    bannerImage: 'https://image.tmdb.org/t/p/w780/qJ2tW6WMUDux911r6m7haRef0WH.jpg', // Official The Dark Knight
     accentColor: '#7C3AED', // Purple
   },
   {

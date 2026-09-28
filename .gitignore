@@ -23,8 +23,10 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-# .env*.local is ignored by default in git, but user asked for a local env file in the repo.
-# We will create .env.example or .env.local as requested.
+.env
+.env.local
+.env.*.local
+.env*.local
 
 # typescript
 *.tsbuildinfo
