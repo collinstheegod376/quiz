@@ -2,37 +2,125 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================================
+   QUIZ ARENA — Premium Global Styles
+   Dark mode by default, light mode optional
+================================================================ */
+
 @layer base {
   :root {
-    --background: #F8FAFC; /* Clean modern slate-50 for light mode */
-    --foreground: #0F172A; /* High-contrast slate-900 */
+    /* Light mode tokens */
+    --background: #F5F7FA;
+    --foreground: #0F172A;
     --card: #FFFFFF;
     --card-foreground: #0F172A;
     --border: #E2E8F0;
+    --muted: #F1F5F9;
+    --muted-foreground: #64748B;
+    --accent: #E50914;
+    --accent-foreground: #FFFFFF;
+    --ring: #E50914;
   }
 
   .dark {
-    --background: #0B0C10; /* Sleek charcoal dark mode base */
-    --foreground: #F8FAFC;
+    /* Dark mode tokens */
+    --background: #0B0C10;
+    --foreground: #F0F4F8;
     --card: #12141C;
-    --card-foreground: #F8FAFC;
-    --border: #202534;
+    --card-foreground: #F0F4F8;
+    --border: #1E2130;
+    --muted: #161824;
+    --muted-foreground: #8892A4;
+    --accent: #E50914;
+    --accent-foreground: #FFFFFF;
+    --ring: #E50914;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    line-height: 1.6;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-outfit), var(--font-inter), sans-serif;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button {
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  input, textarea, select {
+    font-family: inherit;
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
   }
 }
 
-body {
-  background-color: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  overflow-x: hidden;
-  transition: background-color 0.25s ease, color 0.25s ease;
+/* ================================================================
+   CUSTOM SCROLLBAR
+================================================================ */
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
 }
 
-/* Smooth motion animations */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
+}
+
+/* ================================================================
+   ANIMATIONS
+================================================================ */
+
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
@@ -40,27 +128,372 @@ body {
   }
 }
 
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes timerCountdown {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 251; }
+}
+
+@keyframes scoreFlash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); color: #10B981; }
+  100% { transform: scale(1); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(229, 9, 20, 0.3); }
+  50% { box-shadow: 0 0 35px rgba(229, 9, 20, 0.6); }
+}
+
+@keyframes bgGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ================================================================
+   UTILITY ANIMATION CLASSES
+================================================================ */
+
 .animate-fadeIn {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Custom scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(150, 150, 150, 0.3);
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(150, 150, 150, 0.5);
+.animate-fadeInScale {
+  animation: fadeInScale 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Mobile safe area */
+.animate-slideInUp {
+  animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideInRight {
+  animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glowPulse {
+  animation: glowPulse 2s ease-in-out infinite;
+}
+
+/* Staggered fade-in for list children */
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 120ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 180ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 240ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ================================================================
+   PREMIUM CARD VARIANTS
+================================================================ */
+
+.card-arena {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+
+.dark .card-arena {
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.card-arena:hover {
+  box-shadow: 0 8px 40px rgba(229, 9, 20, 0.12);
+  transform: translateY(-2px);
+  border-color: rgba(229, 9, 20, 0.2);
+}
+
+.card-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.5rem;
+}
+
+/* ================================================================
+   QUIZ QUESTION OPTION STATES
+================================================================ */
+
+.option-default {
+  background: var(--card);
+  border: 2px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.option-default:hover {
+  border-color: rgba(229, 9, 20, 0.4);
+  background: rgba(229, 9, 20, 0.04);
+  transform: translateX(4px);
+}
+
+.option-selected {
+  border-color: #3B82F6;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.option-correct {
+  border-color: #10B981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+.option-wrong {
+  border-color: #EF4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+
+/* ================================================================
+   GRADIENT TEXT UTILITY
+================================================================ */
+
+.text-gradient-arena {
+  background: linear-gradient(135deg, #E50914 0%, #FF6B6B 50%, #F59E0B 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(135deg, #F59E0B 0%, #FCD34D 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ================================================================
+   HERO GLOW EFFECTS
+================================================================ */
+
+.glow-red {
+  box-shadow: 0 0 30px rgba(229, 9, 20, 0.4), 0 0 60px rgba(229, 9, 20, 0.2);
+}
+
+.glow-gold {
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.4), 0 0 60px rgba(245, 158, 11, 0.15);
+}
+
+/* ================================================================
+   TIMER PROGRESS BAR
+================================================================ */
+
+.timer-bar {
+  height: 4px;
+  background: linear-gradient(90deg, #10B981, #3B82F6, #F59E0B, #E50914);
+  background-size: 200% 100%;
+  border-radius: 100px;
+  transition: width 1s linear;
+}
+
+.timer-bar.urgent {
+  background: linear-gradient(90deg, #EF4444, #E50914);
+  animation: glowPulse 0.5s ease-in-out infinite;
+}
+
+/* ================================================================
+   SHIMMER LOADING EFFECT
+================================================================ */
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    rgba(148, 163, 184, 0.15) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}
+
+/* ================================================================
+   MOBILE SAFE AREA
+================================================================ */
+
 .safe-bottom {
-  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+/* ================================================================
+   FOCUS RING
+================================================================ */
+
+:focus-visible {
+  outline: 2px solid #E50914;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ================================================================
+   SELECTION COLOR
+================================================================ */
+
+::selection {
+  background: rgba(229, 9, 20, 0.25);
+  color: var(--foreground);
+}
+
+/* ================================================================
+   LEADERBOARD RANK MARKERS
+================================================================ */
+
+.rank-1 {
+  background: linear-gradient(135deg, #F59E0B, #FCD34D);
+  color: #78350F;
+  font-weight: 900;
+}
+
+.rank-2 {
+  background: linear-gradient(135deg, #94A3B8, #CBD5E1);
+  color: #1E293B;
+  font-weight: 900;
+}
+
+.rank-3 {
+  background: linear-gradient(135deg, #CD7C2F, #E8A95B);
+  color: #7C2D12;
+  font-weight: 900;
+}
+
+/* ================================================================
+   RESPONSIVE CONTAINER PADDING
+================================================================ */
+
+.container-arena {
+  width: 100%;
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-arena {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-arena {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ================================================================
+   LIVE INDICATOR DOT
+================================================================ */
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #E50914;
+  border-radius: 50%;
+  display: inline-block;
+  position: relative;
+}
+
+.live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(229, 9, 20, 0.4);
+  animation: pulseSubtle 1.5s ease-in-out infinite;
+}
+
+/* ================================================================
+   NUMBER FONT (TABULAR)
+================================================================ */
+
+.font-num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ================================================================
+   BACKDROP BLUR FALLBACK
+================================================================ */
+
+@supports not (backdrop-filter: blur(1px)) {
+  .backdrop-blur-xl {
+    background: var(--card) !important;
+  }
 }
