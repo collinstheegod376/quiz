@@ -1493,7 +1493,7 @@ export const JUJUTSU_KAISEN_QUESTIONS: Question[] = [
     "id": "jjk-l9-125",
     "topicId": "jujutsu-kaisen",
     "levelNumber": 9,
-    "questionText": "What is the name of the legendary opening theme song for Season 1, Part 1 of the anime (\"Kaikai Kitan\")?",
+    "questionText": "What is the name of the legendary opening theme song for Season 1, Part 1 of the anime?",
     "optionA": "\"Kaikai Kitan\" by Eve",
     "optionB": "\"Vivid Vice\"",
     "optionC": "\"SPECIALZ\"",

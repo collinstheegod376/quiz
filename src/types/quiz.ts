@@ -1,4 +1,4 @@
-export type CategoryId = 'anime' | 'series' | 'movies' | 'chemistry' | 'physics';
+export type CategoryId = 'anime' | 'series' | 'movies' | 'chemistry' | 'physics' | 'games';
 
 export interface Category {
   id: CategoryId;
@@ -48,7 +48,8 @@ export type GameStatus =
   | 'REVEAL'
   | 'LEADERBOARD'
   | 'FINAL_RESULTS'
-  | 'FINISHED';
+  | 'FINISHED'
+  | 'NEXT_ROUND';
 
 export interface Player {
   id: string;

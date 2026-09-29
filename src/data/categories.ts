@@ -1,4 +1,5 @@
 import { Category, DifficultyLevel } from '@/types/quiz';
+import { TOPICS } from './topics';
 
 export const CATEGORIES: Category[] = [
   {
@@ -6,7 +7,7 @@ export const CATEGORIES: Category[] = [
     name: 'ANIMES',
     tagline: 'Otaku Championship',
     description: 'From classics to hidden gems. Test your knowledge on legendary arcs, power scales, and iconic moments.',
-    topicCount: 15,
+    topicCount: TOPICS.filter((t) => t.categoryId === 'anime').length,
     bannerImage: '/images/topics/one-piece.jpg',
     accentColor: '#DC2626', // Red
   },
@@ -15,7 +16,7 @@ export const CATEGORIES: Category[] = [
     name: 'POPULAR SERIES',
     tagline: 'Binge-Worthy TV',
     description: 'Test your knowledge on the most iconic TV series of all time, from gripping dramas to sci-fi thrillers.',
-    topicCount: 12,
+    topicCount: TOPICS.filter((t) => t.categoryId === 'series').length,
     bannerImage: '/images/topics/breaking-bad.jpg',
     accentColor: '#D97706', // Amber
   },
@@ -24,16 +25,25 @@ export const CATEGORIES: Category[] = [
     name: 'POPULAR MOVIES',
     tagline: 'Cinematic Universe',
     description: 'From Hollywood blockbusters to cult classics. How many directors, characters, and plot twists can you name?',
-    topicCount: 12,
+    topicCount: TOPICS.filter((t) => t.categoryId === 'movies').length,
     bannerImage: '/images/topics/dark-knight.jpg',
     accentColor: '#7C3AED', // Purple
+  },
+  {
+    id: 'games',
+    name: 'GAMES',
+    tagline: 'Gaming Universe',
+    description: 'From legendary open worlds and RPGs to competitive battlegrounds, esports, and iconic franchise lore.',
+    topicCount: TOPICS.filter((t) => t.categoryId === 'games').length,
+    bannerImage: '/images/topics/gaming.jpg',
+    accentColor: '#10B981', // Emerald
   },
   {
     id: 'chemistry',
     name: 'CHEMISTRY',
     tagline: 'Molecular Intellect',
     description: 'Elements, reactions, stoichiometry, thermodynamics, and molecular bonding.',
-    topicCount: 8,
+    topicCount: TOPICS.filter((t) => t.categoryId === 'chemistry').length,
     bannerImage: '/images/topics/science-lab.jpg',
     accentColor: '#059669', // Emerald
   },
@@ -42,7 +52,7 @@ export const CATEGORIES: Category[] = [
     name: 'PHYSICS',
     tagline: 'Cosmic Laws',
     description: 'Mechanics, quantum phenomena, thermodynamics, optics, and astrophysics.',
-    topicCount: 8,
+    topicCount: TOPICS.filter((t) => t.categoryId === 'physics').length,
     bannerImage: '/images/topics/science-space.jpg',
     accentColor: '#2563EB', // Blue
   },

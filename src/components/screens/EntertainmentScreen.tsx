@@ -158,52 +158,28 @@ export function EntertainmentScreen() {
         creator: 'Hidden Leaf',
       },
       {
-        id: 'dark-knight-cinematic',
-        topicId: 'the-dark-knight',
-        title: 'The Dark Knight',
-        category: 'movies',
-        tags: ['Movies', 'Batman', 'DC', 'Joker'],
-        questionCount: 80,
-        rating: 4.9,
-        difficulty: 'Medium',
-        imageUrl: '/images/topics/dark-knight.jpg',
-        creator: 'Gotham Knight',
-      },
-      {
-        id: 'inception-totem',
-        topicId: 'inception',
-        title: 'Inception',
-        category: 'movies',
-        tags: ['Movies', 'Sci-Fi', 'Nolan', 'Dreams'],
-        questionCount: 100,
-        rating: 4.9,
-        difficulty: 'Hard',
-        imageUrl: '/images/topics/inception.jpg',
-        creator: 'Architect Cobb',
-      },
-      {
-        id: 'star-wars-saga',
-        topicId: 'star-wars',
-        title: 'Star Wars',
-        category: 'movies',
-        tags: ['Movies', 'Sci-Fi', 'Jedi', 'Skywalker'],
-        questionCount: 150,
-        rating: 4.8,
-        difficulty: 'Hard',
-        imageUrl: '/images/topics/star-wars.jpg',
-        creator: 'Jedi Council',
-      },
-      {
-        id: 'mcu-avengers-endgame',
-        topicId: 'mcu',
-        title: 'Marvel Universe',
-        category: 'movies',
-        tags: ['Movies', 'Marvel', 'Avengers', 'Iron Man'],
+        id: 'jujutsu-kaisen-curse',
+        topicId: 'jujutsu-kaisen',
+        title: 'Jujutsu Kaisen',
+        category: 'anime',
+        tags: ['Anime', 'Sorcery', 'Gojo', 'Curses'],
         questionCount: 150,
         rating: 4.9,
         difficulty: 'Hard',
-        imageUrl: '/images/topics/mcu-avengers.jpg',
-        creator: 'S.H.I.E.L.D.',
+        imageUrl: '/images/topics/jujutsu-kaisen.jpg',
+        creator: 'Jujutsu High',
+      },
+      {
+        id: 'fullmetal-alchemist-lore',
+        topicId: 'fullmetal-alchemist',
+        title: 'Fullmetal Alchemist',
+        category: 'anime',
+        tags: ['Anime', 'Alchemy', 'Elric Brothers', 'Homunculus'],
+        questionCount: 150,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/fullmetal.jpg',
+        creator: 'State Alchemist',
       },
       {
         id: 'dragon-ball-saiyan',
@@ -223,11 +199,107 @@ export function EntertainmentScreen() {
         title: 'Hunter x Hunter',
         category: 'anime',
         tags: ['Anime', 'Gon', 'Killua', 'Nen'],
-        questionCount: 130,
+        questionCount: 150,
         rating: 4.9,
         difficulty: 'Hard',
         imageUrl: '/images/topics/hunter-x-hunter.jpg',
         creator: 'Hunter Assoc',
+      },
+      {
+        id: 'jobless-reincarnation-lore',
+        topicId: 'jobless-reincarnation',
+        title: 'Jobless Reincarnation',
+        category: 'anime',
+        tags: ['Anime', 'Isekai', 'Rudeus', 'Magic'],
+        questionCount: 150,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/jobless-reincarnation.jpg',
+        creator: 'Rudeus Greyrat',
+      },
+      {
+        id: 'reincarnated-slime-tempest',
+        topicId: 'reincarnated-slime',
+        title: 'That Time I Got Reincarnated as a Slime',
+        category: 'anime',
+        tags: ['Anime', 'Isekai', 'Rimuru', 'Tempest'],
+        questionCount: 150,
+        rating: 5.0,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/reincarnated-slime.jpg',
+        creator: 'Rimuru Tempest',
+      },
+      {
+        id: 'spy-x-family-strix',
+        topicId: 'spy-x-family',
+        title: 'Spy x Family',
+        category: 'anime',
+        tags: ['Anime', 'Espionage', 'Anya', 'Loid'],
+        questionCount: 150,
+        rating: 4.9,
+        difficulty: 'Medium',
+        imageUrl: '/images/topics/spy-x-family.jpg',
+        creator: 'WISE Agent Twilight',
+      },
+      {
+        id: 'cyberpunk-edgerunners-sandevistan',
+        topicId: 'cyberpunk-edgerunners',
+        title: 'Cyberpunk: Edgerunners',
+        category: 'anime',
+        tags: ['Anime', 'Cyberpunk', 'David', 'Lucy'],
+        questionCount: 150,
+        rating: 5.0,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/cyberpunk-edgerunners.jpg',
+        creator: 'Night City Legend',
+      },
+      {
+        id: 'darwins-game-sigil',
+        topicId: 'darwins-game',
+        title: "Darwin's Game",
+        category: 'anime',
+        tags: ['Anime', 'Battle Royale', 'Kaname', 'Shuka'],
+        questionCount: 150,
+        rating: 4.8,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/darwins-game.jpg',
+        creator: 'Sunset Ravens',
+      },
+      {
+        id: 'modern-family-dunphy',
+        topicId: 'modern-family',
+        title: 'Modern Family',
+        category: 'series',
+        tags: ['TV Series', 'Comedy', 'Phil Dunphy', 'Sitcom'],
+        questionCount: 358,
+        rating: 4.9,
+        difficulty: 'Medium',
+        imageUrl: '/images/topics/modern-family.jpg',
+        creator: 'Phil Dunphy',
+      },
+      {
+        id: 'black-lightning-freeland',
+        topicId: 'black-lightning',
+        title: 'Black Lightning',
+        category: 'series',
+        tags: ['TV Series', 'Superheroes', 'DC', 'Jefferson Pierce'],
+        questionCount: 247,
+        rating: 4.8,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/black-lightning.jpg',
+        creator: 'Freeland Watch',
+      },
+      {
+        id: 'gta-v-los-santos',
+        topicId: 'gta-v',
+        title: 'Grand Theft Auto V',
+        category: 'gaming',
+        tags: ['Gaming', 'GTA', 'Open World', 'Los Santos'],
+        questionCount: 150,
+        rating: 5.0,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/gta.jpg',
+        creator: 'Los Santos Customs',
       },
     ];
   }, []);
@@ -268,7 +340,7 @@ export function EntertainmentScreen() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FFFDF4] text-[#000000] pb-8 font-sans">
+    <div className="w-full min-h-screen bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] pb-8 font-sans transition-colors duration-200">
       {/* Mobile Join PIN Band */}
       <MobileJoinBar />
 
@@ -284,7 +356,7 @@ export function EntertainmentScreen() {
                 Create a quiz
               </h2>
               <p className="font-roboto text-xs md:text-sm font-bold opacity-90 leading-tight">
-                Play for free with up to 300 participants
+                Play for free with up to 4 participants
               </p>
               <div className="pt-2">
                 <QuizButton
@@ -363,11 +435,10 @@ export function EntertainmentScreen() {
                 key={tag}
                 type="button"
                 onClick={() => setActiveTag(tag)}
-                className={`px-3.5 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm whitespace-nowrap transition-colors cursor-pointer border ${
-                  activeTag === tag
-                    ? 'bg-black text-white border-black'
-                    : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white border-[#CECCC5] dark:border-[#363535] hover:bg-black/10'
-                }`}
+                className={`px-3.5 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm whitespace-nowrap transition-colors cursor-pointer border ${activeTag === tag
+                  ? 'bg-black text-white border-black'
+                  : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white border-[#CECCC5] dark:border-[#363535] hover:bg-black/10'
+                  }`}
               >
                 {tag}
               </button>
@@ -427,15 +498,14 @@ export function EntertainmentScreen() {
                     {/* Difficulty Badge */}
                     <div className="absolute bottom-1 left-1.5">
                       <span
-                        className={`text-[9px] md:text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
-                          quiz.difficulty === 'Nightmare'
-                            ? 'bg-red-600 text-white'
-                            : quiz.difficulty === 'Hard'
+                        className={`text-[9px] md:text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${quiz.difficulty === 'Nightmare'
+                          ? 'bg-red-600 text-white'
+                          : quiz.difficulty === 'Hard'
                             ? 'bg-[#FF94AB] text-black'
                             : quiz.difficulty === 'Medium'
-                            ? 'bg-[#B9843E] text-white'
-                            : 'bg-[#4CA471] text-white'
-                        }`}
+                              ? 'bg-[#B9843E] text-white'
+                              : 'bg-[#4CA471] text-white'
+                          }`}
                       >
                         {quiz.difficulty}
                       </span>

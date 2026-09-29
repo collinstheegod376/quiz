@@ -127,29 +127,35 @@ export function QuestionScreen() {
           let textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
 
           if (isReveal) {
-            if (isUserPick && isCorrect) {
-              containerStyle = 'bg-[#4CA471]/15 border-[#4CA471] cursor-default';
-              badgeStyle = 'bg-[#4CA471] text-white border-[#4CA471]';
-              textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
+            if (isCorrect) {
+              // The CORRECT answer is ALWAYS boldly and vibrantly highlighted in green
+              containerStyle =
+                'bg-[#4CA471]/20 dark:bg-[#4CA471]/30 border-2 border-[#4CA471] ring-2 ring-[#4CA471]/30 cursor-default shadow-sm';
+              badgeStyle = 'bg-[#4CA471] text-white border-[#4CA471] font-black shadow-sm';
+              textStyle = 'text-[#000000] dark:text-[#FEFEFD] font-black';
             } else if (isUserPick && !isCorrect) {
-              containerStyle = 'bg-[#FF94AB]/15 border-[#FF94AB] cursor-default';
-              badgeStyle = 'bg-[#FF94AB] text-[#000000] border-[#FF94AB]';
-              textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
-            } else if (!isUserPick && isCorrect) {
-              containerStyle = 'bg-[#4CA471]/8 border-[#4CA471]/50 cursor-default';
-              badgeStyle = 'bg-[#4CA471]/20 text-[#4CA471] border-[#4CA471]/40';
-              textStyle = 'text-[#595955] dark:text-[#A4A3A3]';
+              // The user's incorrect pick
+              containerStyle =
+                'bg-[#FF94AB]/25 dark:bg-[#FF94AB]/30 border-2 border-[#FF94AB] cursor-default';
+              badgeStyle = 'bg-[#FF94AB] text-[#000000] border-[#FF94AB] font-black';
+              textStyle = 'text-[#000000] dark:text-[#FEFEFD] font-bold line-through opacity-85';
             } else {
-              containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-40 cursor-default';
-              badgeStyle = 'bg-[#E5E3DB] dark:bg-[#2A2929] text-[#CECCC5] border-[#CECCC5]';
-              textStyle = 'text-[#CECCC5]';
+              // Other wrong options that were not picked
+              containerStyle =
+                'bg-[#FFFDF4]/50 dark:bg-[#100F0F]/50 border-[#CECCC5]/60 dark:border-[#363535]/60 opacity-35 cursor-default';
+              badgeStyle =
+                'bg-[#E5E3DB]/60 dark:bg-[#2A2929]/60 text-[#CECCC5] dark:text-[#595955] border-[#CECCC5]/60 dark:border-[#363535]/60';
+              textStyle = 'text-[#595955]/60 dark:text-[#A4A3A3]/60';
             }
           } else if (isUserPick) {
-            containerStyle = 'bg-[#EBDAC3] border-[#000000] dark:border-[#FEFEFD] cursor-default';
-            badgeStyle = 'bg-[#000000] dark:bg-[#FEFEFD] text-[#FEFEFD] dark:text-[#000000] border-[#000000] dark:border-[#FEFEFD]';
-            textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
+            containerStyle =
+              'bg-[#EBDAC3] border-2 border-[#000000] dark:border-[#FEFEFD] cursor-default';
+            badgeStyle =
+              'bg-[#000000] dark:bg-[#FEFEFD] text-[#FEFEFD] dark:text-[#000000] border-[#000000] dark:border-[#FEFEFD] font-black';
+            textStyle = 'text-[#000000] dark:text-[#FEFEFD] font-bold';
           } else if (isAnswerSubmitted) {
-            containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-50 cursor-not-allowed';
+            containerStyle =
+              'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-50 cursor-not-allowed';
           }
 
           const borderClass = idx % 2 === 0 && idx < options.length - 1 ? 'sm:border-r' : '';
@@ -174,14 +180,18 @@ export function QuestionScreen() {
                 {opt.label}
               </span>
 
-              {/* Reveal indicator */}
+              {/* Reveal indicator pill */}
               {isReveal && (
-                isUserPick && isCorrect ? (
-                  <CheckCircle2 className="w-5 h-5 text-[#4CA471] shrink-0" />
+                isCorrect ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#4CA471] text-white font-nunito font-black text-[12px] tracking-[0.4px] shrink-0 uppercase shadow-sm">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {isUserPick ? 'Correct!' : 'Correct Answer'}
+                  </span>
                 ) : isUserPick && !isCorrect ? (
-                  <XCircle className="w-5 h-5 text-[#FF94AB] shrink-0" />
-                ) : isCorrect ? (
-                  <CheckCircle2 className="w-5 h-5 text-[#4CA471] shrink-0" />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-[#FF94AB] text-[#000000] font-nunito font-black text-[12px] tracking-[0.4px] shrink-0 uppercase shadow-sm">
+                    <XCircle className="w-3.5 h-3.5" />
+                    Your Choice
+                  </span>
                 ) : null
               )}
             </button>

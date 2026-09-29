@@ -8,6 +8,8 @@ import { QuizButton } from '../ui/QuizButton';
 import { QuizCarousel, QuizCardData } from '../ui/QuizCarousel';
 import { Vote, Sparkles, BookOpen } from 'lucide-react';
 
+import { TOPICS } from '@/data/topics';
+
 export function LandingScreen() {
   const {
     setCurrentView,
@@ -17,90 +19,42 @@ export function LandingScreen() {
   } = useGame();
   const { currentUser, setIsAuthModalOpen } = useAuth();
 
-  // Curated sets of quizzes with clean franchise names (no words after colon)
-  const recentlyPublishedQuizzes: QuizCardData[] = useMemo(() => [
+  // Dynamically derive Recently Published directly from all topics (newest additions first)
+  const recentlyPublishedQuizzes: QuizCardData[] = useMemo(() => {
+    return [...TOPICS]
+      .reverse()
+      .map((topic) => ({
+        id: `${topic.id}-recent`,
+        topicId: topic.id,
+        title: topic.name,
+        imageUrl: topic.imageUrl,
+        rating: 4.8 + Number(((topic.id.length % 3) * 0.1).toFixed(1)),
+        author: topic.categoryId === 'anime' ? 'OtakuVerse' : topic.categoryId === 'games' ? 'GamerZone' : 'CineVerse',
+        difficulty: (topic.questionCount >= 150 ? 'HARD' : 'MEDIUM') as 'HARD' | 'MEDIUM' | 'EASY',
+        questionCount: topic.questionCount,
+      }));
+  }, []);
+
+  const aiQuizzes: QuizCardData[] = useMemo(() => [
     {
-      id: 'gojo-vs-sukuna-recent',
-      topicId: 'gojo-vs-sukuna',
-      title: 'Gojo vs. Sukuna',
-      imageUrl: '/images/topics/gojo-vs-sukuna.jpg',
-      rating: 5.0,
-      author: 'JujutsuHigh',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'one-piece-recent',
-      topicId: 'one-piece',
-      title: 'One Piece',
-      imageUrl: '/images/topics/one-piece.jpg',
+      id: 'jujutsu-kaisen-ai',
+      topicId: 'jujutsu-kaisen',
+      title: 'Jujutsu Kaisen',
+      imageUrl: '/images/topics/jujutsu-kaisen.jpg',
       rating: 4.9,
-      author: 'LuffyCaptain',
-      difficulty: 'HARD',
+      author: 'AI Generator',
+      difficulty: 'AI',
       questionCount: 150,
     },
     {
-      id: 'the-boys-recent',
-      topicId: 'the-boys',
-      title: 'The Boys',
-      imageUrl: '/images/topics/the-boys.jpg',
-      rating: 4.8,
-      author: 'BillyButcher',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'breaking-bad-recent',
-      topicId: 'breaking-bad',
-      title: 'Breaking Bad',
-      imageUrl: '/images/topics/breaking-bad.jpg',
-      rating: 4.9,
-      author: 'WalterWhite',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'attack-on-titan-recent',
+      id: 'attack-on-titan-ai',
       topicId: 'attack-on-titan',
       title: 'Attack on Titan',
       imageUrl: '/images/topics/attack-on-titan.jpg',
       rating: 4.8,
-      author: 'ScoutRegiment',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'stranger-things-recent',
-      topicId: 'stranger-things',
-      title: 'Stranger Things',
-      imageUrl: '/images/topics/stranger-things.jpg',
-      rating: 4.7,
-      author: 'HellfireClub',
-      difficulty: 'MEDIUM',
-      questionCount: 150,
-    },
-  ], []);
-
-  const aiQuizzes: QuizCardData[] = useMemo(() => [
-    {
-      id: 'quantum-physics-ai',
-      topicId: 'physics',
-      title: 'Quantum Physics',
-      imageUrl: '/images/topics/science-space.jpg',
-      rating: 4.9,
       author: 'AI Generator',
       difficulty: 'AI',
-      questionCount: 80,
-    },
-    {
-      id: 'organic-chemistry-ai',
-      topicId: 'chemistry',
-      title: 'Chemical Reactions',
-      imageUrl: '/images/topics/science-lab.jpg',
-      rating: 4.8,
-      author: 'AI Generator',
-      difficulty: 'AI',
-      questionCount: 80,
+      questionCount: 150,
     },
     {
       id: 'bleach-tybw-ai',
@@ -156,14 +110,14 @@ export function LandingScreen() {
       questionCount: 110,
     },
     {
-      id: 'dark-knight-best',
-      topicId: 'the-dark-knight',
-      title: 'The Dark Knight',
-      imageUrl: '/images/topics/dark-knight.jpg',
+      id: 'dbz-best',
+      topicId: 'dragon-ball',
+      title: 'Dragon Ball Z',
+      imageUrl: '/images/topics/dragon-ball.jpg',
       rating: 4.9,
-      author: 'GothamKnight',
+      author: 'GokuSaiyan',
       difficulty: 'MEDIUM',
-      questionCount: 80,
+      questionCount: 150,
     },
     {
       id: 'hxh-best',
@@ -173,7 +127,7 @@ export function LandingScreen() {
       rating: 4.9,
       author: 'Kurapika99',
       difficulty: 'HARD',
-      questionCount: 130,
+      questionCount: 150,
     },
     {
       id: 'fma-best',
@@ -186,32 +140,32 @@ export function LandingScreen() {
       questionCount: 150,
     },
     {
-      id: 'star-wars-best',
-      topicId: 'star-wars',
-      title: 'Star Wars',
-      imageUrl: '/images/topics/star-wars.jpg',
+      id: 'the-boys-best',
+      topicId: 'the-boys',
+      title: 'The Boys',
+      imageUrl: '/images/topics/the-boys.jpg',
       rating: 4.8,
-      author: 'Skywalker',
+      author: 'BillyButcher',
       difficulty: 'HARD',
       questionCount: 150,
     },
     {
-      id: 'inception-best',
-      topicId: 'inception',
-      title: 'Inception',
-      imageUrl: '/images/topics/inception.jpg',
+      id: 'stranger-things-best',
+      topicId: 'stranger-things',
+      title: 'Stranger Things',
+      imageUrl: '/images/topics/stranger-things.jpg',
       rating: 4.9,
-      author: 'DreamMaster',
+      author: 'HawkinsLab',
       difficulty: 'HARD',
-      questionCount: 100,
+      questionCount: 150,
     },
     {
-      id: 'mcu-best',
-      topicId: 'mcu',
-      title: 'Marvel Universe',
-      imageUrl: '/images/topics/mcu-avengers.jpg',
+      id: 'breaking-bad-best',
+      topicId: 'breaking-bad',
+      title: 'Breaking Bad',
+      imageUrl: '/images/topics/breaking-bad.jpg',
       rating: 4.9,
-      author: 'StanLeeFan',
+      author: 'WalterWhite',
       difficulty: 'HARD',
       questionCount: 150,
     },
@@ -260,48 +214,18 @@ export function LandingScreen() {
     },
   ], []);
 
-  const animeCategoryQuizzes: QuizCardData[] = useMemo(() => [
-    {
-      id: 'anime-op',
-      topicId: 'one-piece',
-      title: 'One Piece',
-      imageUrl: '/images/topics/one-piece.jpg',
+  const animeCategoryQuizzes: QuizCardData[] = useMemo(() => {
+    return TOPICS.filter((t) => t.categoryId === 'anime').map((topic) => ({
+      id: `anime-${topic.id}`,
+      topicId: topic.id,
+      title: topic.name,
+      imageUrl: topic.imageUrl,
       rating: 4.9,
-      author: 'OdaFan',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'anime-jjk',
-      topicId: 'gojo-vs-sukuna',
-      title: 'Jujutsu Kaisen',
-      imageUrl: '/images/topics/jujutsu-kaisen.jpg',
-      rating: 5.0,
-      author: 'Sorcerer',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-    {
-      id: 'anime-naruto',
-      topicId: 'naruto',
-      title: 'Naruto',
-      imageUrl: '/images/topics/naruto.jpg',
-      rating: 4.8,
-      author: 'KonohaGenin',
-      difficulty: 'EASY',
-      questionCount: 110,
-    },
-    {
-      id: 'anime-bleach',
-      topicId: 'bleach',
-      title: 'Bleach',
-      imageUrl: '/images/topics/bleach.jpg',
-      rating: 4.8,
-      author: 'Shinikami',
-      difficulty: 'HARD',
-      questionCount: 150,
-    },
-  ], []);
+      author: 'AniZuki',
+      difficulty: (topic.questionCount >= 150 ? 'HARD' : 'MEDIUM') as 'HARD' | 'MEDIUM' | 'EASY',
+      questionCount: topic.questionCount,
+    }));
+  }, []);
 
   const handleVoteMode = () => {
     const username = currentUser?.username || 'PlayerOne';
@@ -325,7 +249,7 @@ export function LandingScreen() {
                 Create a quiz
               </h2>
               <p className="font-roboto text-xs sm:text-sm font-bold opacity-90 leading-tight">
-                Play for free with 300 participants
+                Play for free with  up to 4 participants
               </p>
               <div className="pt-2">
                 <QuizButton
@@ -424,7 +348,7 @@ export function LandingScreen() {
         {/* ── Carousel 5: Anime Category Section ── */}
         <QuizCarousel
           title="Anime"
-          seeAllCount={15}
+          seeAllCount={TOPICS.filter((t) => t.categoryId === 'anime').length}
           onSeeAll={() => {
             setSelectedCategoryId('anime');
             setCurrentView('topics');
@@ -433,18 +357,18 @@ export function LandingScreen() {
         />
 
         {/* ── Meet the Creator & SEO Section ── */}
-        <footer className="mt-12 pt-8 pb-4 border-t border-[#CECCC5] text-center space-y-4">
+        <footer className="mt-12 pt-8 pb-4 border-t border-[#CECCC5] dark:border-[#363535] text-center space-y-4">
           <div className="max-w-2xl mx-auto space-y-2">
-            <h4 className="font-nunito font-black text-lg text-black">
+            <h4 className="font-nunito font-black text-lg text-black dark:text-white">
               Anizuki — The Human Robo Anime Arena
             </h4>
-            <p className="font-roboto text-xs text-[#595955] leading-relaxed">
+            <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3] leading-relaxed">
               Designed and engineered from scratch by{' '}
               <a
                 href="https://www.promisedkillua.sbs/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold text-black underline hover:text-[#00A76D] transition-colors"
+                className="font-bold text-black dark:text-white underline hover:text-[#00A76D] transition-colors"
               >
                 Promised Killua
               </a>{' '}
@@ -456,13 +380,13 @@ export function LandingScreen() {
               href="https://www.promisedkillua.sbs/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black text-white hover:bg-black/80 transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black dark:bg-[#1E1D1D] text-white dark:border dark:border-[#363535] hover:bg-black/80 transition-colors shadow-sm"
             >
               <span>Explore Promised Killua&apos;s Portfolio</span>
               <span className="text-[#6FEEFF]">↗</span>
             </a>
           </div>
-          <p className="text-[11px] text-[#595955] font-roboto pt-2">
+          <p className="text-[11px] text-[#595955] dark:text-[#A4A3A3] font-roboto pt-2">
             © {new Date().getFullYear()} Anizuki. All rights reserved. Built by Promised Killua.
           </p>
         </footer>

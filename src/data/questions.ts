@@ -13,6 +13,14 @@ import { ONE_PIECE_QUESTIONS } from './questions_onepiece';
 import { STRANGER_THINGS_QUESTIONS } from './questions_strangerthings';
 import { THE_BOYS_QUESTIONS } from './questions_theboys';
 import { GOJO_VS_SUKUNA_QUESTIONS } from './questions_gojo_vs_sukuna';
+import { JOBLESS_REINCARNATION_QUESTIONS } from './questions_mushokutensei';
+import { REINCARNATED_SLIME_QUESTIONS } from './questions_slime';
+import { SPY_X_FAMILY_QUESTIONS } from './questions_spyxfamily';
+import { CYBERPUNK_EDGERUNNERS_QUESTIONS } from './questions_cyberpunk';
+import { DARWINS_GAME_QUESTIONS } from './questions_darwinsgame';
+import { MODERN_FAMILY_QUESTIONS } from './questions_modernfamily';
+import { GTA_V_QUESTIONS } from './questions_gtav';
+import { BLACK_LIGHTNING_QUESTIONS } from './questions_blacklightning';
 
 export const SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -29,6 +37,15 @@ export const SEED_QUESTIONS: Question[] = [
   ...STRANGER_THINGS_QUESTIONS,
   ...THE_BOYS_QUESTIONS,
   ...GOJO_VS_SUKUNA_QUESTIONS,
+  ...JOBLESS_REINCARNATION_QUESTIONS,
+  ...REINCARNATED_SLIME_QUESTIONS,
+  ...SPY_X_FAMILY_QUESTIONS,
+  ...CYBERPUNK_EDGERUNNERS_QUESTIONS,
+  ...DARWINS_GAME_QUESTIONS,
+  ...MODERN_FAMILY_QUESTIONS,
+  ...GTA_V_QUESTIONS,
+  ...BLACK_LIGHTNING_QUESTIONS,
+
   // ONE PIECE (Level 1 - Casual)
   {
     id: 'op-l1-1',
@@ -286,28 +303,75 @@ export const SEED_QUESTIONS: Question[] = [
   },
 ];
 
-// Helper: Generates guaranteed high-quality questions for any topic and level
+// Utility: Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Helper: Shuffles options A, B, C, D while maintaining 100% accurate correctOption mapping
+export function shuffleQuestionOptions(question: Question): Question {
+  if (!question.correctOption) return { ...question };
+
+  const correctKey = question.correctOption;
+  const rawOptions = [
+    { text: question.optionA, wasCorrect: correctKey === 'A' },
+    { text: question.optionB, wasCorrect: correctKey === 'B' },
+    { text: question.optionC, wasCorrect: correctKey === 'C' },
+    { text: question.optionD, wasCorrect: correctKey === 'D' },
+  ];
+
+  const shuffled = shuffleArray(rawOptions);
+  const keys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+  let newCorrect: 'A' | 'B' | 'C' | 'D' = 'A';
+
+  shuffled.forEach((opt, idx) => {
+    if (opt.wasCorrect) {
+      newCorrect = keys[idx];
+    }
+  });
+
+  return {
+    ...question,
+    optionA: shuffled[0].text,
+    optionB: shuffled[1].text,
+    optionC: shuffled[2].text,
+    optionD: shuffled[3].text,
+    correctOption: newCorrect,
+  };
+}
+
+// Helper: Randomizes questions within designated levels and shuffles answer options
 export function getQuestionsForMatch(
   topicId: string,
   levelNumber: number,
   count: number
 ): Question[] {
-  // First find exact matches
+  // 1. Find exact matches in designated level
   const directMatches = SEED_QUESTIONS.filter(
     (q) => q.topicId === topicId && q.levelNumber === levelNumber
   );
 
-  const topicMatches = SEED_QUESTIONS.filter((q) => q.topicId === topicId);
-  const pool = [...directMatches];
+  // 2. Randomly shuffle questions in this designated level
+  const pool = shuffleArray(directMatches);
 
-  // Add others from same topic if needed
-  topicMatches.forEach((q) => {
-    if (!pool.some((p) => p.id === q.id)) {
-      pool.push(q);
-    }
-  });
+  // 3. If level pool is short of required count, pull from other levels for the same topic
+  if (pool.length < count) {
+    const otherMatches = shuffleArray(
+      SEED_QUESTIONS.filter((q) => q.topicId === topicId && q.levelNumber !== levelNumber)
+    );
+    otherMatches.forEach((q) => {
+      if (pool.length < count && !pool.some((p) => p.id === q.id)) {
+        pool.push(q);
+      }
+    });
+  }
 
-  // If pool is still short of required count (e.g. 10, 12, or 15 questions), dynamically generate realistic lore questions
+  // 4. If still short of count, generate procedural questions
   let counter = 1;
   while (pool.length < count) {
     const syntheticId = `${topicId}-lvl${levelNumber}-synth-${counter}`;
@@ -317,8 +381,11 @@ export function getQuestionsForMatch(
     counter++;
   }
 
-  // Shuffle and slice exactly to count
-  return pool.slice(0, count);
+  // 5. Shuffle the selected pool and slice to count
+  const selectedQuestions = shuffleArray(pool).slice(0, count);
+
+  // 6. Randomize options (A, B, C, D) and remap correctOption for every single question
+  return selectedQuestions.map((q) => shuffleQuestionOptions(q));
 }
 
 function generateProceduralQuestion(

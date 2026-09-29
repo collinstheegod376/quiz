@@ -40,21 +40,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#FFFDF4]">
-      <div className="w-full max-w-md bg-[#FFFDF4] border border-[#CECCC5] shadow-xl rounded-2xl overflow-hidden">
+    <div className="min-h-[85vh] flex items-center justify-center p-4 bg-[#FFFDF4] dark:bg-[#100F0F] transition-colors duration-200">
+      <div className="w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-xl rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-6">
+        <div className="bg-[#EBDAC3] dark:bg-[#2A2929] border-b border-[#CECCC5] dark:border-[#363535] px-6 py-6">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-nunito font-bold text-[#595955] hover:text-black mb-3 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-nunito font-bold text-[#595955] dark:text-[#A4A3A3] hover:text-black dark:hover:text-white mb-3 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Home</span>
           </Link>
-          <h1 className="font-nunito font-black text-2xl text-black tracking-tight">
+          <h1 className="font-nunito font-black text-2xl text-black dark:text-white tracking-tight">
             Log In to AniZuki
           </h1>
-          <p className="font-roboto text-xs font-bold text-[#595955] mt-1">
+          <p className="font-roboto text-xs font-bold text-[#595955] dark:text-[#A4A3A3] mt-1">
             Welcome back! Enter your credentials to continue your streak.
           </p>
         </div>

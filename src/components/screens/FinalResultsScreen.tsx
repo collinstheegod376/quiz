@@ -14,9 +14,13 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { useAchievements } from '@/context/AchievementContext';
+import { useAuth } from '@/context/AuthContext';
 
 export function FinalResultsScreen() {
-  const { room, currentPlayer, playAgain, goToNextLevel, leaveRoom } = useGame();
+  const { room, currentPlayer, playAgain, goToNextRound, leaveRoom } = useGame();
+  const { checkMatchAchievements } = useAchievements();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     try {
@@ -29,7 +33,31 @@ export function FinalResultsScreen() {
     } catch {
       // Ignored
     }
-  }, []);
+
+    if (room && currentPlayer) {
+      const sorted = [...room.players].sort((a, b) => b.score - a.score);
+      const myRank = sorted.findIndex((p) => p.id === currentPlayer.id) + 1;
+      const avgSec =
+        currentPlayer.correctAnswers > 0
+          ? currentPlayer.totalResponseTimeMs / 1000 / (room.calculatedQuestionCount || 10)
+          : 5;
+
+      checkMatchAchievements({
+        topicId: room.topicId,
+        difficultyLevel: room.difficultyLevel,
+        totalQuestions: room.calculatedQuestionCount,
+        correctAnswers: currentPlayer.correctAnswers,
+        maxStreak: currentPlayer.correctAnswers,
+        fastestAnswerSec: Math.max(0.8, avgSec * 0.6),
+        avgResponseSec: avgSec,
+        playerRank: myRank > 0 ? myRank : 1,
+        totalScore: currentPlayer.score,
+        careerCorrect: (currentUser?.stats.correctAnswers || 0) + currentPlayer.correctAnswers,
+        careerMatches: (currentUser?.stats.matchesPlayed || 0) + 1,
+        careerTotalScore: (currentUser?.stats.totalScore || 0) + currentPlayer.score,
+      });
+    }
+  }, [room, currentPlayer, checkMatchAchievements, currentUser]);
 
   if (!room || !currentPlayer) return null;
 
@@ -174,17 +202,22 @@ export function FinalResultsScreen() {
         <Button
           variant="arena"
           size="xl"
-          onClick={goToNextLevel}
+          onClick={() => goToNextRound()}
           className="w-full sm:w-auto flex items-center justify-center gap-2"
         >
           <ArrowRight className="w-5 h-5 text-[#6FEEFF]" />
           <span>
             {(room.difficultyLevel || 1) >= 9
-              ? 'Loop Back to Level 1'
-              : `Next Level (Level ${(room.difficultyLevel || 1) + 1})`}
+              ? 'Next Round (Loop to Level 1)'
+              : `Next Round (Level ${(room.difficultyLevel || 1) + 1})`}
           </span>
         </Button>
-        <Button variant="outline" size="xl" onClick={playAgain} className="w-full sm:w-auto">
+        <Button
+          variant="outline"
+          size="xl"
+          onClick={() => goToNextRound(room.difficultyLevel || 1)}
+          className="w-full sm:w-auto"
+        >
           <RotateCcw className="w-5 h-5" />
           Replay Current Level
         </Button>

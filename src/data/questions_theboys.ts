@@ -1325,7 +1325,7 @@ export const THE_BOYS_QUESTIONS: Question[] = [
     "id": "boys-l8-111",
     "topicId": "the-boys",
     "levelNumber": 8,
-    "questionText": "What is the exact title of Season 4, Episode 1 (\"Department of Dirty Tricks\")?",
+    "questionText": "What is the exact title of Season 4, Episode 1?",
     "optionA": "\"Department of Dirty Tricks\"",
     "optionB": "\"Life Among the Septics\"",
     "optionC": "\"Keep It Clean\"",

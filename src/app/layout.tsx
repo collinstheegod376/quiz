@@ -78,23 +78,44 @@ export const viewport = {
   themeColor: '#FFFDF4',
 };
 
+import { AchievementProvider } from '@/context/AchievementContext';
+import { AchievementToast } from '@/components/ui/AchievementToast';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    // Light mode only — no "dark" class
     <html lang="en" className={`${nunito.variable} ${roboto.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col antialiased font-sans bg-[#FFFDF4]">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const saved = localStorage.getItem('quiz_arena_theme');
+                if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                } else {
+                  document.documentElement.classList.remove('dark');
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className="min-h-screen flex flex-col antialiased font-sans bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] transition-colors duration-200">
         <AuthProvider>
           <ThemeProvider>
-            <GameProvider>
-              <Navbar />
-              <main className="flex-1 w-full">{children}</main>
-              <MobileNav />
-              <ModalsContainer />
-            </GameProvider>
+            <AchievementProvider>
+              <GameProvider>
+                <Navbar />
+                <main className="flex-1 w-full">{children}</main>
+                <MobileNav />
+                <ModalsContainer />
+                <AchievementToast />
+              </GameProvider>
+            </AchievementProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

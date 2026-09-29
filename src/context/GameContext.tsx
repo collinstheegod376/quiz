@@ -15,7 +15,7 @@ import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-export type AppView = 'landing' | 'entertainment' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
+export type AppView = 'landing' | 'entertainment' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game' | 'achievements';
 
 interface GameContextType {
   // Navigation & Selection
@@ -53,6 +53,8 @@ interface GameContextType {
   advanceToNextState: () => void;
   playAgain: () => void;
   goToNextLevel: () => Promise<void>;
+  goToNextRound: (targetLevel?: number) => Promise<void>;
+  startNextRound: () => Promise<void>;
 
   // Sound & Modals
   isSoundMuted: boolean;
@@ -145,14 +147,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             setGameQuestions(incomingRoom.questions);
           }
 
-          // Auto-switch view when game starts
+          // Auto-switch view when game starts or moves to next round
           if (
             incomingRoom.status === 'QUESTION' ||
             incomingRoom.status === 'REVEAL' ||
             incomingRoom.status === 'FINAL_RESULTS' ||
-            incomingRoom.status === 'FINISHED'
+            incomingRoom.status === 'FINISHED' ||
+            incomingRoom.status === 'NEXT_ROUND'
           ) {
             setCurrentView('game');
+          }
+
+          if (incomingRoom.status === 'NEXT_ROUND') {
+            setIsMatchFinished(false);
+            setLocalQuestionIndex(0);
+            setIsLocalReveal(false);
           }
 
           setRoom(incomingRoom);
@@ -181,7 +190,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ─── Reset question UI on every new question ──────────────────────────────
+  // ─── Reset question UI on every new question or next round ─────────────────
   const roomStatus = room?.status;
   const currentQuestionIdx = room?.currentQuestionIndex;
 
@@ -189,6 +198,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (roomStatus === 'QUESTION') {
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
+      setIsLocalReveal(false);
+      setIsMatchFinished(false);
       setTimerSeconds(room?.timePerQuestion || 15);
       setAnswerTimeStart(Date.now());
       isTransitioningRef.current = false;
@@ -196,6 +207,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
+    } else if (roomStatus === 'NEXT_ROUND') {
+      setIsMatchFinished(false);
+      setSelectedOption(null);
+      setIsAnswerSubmitted(false);
+      setIsLocalReveal(false);
+      setLocalQuestionIndex(0);
     }
   }, [roomStatus, currentQuestionIdx, room?.timePerQuestion]);
 
@@ -203,8 +220,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!room?.code || !isSupabaseConfigured) return;
 
-    // Fast poll during active gameplay, relaxed poll in lobby
-    const pollIntervalMs = room.status === 'QUESTION' || room.status === 'REVEAL' ? 750 : 1500;
+    // Fast poll during active gameplay or next round ready staging, relaxed poll in lobby
+    const pollIntervalMs =
+      room.status === 'QUESTION' || room.status === 'REVEAL' || room.status === 'NEXT_ROUND'
+        ? 750
+        : 1500;
 
     const interval = setInterval(async () => {
       try {
@@ -224,7 +244,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               remoteRoom.players.length !== prev.players.length ||
               remoteRoom.players.some((rp) => {
                 const lp = prev.players.find((p) => p.id === rp.id);
-                return !lp || lp.hasAnswered !== rp.hasAnswered || lp.score !== rp.score;
+                return (
+                  !lp ||
+                  lp.hasAnswered !== rp.hasAnswered ||
+                  lp.score !== rp.score ||
+                  lp.isReady !== rp.isReady
+                );
               });
 
             if (
@@ -239,9 +264,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                 remoteRoom.status === 'QUESTION' ||
                 remoteRoom.status === 'REVEAL' ||
                 remoteRoom.status === 'FINAL_RESULTS' ||
-                remoteRoom.status === 'FINISHED'
+                remoteRoom.status === 'FINISHED' ||
+                remoteRoom.status === 'NEXT_ROUND'
               ) {
                 setCurrentView('game');
+              }
+              if (remoteRoom.status === 'NEXT_ROUND') {
+                setIsMatchFinished(false);
+                setLocalQuestionIndex(0);
+                setIsLocalReveal(false);
               }
               const myPlayer = currentPlayerRef.current;
               if (myPlayer) {
@@ -795,21 +826,59 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setIsAnswerSubmitted(false);
   };
 
-  const goToNextLevel = async () => {
+  // ─── Stage Next Round (Ready-check intermission) ──────────────────────────
+  const goToNextRound = async (targetLevel?: number) => {
     if (!room) return;
     sound.playClick();
     const currentLvl = room.difficultyLevel || selectedDifficultyLevel || 1;
-    const nextLvl = currentLvl >= 9 ? 1 : currentLvl + 1;
+    const nextLvl = targetLevel || (currentLvl >= 9 ? 1 : currentLvl + 1);
     setSelectedDifficultyLevel(nextLvl);
 
-    const confirmedPlayerCount = room.players.length;
-    const calculatedCount = calculateGameLength(confirmedPlayerCount);
-    const questions = getQuestionsForMatch(room.topicId, nextLvl, calculatedCount);
-    setGameQuestions(questions);
+    const updatedPlayers = room.players.map((p) => ({
+      ...p,
+      hasAnswered: false,
+      selectedOption: undefined,
+      // Host is ready by default; bots are ready; challenger is not ready until they click Ready
+      // If the challenger was the one who clicked Next Round, they are marked ready immediately
+      isReady: p.isHost || p.id.startsWith('bot_') ? true : p.id === currentPlayer?.id,
+    }));
 
     const updatedRoom: Room = {
       ...room,
       difficultyLevel: nextLvl,
+      status: 'NEXT_ROUND',
+      currentQuestionIndex: 0,
+      questionStartedAt: null,
+      players: updatedPlayers,
+    };
+
+    setLocalQuestionIndex(0);
+    setIsLocalReveal(false);
+    setIsMatchFinished(false);
+    setLastRevealResult(null);
+    setSelectedOption(null);
+    setIsAnswerSubmitted(false);
+    setRoom(updatedRoom);
+    setCurrentView('game');
+
+    await saveRoomToSupabase(updatedRoom);
+    logActivity(`Staged for Round ${nextLvl}! Waiting for combatants to ready up.`, 'system');
+  };
+
+  const goToNextLevel = goToNextRound;
+
+  // ─── Launch Next Round (Host Starts after Challenger Ready) ───────────────
+  const startNextRound = async () => {
+    if (!room) return;
+    sound.playClick();
+
+    const confirmedPlayerCount = room.players.length;
+    const calculatedCount = calculateGameLength(confirmedPlayerCount);
+    const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount);
+    setGameQuestions(questions);
+
+    const updatedRoom: Room = {
+      ...room,
       status: 'QUESTION',
       playerCountAtStart: confirmedPlayerCount,
       calculatedQuestionCount: calculatedCount,
@@ -818,9 +887,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       questions: questions,
       players: room.players.map((p) => ({
         ...p,
-        score: 0,
-        correctAnswers: 0,
-        totalResponseTimeMs: 0,
         hasAnswered: false,
         selectedOption: undefined,
         isReady: true,
@@ -834,11 +900,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setTimerSeconds(updatedRoom.timePerQuestion || 15);
+    setAnswerTimeStart(Date.now());
     setRoom(updatedRoom);
     setCurrentView('game');
 
     await saveRoomToSupabase(updatedRoom);
-    logActivity(`Advancing to Level ${nextLvl}!`, 'system');
+    logActivity(`Round launched at Level ${room.difficultyLevel}!`, 'system');
   };
 
   return (
@@ -874,6 +941,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         advanceToNextState: advanceLocalQuestion,
         playAgain,
         goToNextLevel,
+        goToNextRound,
+        startNextRound,
         isSoundMuted,
         toggleSound,
         isCreateModalOpen,

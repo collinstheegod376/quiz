@@ -9,11 +9,12 @@ import {
   Menu,
   X,
   Trophy,
+  Medal,
   Plus,
-  Film,
-  Home,
-  Compass,
+  Sun,
+  Moon,
 } from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
 import { QuizLogo } from '../ui/QuizLogo';
 import { CATEGORY_NAV_ITEMS, CategoryNav } from './CategoryNav';
 
@@ -34,6 +35,7 @@ export function Navbar() {
     openAuthModal,
     logout,
   } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const [desktopPin, setDesktopPin] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -61,6 +63,8 @@ export function Navbar() {
     setActiveCategory(item.id);
     if (item.id === 'start') {
       setCurrentView('landing');
+    } else if (item.id === 'achievements') {
+      setCurrentView('achievements');
     } else if (item.categoryId) {
       setSelectedCategoryId(item.categoryId);
       setCurrentView('topics');
@@ -73,7 +77,7 @@ export function Navbar() {
   return (
     <>
       {/* ── Top Header ── */}
-      <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] border-b border-[#CECCC5] transition-colors">
+      <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] dark:bg-[#100F0F] border-b border-[#CECCC5] dark:border-[#363535] transition-colors duration-200">
         <div className="max-w-[1248px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
 
           {/* Logo */}
@@ -131,14 +135,38 @@ export function Navbar() {
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Rankings — desktop only */}
+            {/* Achievements */}
+            <button
+              type="button"
+              onClick={() => setCurrentView('achievements')}
+              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+              title="Achievements"
+            >
+              <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC679]" />
+            </button>
+
+            {/* Rankings */}
             <button
               type="button"
               onClick={() => setIsGlobalLeaderboardOpen(true)}
-              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Rankings"
             >
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Dark / Light Mode Toggle */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-[#23616A]" />
+              )}
             </button>
 
             {/* User Profile or Clear Log In / Sign Up buttons */}
@@ -189,7 +217,7 @@ export function Navbar() {
         </div>
 
         {/* Desktop Category Sub-nav (second row, desktop only) */}
-        <div className="hidden md:block border-t border-[#CECCC5] bg-[#FFFDF4]">
+        <div className="hidden md:block border-t border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F] transition-colors duration-200">
           <div className="max-w-[1248px] mx-auto px-4 md:px-6">
             <CategoryNav
               activeCategory={activeCategory}
@@ -214,22 +242,22 @@ export function Navbar() {
 
         {/* Drawer Panel — slides in from right */}
         <div
-          className={`absolute right-0 top-0 h-full w-[290px] max-w-[85vw] bg-[#FFFDF4] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+          className={`absolute right-0 top-0 h-full w-[290px] max-w-[85vw] bg-[#FFFDF4] dark:bg-[#1E1D1D] text-black dark:text-[#FEFEFD] border-l border-[#CECCC5] dark:border-[#363535] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
             mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
           {/* Drawer Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#CECCC5] shrink-0">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#CECCC5] dark:border-[#363535] shrink-0">
             <Link href="/" onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}>
               <QuizLogo />
             </Link>
             <button
               type="button"
               onClick={closeMobileMenu}
-              className="w-9 h-9 rounded-full bg-[#E5E3DB] flex items-center justify-center cursor-pointer hover:bg-black/10 transition-colors"
+              className="w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
               aria-label="Close menu"
             >
-              <X className="w-5 h-5 text-black" />
+              <X className="w-5 h-5 text-black dark:text-white" />
             </button>
           </div>
 
@@ -237,19 +265,19 @@ export function Navbar() {
           <div className="flex-1 overflow-y-auto px-4 py-4">
 
             {/* Mobile Auth Status Card */}
-            <div className="p-3 mb-4 rounded-xl bg-[#E5E3DB] border border-[#CECCC5]">
+            <div className="p-3 mb-4 rounded-xl bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
               {currentUser ? (
                 <div className="flex items-center justify-between">
                   <div
                     className="flex items-center gap-2.5 cursor-pointer"
                     onClick={() => { setIsSettingsModalOpen(true); closeMobileMenu(); }}
                   >
-                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black">
+                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black dark:border-white">
                       <img src={currentUser.avatarUrl} alt={currentUser.username} className="w-full h-full object-cover" />
                     </div>
                     <div>
-                      <p className="font-nunito font-extrabold text-sm text-black">{currentUser.username}</p>
-                      <p className="text-[11px] text-[#595955]">Account Settings</p>
+                      <p className="font-nunito font-extrabold text-sm text-black dark:text-white">{currentUser.username}</p>
+                      <p className="text-[11px] text-[#595955] dark:text-[#A4A3A3]">Account Settings</p>
                     </div>
                   </div>
                   <button
@@ -296,91 +324,28 @@ export function Navbar() {
                   onClick={() => handleMobileCategoryClick(item)}
                   className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm ${
                     activeCategory === item.id
-                      ? 'bg-black text-white'
-                      : 'text-black hover:bg-[#E5E3DB]'
+                      ? 'bg-black dark:bg-white text-white dark:text-black'
+                      : 'text-black dark:text-white hover:bg-[#E5E3DB] dark:hover:bg-[#2A2929]'
                   }`}
                 >
-                  <div className={`w-5 h-5 shrink-0 ${activeCategory === item.id ? 'text-white' : 'text-black'}`}>
+                  <div className={`w-5 h-5 shrink-0 ${activeCategory === item.id ? 'text-white dark:text-black' : 'text-black dark:text-white'}`}>
                     {item.iconSvg}
                   </div>
                   <span>{item.name}</span>
                 </button>
               ))}
             </div>
-
-            {/* Divider */}
-            <div className="h-px bg-[#CECCC5] my-4" />
-
-            {/* Navigation Section */}
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-2">
-              Navigation
-            </p>
-            <div className="space-y-1">
-              <Link
-                href="/"
-                onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
-              >
-                <Home className="w-5 h-5 shrink-0" />
-                <span>Home</span>
-              </Link>
-
-              <button
-                type="button"
-                onClick={() => { setCurrentView('entertainment'); closeMobileMenu(); }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
-              >
-                <Film className="w-5 h-5 shrink-0" />
-                <span>Entertainment</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentView('categories');
-                  closeMobileMenu();
-                }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
-              >
-                <Compass className="w-5 h-5 shrink-0" />
-                <span>All Categories</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsGlobalLeaderboardOpen(true);
-                  closeMobileMenu();
-                }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
-              >
-                <Trophy className="w-5 h-5 shrink-0" />
-                <span>Rankings</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentView('categories');
-                  closeMobileMenu();
-                }}
-                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
-              >
-                <Search className="w-5 h-5 shrink-0" />
-                <span>Search Quizzes</span>
-              </button>
-            </div>
           </div>
 
           {/* Drawer Footer — Create Quiz CTA */}
-          <div className="p-4 border-t border-[#CECCC5] shrink-0">
+          <div className="p-4 border-t border-[#CECCC5] dark:border-[#363535] shrink-0">
             <button
               type="button"
               onClick={() => {
                 setIsCreateModalOpen(true);
                 closeMobileMenu();
               }}
-              className="w-full h-11 bg-black text-white font-nunito font-black text-sm rounded-full flex items-center justify-center gap-2 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"
+              className="w-full h-11 bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-sm rounded-full flex items-center justify-center gap-2 hover:bg-black/80 dark:hover:bg-white/80 active:scale-95 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Create Quiz

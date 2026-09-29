@@ -1,0 +1,37 @@
+# Project Progress Log
+
+- **Google Verification File**: Added `google_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk.html` to `public/` for Search Console validation.
+- **Google Verification Meta**: Injected `google-site-verification` token into Next.js metadata in `src/app/layout.tsx`.
+- **Dynamic XML Sitemap**: Implemented `src/app/sitemap.ts` mapping all static pages, category routes, and anime topics.
+- **Robots Configuration**: Configured `src/app/robots.ts` with crawler access policies and direct sitemap indexing.
+- **LLM Context Files**: Created `llms.txt` and `llms-full.txt` in `public/` to optimize AI engine discoverability.
+- **Web App Manifest**: Added `manifest.json` with AniZuki branding, theme colors, and standalone PWA display support.
+- **Level Progression**: Added "Go to Next Level" button to `FinalResultsScreen.tsx` for seamless tier advancement.
+- **SEO & Social Sharing**: Configured rich OpenGraph, Twitter card tags, and canonical URLs on `https://anizuki.sbs/`.
+- **Footer Attribution**: Added Promised Killua footer attribution with animated pulse styling across all views.
+- **Authentication Pages**: Built standalone `/login` and `/signup` pages and wired them to the global navigation bar.
+- **Theme Standardization**: Strictly enforced crisp light mode across all components and neutralized dark mode overrides.
+- **Navigation & Modals**: Resolved drawer link navigation, category routing, and modal dismissal backdrops.
+- **Local Asset Migration**: Downloaded all topic and category banners to `public/images/` and configured fallback images.
+- **Quiz Display Formatting**: Sanitized quiz card titles to strip colons and redundant subtitles for a cleaner layout.
+- **Codebase Clean-Up**: Removed obsolete files, legacy components, and cleaned orphan git branches.
+- **AniZuki Rebranding**: Overhauled UI to AniZuki theme with custom carousels, category pills, and 3D button interactions.
+- **Expanded Question Banks**: Populated 150-question tiered datasets (Tiers 1–10) across major anime and pop culture topics.
+- **Multiplayer State Sync**: Hardened optimistic answer submissions, live timer halts, and async Supabase score synchronization.
+- **Touch-Bleed Fixes**: Prevented ghost multi-clicks and auto-lock bugs with debounced answer handlers and blur events.
+- **Match Transition Fix**: Solved results screen freezing by making `isMatchFinished` state the single authoritative transition flag.
+![alt text](image.png)- **Next Round Intermission & Ready-Check Sync**: Implemented dedicated `NextRoundScreen` staging intermission between rounds with real-time player ready checks (`isReady`) and synchronized host start dispatch via Supabase.
+- **Answer Reveal Contrast Fix**: Resolved grayed-out correct answer bug where unpicked winning options displayed muted gray text (`#595955`) by enforcing vibrant emerald highlight (`#4CA471`), bold badges, and explicit status pill tags.
+- **Question Prompt Spoiler Sanitization**: Scanned and purged parenthesized Japanese technique/title names accidentally embedded into question text prompts across HxH (Nen techniques: En, Gyo, In, Ken, Ko, Ryu, Ren, Zetsu, Ten), JJK (Kaikai Kitan), and The Boys.
+- **Full Dark Mode Restoration & Navbar Toggle**: Restored midnight dark mode styling (`#100F0F` / `#1E1D1D`), fixed anti-FOUC initialization in `layout.tsx`, enabled persistence in `ThemeContext.tsx`, and added prominent Sun/Moon toggle buttons in both desktop navbar and mobile drawer.
+- **Mobile Drawer Clean-Up & Duplication Removal**: Purged the redundant `Navigation` sub-section and duplicate buttons (`Home`, `Entertainment`, `All Categories`, `Search Quizzes`) from the mobile side drawer in `Navbar.tsx`. Retained clean categories list, dedicated "Create Quiz" CTA, and surfaced instant 1-tap Rankings Trophy access on the global header.
+- **New Category 'Games' Added**: Introduced `games` into `CategoryId` union, registered the `GAMES` category with custom gaming banner asset (`/images/topics/gaming.jpg`), integrated the `Games` navigation tab with gamepad icon in `CategoryNav.tsx`, and added starter topics (`Elden Ring`, `Grand Theft Auto V`, `Minecraft`) with curated seed questions.
+- **Dynamic Topic Counts Tally**: Replaced hardcoded topic counts (`15+ Topics`, `40+ Topics`) with live dynamic counting (`TOPICS.filter(t => t.categoryId === category.id).length`), ensuring topic counts on category cards and headers always accurately tally the real topics in the application.
+- **Demo Data Topics Purged**: Removed all demo/placeholder topics lacking full question banks (`marvel`, `harry-potter`, `star-wars`, `the-dark-knight`, `atomic-structure`, `periodic-table`, `chemical-bonding`, `mechanics`, `electricity-magnetism`, `thermodynamics`, `elden-ring`, `gta-v`, `minecraft`) from `TOPICS`. Replaced all Landing and Entertainment screen card references with active anime/series topics. Added empty-topic guards to `CreateRoomModal.tsx` and confirmed dynamic tallies accurately reflect active content.
+- **New Question Banks & Local Assets Integrated**: Downloaded high-res banners locally to `public/images/topics/` and fully integrated 450 new questions (150 each across 10 difficulty tiers) for **Jobless Reincarnation** (`questions_mushokutensei.ts`), **That Time I Got Reincarnated as a Slime** (`questions_slime.ts`), and **Spy x Family** (`questions_spyxfamily.ts`). Wired into `TOPICS`, `SEED_QUESTIONS`, and `EntertainmentScreen.tsx`.
+- **Full Workspace Topic Import (1,505 Total Questions)**: Restored and parsed all text files from IDE state into modular TypeScript datasets with local image assets: **Cyberpunk: Edgerunners** (150 Qs), **Darwin's Game** (150 Qs), **Modern Family** (358 Qs), **Black Lightning** (247 Qs), and **Grand Theft Auto V** (150 Qs). Wired into `TOPICS`, `SEED_QUESTIONS`, and `EntertainmentScreen.tsx`. Category tallies dynamically updated to Anime (15 topics), Series (6 topics), and Games (1 topic).
+- **Dynamic 'Recently Published' Carousel Refresh**: Refactored the landing page "Recently published" carousel to automatically derive from `TOPICS` in reverse chronological order (`[...TOPICS].reverse()`), ensuring newly added topics immediately appear at the front of the carousel without manual mock data updates.
+- **Achievements System & Navigation (50 Achievements)**: Created a comprehensive 50-achievement progression catalog across 6 categories (Beginner, Skill & Speed, Streaks & Combos, Leaderboard & Glory, Topic Mastery, and Career Grind). Includes top 1-3 global leaderboard milestones (Podium Royalty and Apex Sovereign #1).
+- **Dedicated Achievements Screen (`AchievementsScreen.tsx`)**: Built a rich achievements screen with search, category filtering, live progress tracking, XP rewards, and unlocked timestamps. Added "Achievements" tab in `CategoryNav`, top header medal button in `Navbar`, and mobile drawer integration.
+- **Side Toast Notification & Fanfare Chime**: Implemented animated floating toast (`AchievementToast.tsx`) with auto-dismiss and duration countdown. Added synthesized Web Audio victory fanfare (`sound.playAchievement()`) and celebratory particle confetti.
+- **Question & Answer Randomizer**: Implemented Fisher-Yates algorithm in `getQuestionsForMatch` to randomize questions within designated levels, and created `shuffleQuestionOptions` to randomly shuffle answer options (A, B, C, D) while maintaining 100% accurate server-authoritative `correctOption` tracking.

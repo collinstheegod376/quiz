@@ -35,6 +35,7 @@ export function CreateRoomModal() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedTopicId) return;
     setIsCreating(true);
     try {
       await createRoom(displayName, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
@@ -98,7 +99,11 @@ export function CreateRoomModal() {
                 const newCat = e.target.value as any;
                 setSelectedCategoryId(newCat);
                 const firstInCat = TOPICS.find((t) => t.categoryId === newCat);
-                if (firstInCat) setSelectedTopicId(firstInCat.id);
+                if (firstInCat) {
+                  setSelectedTopicId(firstInCat.id);
+                } else {
+                  setSelectedTopicId('');
+                }
               }}
               className={selectClass}
             >
@@ -115,10 +120,15 @@ export function CreateRoomModal() {
               value={selectedTopicId}
               onChange={(e) => setSelectedTopicId(e.target.value)}
               className={selectClass}
+              disabled={currentCategoryTopics.length === 0}
             >
-              {currentCategoryTopics.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.questionCount} Questions)</option>
-              ))}
+              {currentCategoryTopics.length > 0 ? (
+                currentCategoryTopics.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.questionCount} Questions)</option>
+                ))
+              ) : (
+                <option value="" disabled>No topics in this category yet</option>
+              )}
             </select>
           </div>
 

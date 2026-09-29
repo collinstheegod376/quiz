@@ -9,7 +9,9 @@ import { DifficultyScreen } from '@/components/screens/DifficultyScreen';
 import { LobbyScreen } from '@/components/screens/LobbyScreen';
 import { QuestionScreen } from '@/components/screens/QuestionScreen';
 import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
+import { NextRoundScreen } from '@/components/screens/NextRoundScreen';
 import { EntertainmentScreen } from '@/components/screens/EntertainmentScreen';
+import { AchievementsScreen } from '@/components/screens/AchievementsScreen';
 
 export default function HomePage() {
   const { currentView, room, currentPlayer, isMatchFinished } = useGame();
@@ -18,6 +20,9 @@ export default function HomePage() {
     if (!room || !currentPlayer) {
       return <LandingScreen />;
     }
+    if (room.status === 'NEXT_ROUND') {
+      return <NextRoundScreen />;
+    }
     if (isMatchFinished || room.status === 'FINAL_RESULTS' || room.status === 'FINISHED') {
       return <FinalResultsScreen />;
     }
@@ -25,6 +30,8 @@ export default function HomePage() {
   }
 
   switch (currentView) {
+    case 'achievements':
+      return <AchievementsScreen />;
     case 'entertainment':
       return <EntertainmentScreen />;
     case 'categories':

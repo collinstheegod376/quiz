@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, UserAccount } from '@/context/AuthContext';
+import { useAchievements } from '@/context/AchievementContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
   X,
@@ -18,6 +19,7 @@ interface GlobalLeaderboardModalProps {
 
 export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardModalProps) {
   const { currentUser } = useAuth();
+  const { checkLeaderboardRank } = useAchievements();
   const [leaderboardEntries, setLeaderboardEntries] = useState<UserAccount[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,6 +57,14 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
             },
           }));
           setLeaderboardEntries(mapped);
+
+          // Check if current user is in top 10, top 3, or #1
+          if (currentUser) {
+            const userIdx = mapped.findIndex((m) => m.username === currentUser.username);
+            if (userIdx !== -1) {
+              checkLeaderboardRank(userIdx + 1);
+            }
+          }
         }
       } catch (e) {
         console.error('[Leaderboard] Supabase error:', e);

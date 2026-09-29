@@ -3,6 +3,7 @@
 import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { CATEGORIES } from '@/data/categories';
+import { TOPICS } from '@/data/topics';
 import { CategoryId } from '@/types/quiz';
 import { ArrowRight } from 'lucide-react';
 import { SafeImage } from '../ui/SafeImage';
@@ -28,38 +29,40 @@ export function CategoryScreen() {
           </p>
         </div>
         <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize whitespace-nowrap">
-          5 Categories · 40+ Topics
+          {CATEGORIES.length} Categories · {TOPICS.length} Topics
         </span>
       </div>
 
       {/* Categories Grid — sharp-edged cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-[#CECCC5] dark:border-[#363535] divide-y divide-[#CECCC5] dark:divide-[#363535] md:divide-y-0">
-        {CATEGORIES.map((category, idx) => (
-          <div
-            key={category.id}
-            onClick={() => handleSelectCategory(category.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') handleSelectCategory(category.id);
-            }}
-            className={`group relative cursor-pointer bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] transition-colors flex flex-col ${
-              idx !== CATEGORIES.length - 1 ? 'md:border-r border-[#CECCC5] dark:border-[#363535]' : ''
-            }`}
-          >
-            {/* Image Banner — sharp corners */}
-            <div className="relative h-44 w-full overflow-hidden bg-[#E5E3DB] dark:bg-[#1E1D1D]">
-              <SafeImage
-                src={category.bannerImage}
-                alt={category.name}
-                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-              />
+        {CATEGORIES.map((category, idx) => {
+          const count = TOPICS.filter((t) => t.categoryId === category.id).length;
+          return (
+            <div
+              key={category.id}
+              onClick={() => handleSelectCategory(category.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') handleSelectCategory(category.id);
+              }}
+              className={`group relative cursor-pointer bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] transition-colors flex flex-col ${
+                idx !== CATEGORIES.length - 1 ? 'md:border-r border-[#CECCC5] dark:border-[#363535]' : ''
+              }`}
+            >
+              {/* Image Banner — sharp corners */}
+              <div className="relative h-44 w-full overflow-hidden bg-[#E5E3DB] dark:bg-[#1E1D1D]">
+                <SafeImage
+                  src={category.bannerImage}
+                  alt={category.name}
+                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                />
 
-              {/* Category pill overlay */}
-              <span className="absolute top-3 left-3 inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
-                {category.topicCount}+ Topics
-              </span>
-            </div>
+                {/* Category pill overlay */}
+                <span className="absolute top-3 left-3 inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                  {count} {count === 1 ? 'Topic' : 'Topics'}
+                </span>
+              </div>
 
             {/* Card body */}
             <div className="p-5 flex-1 flex flex-col justify-between border-t border-[#CECCC5] dark:border-[#363535] space-y-3">
@@ -85,7 +88,8 @@ export function CategoryScreen() {
               </div>
             </div>
           </div>
-        ))}
+        );
+      })}
       </div>
     </div>
   );
