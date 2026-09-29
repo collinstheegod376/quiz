@@ -32,41 +32,39 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
           .order('total_score', { ascending: false })
           .limit(50);
 
-      if (!error && data && data.length > 0) {
-        const mapped: UserAccount[] = data.map((row) => ({
-          username: row.username,
-          passwordHash: row.password_hash,
-          avatarUrl: row.avatar_url,
-          createdAt: row.created_at,
-          stats: {
-            roomsCreated: row.rooms_created || 0,
-            matchesPlayed: row.matches_played || 0,
-            wins: row.wins || 0,
-            totalScore: row.total_score || 0,
-            correctAnswers: row.correct_answers || 0,
-            totalAnswers: row.total_answers || 0,
-          },
-        }));
-          setLeaderboardEntries(mapped);
+        if (error) {
+          console.error('[Leaderboard] Supabase query failed:', error.message);
+          setLeaderboardEntries([]);
           setIsLoading(false);
           return;
         }
-      } catch (e) {
-        console.warn('[Leaderboard] Supabase query failed:', e);
-      }
-    }
 
-    // 2. Fallback to local accounts
-    try {
-      const savedAccountsStr = localStorage.getItem('quiz_arena_accounts');
-      const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
-      setLeaderboardEntries(
-        accounts.sort((a, b) => (b.stats?.totalScore || 0) - (a.stats?.totalScore || 0))
-      );
-    } catch {
-      setLeaderboardEntries([]);
-    } finally {
+        if (data) {
+          const mapped: UserAccount[] = data.map((row) => ({
+            username: row.username,
+            passwordHash: row.password_hash,
+            avatarUrl: row.avatar_url,
+            createdAt: row.created_at,
+            stats: {
+              roomsCreated: row.rooms_created || 0,
+              matchesPlayed: row.matches_played || 0,
+              wins: row.wins || 0,
+              totalScore: row.total_score || 0,
+              correctAnswers: row.correct_answers || 0,
+              totalAnswers: row.total_answers || 0,
+            },
+          }));
+          setLeaderboardEntries(mapped);
+        }
+      } catch (e) {
+        console.error('[Leaderboard] Supabase error:', e);
+        setLeaderboardEntries([]);
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
       setIsLoading(false);
+      setLeaderboardEntries([]);
     }
   }, []);
 

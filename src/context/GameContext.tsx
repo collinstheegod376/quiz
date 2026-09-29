@@ -15,8 +15,6 @@ import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-const ROOMS_STORE_KEY = 'quiz_arena_active_rooms';
-
 export type AppView = 'landing' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
 
 interface GameContextType {
@@ -35,7 +33,7 @@ interface GameContextType {
   room: Room | null;
   activityLogs: RoomActivityLog[];
   createRoom: (displayName: string, topicId: string, levelNumber: number, timePerQ?: number, maxPlayers?: number) => void;
-  joinRoom: (roomCode: string, displayName: string) => Promise<boolean>;
+  joinRoom: (roomCode: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
   leaveRoom: () => void;
   togglePlayerReady: () => void;
   addMockBotPlayer: () => void;
@@ -112,13 +110,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'realtime_rooms',
           filter: `code=eq.${roomCode}`,
         },
         (payload) => {
-          const incomingRoom = payload.new?.state as Room | undefined;
+          const incomingRoom = (payload.new as any)?.state as Room | undefined;
           if (!incomingRoom) return;
 
           // Sync questions if present
@@ -162,32 +160,79 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ─── Save room (Supabase + Local fallback) ─────────────────────────────────
-  const saveRoomToSupabase = async (updatedRoom: Room) => {
-    // 1. Mirror locally for instant multi-tab fallback
-    try {
-      const stored = localStorage.getItem(ROOMS_STORE_KEY);
-      const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
-      rooms[updatedRoom.code] = updatedRoom;
-      localStorage.setItem(ROOMS_STORE_KEY, JSON.stringify(rooms));
-    } catch {}
+  // ─── Periodic Room Polling (guarantees cross-device sync) ────────────────
+  useEffect(() => {
+    if (!room?.code || !isSupabaseConfigured) return;
 
-    // 2. Persist to Supabase if configured
-    if (isSupabaseConfigured) {
+    const interval = setInterval(async () => {
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('realtime_rooms')
-          .upsert(
-            { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
-            { onConflict: 'code' }
-          );
+          .select('state')
+          .eq('code', room.code)
+          .maybeSingle();
 
-        if (error) {
-          console.error('[Supabase] Failed to save room:', error.message);
+        if (!error && data?.state) {
+          const remoteRoom = data.state as Room;
+          setRoom((prev) => {
+            if (!prev) return remoteRoom;
+            // Only update state if player count, status, or question index changed
+            if (
+              remoteRoom.players.length !== prev.players.length ||
+              remoteRoom.status !== prev.status ||
+              remoteRoom.currentQuestionIndex !== prev.currentQuestionIndex
+            ) {
+              if (remoteRoom.questions && remoteRoom.questions.length > 0) {
+                setGameQuestions(remoteRoom.questions);
+              }
+              if (
+                remoteRoom.status === 'QUESTION' ||
+                remoteRoom.status === 'REVEAL' ||
+                remoteRoom.status === 'FINAL_RESULTS' ||
+                remoteRoom.status === 'FINISHED'
+              ) {
+                setCurrentView('game');
+              }
+              const myPlayer = currentPlayerRef.current;
+              if (myPlayer) {
+                const updated = remoteRoom.players.find((p) => p.id === myPlayer.id);
+                if (updated) setCurrentPlayer(updated);
+              }
+              return remoteRoom;
+            }
+            return prev;
+          });
         }
       } catch (err) {
-        console.warn('[Supabase saveRoom] error:', err);
+        console.warn('[Room poll error]:', err);
       }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, [room?.code]);
+
+  // ─── Save room (Strict Supabase) ──────────────────────────────────────────
+  const saveRoomToSupabase = async (updatedRoom: Room) => {
+    if (!isSupabaseConfigured) {
+      console.error('[Supabase saveRoom] Supabase is NOT configured!');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('realtime_rooms')
+        .upsert(
+          { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
+          { onConflict: 'code' }
+        );
+
+      if (error) {
+        console.error('[Supabase] Failed to save room:', error.message);
+      } else {
+        console.log(`[Supabase] Room ${updatedRoom.code} saved.`);
+      }
+    } catch (err) {
+      console.error('[Supabase saveRoom] error:', err);
     }
   };
 
@@ -261,85 +306,90 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     logActivity(`${hostPlayer.displayName} created room ${newRoom.code}`, 'join');
   };
 
-  // ─── Join Room ─────────────────────────────────────────────────────────────
-  const joinRoom = async (roomCode: string, displayName: string): Promise<boolean> => {
+  // ─── Join Room (Strict Supabase) ───────────────────────────────────────────
+  const joinRoom = async (
+    roomCode: string,
+    displayName: string
+  ): Promise<{ success: boolean; error?: string }> => {
     sound.playClick();
     const cleanCode = roomCode.trim().toUpperCase();
     const finalName = displayName.trim() || currentUser?.username || 'Challenger';
 
-    let targetRoom: Room | null = null;
+    if (!isSupabaseConfigured) {
+      return { success: false, error: 'Supabase is not configured. Check .env.local.' };
+    }
 
-    if (isSupabaseConfigured) {
-      try {
-        const { data, error } = await supabase
-          .from('realtime_rooms')
-          .select('state')
-          .eq('code', cleanCode)
-          .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('realtime_rooms')
+        .select('state')
+        .eq('code', cleanCode)
+        .maybeSingle();
 
-        if (!error && data?.state) {
-          targetRoom = data.state as Room;
-        }
-      } catch (err) {
-        console.warn('[JoinRoom] Supabase query error:', err);
+      if (error) {
+        console.error('[JoinRoom] Supabase query error:', error.message);
+        return { success: false, error: `Supabase error: ${error.message}` };
       }
+
+      if (!data || !data.state) {
+        console.warn('[JoinRoom] Room not found on Supabase:', cleanCode);
+        return {
+          success: false,
+          error: `Room "${cleanCode}" was not found in Supabase. Verify the 6-character code.`,
+        };
+      }
+
+      const targetRoom = data.state as Room;
+      const maxAllowed = targetRoom.maxPlayers || 4;
+      if (targetRoom.players.length >= maxAllowed) {
+        return {
+          success: false,
+          error: `Room "${cleanCode}" is full (${targetRoom.players.length}/${maxAllowed} players).`,
+        };
+      }
+
+      if (targetRoom.status !== 'LOBBY') {
+        return {
+          success: false,
+          error: `Match in room "${cleanCode}" has already started (${targetRoom.status}).`,
+        };
+      }
+
+      const playerId = 'p_' + Math.random().toString(36).substring(2, 9);
+      const joinedPlayer: Player = {
+        id: playerId,
+        userId: playerId,
+        displayName: finalName,
+        avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
+        isHost: false,
+        score: 0,
+        correctAnswers: 0,
+        totalResponseTimeMs: 0,
+        isReady: true,
+        isOnline: true,
+      };
+
+      const updatedRoom: Room = {
+        ...targetRoom,
+        players: [...targetRoom.players, joinedPlayer],
+      };
+
+      await saveRoomToSupabase(updatedRoom);
+      subscribeToRoom(cleanCode);
+
+      setCurrentPlayer(joinedPlayer);
+      setRoom(updatedRoom);
+      if (updatedRoom.questions && updatedRoom.questions.length > 0) {
+        setGameQuestions(updatedRoom.questions);
+      }
+      setCurrentView('lobby');
+      setIsJoinModalOpen(false);
+      logActivity(`${joinedPlayer.displayName} joined the room`, 'join');
+      return { success: true };
+    } catch (err: any) {
+      console.error('[JoinRoom] Error:', err);
+      return { success: false, error: `Join error: ${err?.message || err}` };
     }
-
-    // Fallback to local storage
-    if (!targetRoom) {
-      try {
-        const stored = localStorage.getItem(ROOMS_STORE_KEY);
-        const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
-        if (rooms[cleanCode]) {
-          targetRoom = rooms[cleanCode];
-        }
-      } catch {}
-    }
-
-    if (!targetRoom) {
-      console.warn('[JoinRoom] Room not found:', cleanCode);
-      return false;
-    }
-
-    const maxAllowed = targetRoom.maxPlayers || 4;
-    if (targetRoom.players.length >= maxAllowed) {
-      console.warn('[JoinRoom] Room is full');
-      return false;
-    }
-
-    const playerId = 'p_' + Math.random().toString(36).substring(2, 9);
-    const joinedPlayer: Player = {
-      id: playerId,
-      userId: playerId,
-      displayName: finalName,
-      avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
-      isHost: false,
-      score: 0,
-      correctAnswers: 0,
-      totalResponseTimeMs: 0,
-      isReady: true,
-      isOnline: true,
-    };
-
-    const updatedRoom: Room = {
-      ...targetRoom,
-      players: [...targetRoom.players, joinedPlayer],
-    };
-
-    await saveRoomToSupabase(updatedRoom);
-    subscribeToRoom(cleanCode);
-
-    setCurrentPlayer(joinedPlayer);
-    setRoom(updatedRoom);
-    if (updatedRoom.questions && updatedRoom.questions.length > 0) {
-      setGameQuestions(updatedRoom.questions);
-    }
-    setCurrentView(
-      updatedRoom.status === 'QUESTION' || updatedRoom.status === 'REVEAL' ? 'game' : 'lobby'
-    );
-    setIsJoinModalOpen(false);
-    logActivity(`${joinedPlayer.displayName} joined the room`, 'join');
-    return true;
   };
 
   // ─── Add Mock Bot ──────────────────────────────────────────────────────────

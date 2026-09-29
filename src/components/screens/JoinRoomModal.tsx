@@ -29,10 +29,10 @@ export function JoinRoomModal() {
     const clean = roomCode.trim().toUpperCase();
     if (!clean) return;
     setIsJoining(true);
-    const success = await joinRoom(clean, displayName);
+    const result = await joinRoom(clean, displayName);
     setIsJoining(false);
-    if (!success) {
-      setErrorMsg('Room not found or max capacity reached. Please verify the 6-character room code.');
+    if (!result.success) {
+      setErrorMsg(result.error || 'Room not found. Please verify the 6-character room code.');
     }
   };
 
