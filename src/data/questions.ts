@@ -1,6 +1,16 @@
 import { Question } from '@/types/quiz';
+import { FMA_QUESTIONS } from './questions_fma';
+import { HXH_QUESTIONS } from './questions_hxh';
+import { DBZ_QUESTIONS } from './questions_dbz';
+import { DEMON_SLAYER_QUESTIONS } from './questions_demonslayer';
+import { BLEACH_QUESTIONS } from './questions_bleach';
 
 export const SEED_QUESTIONS: Question[] = [
+  ...FMA_QUESTIONS,
+  ...HXH_QUESTIONS,
+  ...DBZ_QUESTIONS,
+  ...DEMON_SLAYER_QUESTIONS,
+  ...BLEACH_QUESTIONS,
   {
     "id": "op-l1-1",
     "topicId": "one-piece",
