@@ -244,7 +244,7 @@ export function EntertainmentScreen() {
       {/* ── Subnav Category Bar ── */}
       <div className="w-full border-b border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
         <div className="max-w-[1248px] mx-auto px-4 md:px-6">
-          <CategoryNav activeSlug="entertainment" />
+          <CategoryNav activeCategory="anime" />
         </div>
       </div>
 

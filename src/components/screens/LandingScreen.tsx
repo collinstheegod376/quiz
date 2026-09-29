@@ -1,252 +1,426 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Users, Flame, Award, Plus, LogIn, Compass } from 'lucide-react';
-import { Button } from '../ui/Button';
-import { SafeImage } from '../ui/SafeImage';
 import { CategoryNav } from '../layout/CategoryNav';
+import { MobileJoinBar } from '../layout/MobileJoinBar';
+import { QuizButton } from '../ui/QuizButton';
+import { QuizCarousel, QuizCardData } from '../ui/QuizCarousel';
+import { Vote, Sparkles, BookOpen } from 'lucide-react';
 
 export function LandingScreen() {
-  const { setCurrentView, setIsCreateModalOpen, setIsJoinModalOpen, createRoom } = useGame();
-  const { globalStats, currentUser, setIsAuthModalOpen } = useAuth();
+  const {
+    setCurrentView,
+    setIsCreateModalOpen,
+    setSelectedCategoryId,
+    setSelectedTopicId,
+    createRoom,
+  } = useGame();
+  const { currentUser, setIsAuthModalOpen } = useAuth();
 
-  const handleCreateRoom = () => {
-    if (!currentUser) { setIsAuthModalOpen(true); return; }
-    setIsCreateModalOpen(true);
+  // Curated sets of quizzes matching Quiz.com sections
+  const recentlyPublishedQuizzes: QuizCardData[] = useMemo(() => [
+    {
+      id: 'gojo-vs-sukuna-recent',
+      topicId: 'gojo-vs-sukuna',
+      title: 'Gojo vs. Sukuna: Clash of the Strongest',
+      imageUrl: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227',
+      rating: 5.0,
+      author: 'JujutsuHigh',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'one-piece-recent',
+      topicId: 'one-piece',
+      title: 'One Piece: Wano Arc & Gear 5 Awakenings',
+      imageUrl: '/imu.png',
+      rating: 4.9,
+      author: 'LuffyCaptain',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'the-boys-recent',
+      topicId: 'the-boys',
+      title: 'The Boys: Vought International & Compound V',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/mY7SeH4YFFxW12l5L9AC3V3Gg3C.jpg',
+      rating: 4.8,
+      author: 'BillyButcher',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'breaking-bad-recent',
+      topicId: 'breaking-bad',
+      title: 'Breaking Bad: The Heisenberg Chemistry Quiz',
+      imageUrl: 'https://assets.aboutslots.com/uploads/assets/O9e_MD_Nw_Tlect_Link_slot_banner_3b718b315f.jpg',
+      rating: 4.9,
+      author: 'WalterWhite',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'attack-on-titan-recent',
+      topicId: 'attack-on-titan',
+      title: 'Attack on Titan: The Nine Titans & The Rumbling',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg',
+      rating: 4.8,
+      author: 'ScoutRegiment',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'stranger-things-recent',
+      topicId: 'stranger-things',
+      title: 'Stranger Things: The Upside Down & Vecna',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
+      rating: 4.7,
+      author: 'HellfireClub',
+      difficulty: 'MEDIUM',
+      questionCount: 150,
+    },
+  ], []);
+
+  const aiQuizzes: QuizCardData[] = useMemo(() => [
+    {
+      id: 'quantum-physics-ai',
+      topicId: 'physics',
+      title: 'Quantum Physics: Wave-Particle Duality & Relativity',
+      imageUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80',
+      rating: 4.9,
+      author: 'AI Generator',
+      difficulty: 'AI',
+      questionCount: 80,
+    },
+    {
+      id: 'organic-chemistry-ai',
+      topicId: 'chemistry',
+      title: 'Chemical Reactions & Thermodynamics Masterclass',
+      imageUrl: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=800&q=80',
+      rating: 4.8,
+      author: 'AI Generator',
+      difficulty: 'AI',
+      questionCount: 80,
+    },
+    {
+      id: 'bleach-tybw-ai',
+      topicId: 'bleach',
+      title: 'Bleach: Thousand-Year Blood War & Bankai Lore',
+      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHgv812hd8ZACsQrISDtQjzxMEDcv78Vf7yBRGZ9iVCPA2UHIKbpYeW5Fk&s=10',
+      rating: 4.8,
+      author: 'AI Generator',
+      difficulty: 'AI',
+      questionCount: 150,
+    },
+    {
+      id: 'demon-slayer-ai',
+      topicId: 'demon-slayer',
+      title: 'Demon Slayer: Infinity Castle Arc Battle Trivia',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg',
+      rating: 4.9,
+      author: 'AI Generator',
+      difficulty: 'AI',
+      questionCount: 150,
+    },
+    {
+      id: 'got-westeros-ai',
+      topicId: 'game-of-thrones',
+      title: 'Game of Thrones: Valyrian Steel & Great Dynasties',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
+      rating: 4.8,
+      author: 'AI Generator',
+      difficulty: 'AI',
+      questionCount: 150,
+    },
+  ], []);
+
+  const bestRatedQuizzes: QuizCardData[] = useMemo(() => [
+    {
+      id: 'one-piece-best',
+      topicId: 'one-piece',
+      title: 'One Piece: Ultimate Pirate King Trivia',
+      imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTNjNGU4NTUtYmVjMy00YjRiLTkxMWUtNzZkMDNiYjZhNmViXkEyXkFqcGc@._V1_.jpg',
+      rating: 5.0,
+      author: 'mora_queen',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'naruto-shippuden-best',
+      topicId: 'naruto',
+      title: 'Naruto Shippuden: Shinobi War & Akatsuki',
+      imageUrl: 'https://m.media-amazon.com/images/M/MV5BNTk3MDA1ZjAtNTRhYS00YzNiLTgwOGEtYWRmYTQ3NjA0NTAwXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
+      rating: 4.9,
+      author: 'CandyQueen',
+      difficulty: 'MEDIUM',
+      questionCount: 110,
+    },
+    {
+      id: 'dark-knight-best',
+      topicId: 'popular-movies',
+      title: 'The Dark Knight: Christopher Nolan Masterpiece',
+      imageUrl: 'https://image.tmdb.org/t/p/w780/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
+      rating: 4.9,
+      author: 'GothamKnight',
+      difficulty: 'MEDIUM',
+      questionCount: 80,
+    },
+    {
+      id: 'hxh-best',
+      topicId: 'hunter-x-hunter',
+      title: 'Hunter x Hunter: Nen Principles & Chimera Ants',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/ucmpFdWzFpWzL7z9pBfPzD3lS7Y.jpg',
+      rating: 4.9,
+      author: 'Kurapika99',
+      difficulty: 'HARD',
+      questionCount: 130,
+    },
+    {
+      id: 'fma-best',
+      topicId: 'fullmetal-alchemist',
+      title: 'Fullmetal Alchemist: Equivalent Exchange Lore',
+      imageUrl: 'https://m.media-amazon.com/images/M/MV5BNDc4MThhN2EtZjMzNC00ZDJmLThiZTgtNThlY2UxZWM4NjdkXkEyXkFqcGc@._V1_.jpg',
+      rating: 4.9,
+      author: 'EdwardElric',
+      difficulty: 'HARD',
+      questionCount: 120,
+    },
+  ], []);
+
+  const popularQuizzes: QuizCardData[] = useMemo(() => [
+    {
+      id: 'gojo-popular',
+      topicId: 'gojo-vs-sukuna',
+      title: 'Gojo vs. Sukuna: Hollow Purple & Malevolent Shrine',
+      imageUrl: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227',
+      rating: 5.0,
+      author: 'ImLucifer',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'dbz-popular',
+      topicId: 'dragon-ball-z',
+      title: 'Dragon Ball Z: Super Saiyans & Cell Games',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
+      rating: 4.8,
+      author: 'GokuSaiyan',
+      difficulty: 'EASY',
+      questionCount: 120,
+    },
+    {
+      id: 'breaking-bad-popular',
+      topicId: 'breaking-bad',
+      title: 'Breaking Bad: Los Pollos Hermanos & Gus Fring',
+      imageUrl: 'https://assets.aboutslots.com/uploads/assets/O9e_MD_Nw_Tlect_Link_slot_banner_3b718b315f.jpg',
+      rating: 4.9,
+      author: 'brittanyk',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'the-boys-popular',
+      topicId: 'the-boys',
+      title: 'The Boys: Homelander vs Butcher Feud',
+      imageUrl: 'https://image.tmdb.org/t/p/w500/mY7SeH4YFFxW12l5L9AC3V3Gg3C.jpg',
+      rating: 4.8,
+      author: 'Christy',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+  ], []);
+
+  const animeCategoryQuizzes: QuizCardData[] = useMemo(() => [
+    {
+      id: 'anime-op',
+      topicId: 'one-piece',
+      title: 'One Piece: Grand Line & Devil Fruits',
+      imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTNjNGU4NTUtYmVjMy00YjRiLTkxMWUtNzZkMDNiYjZhNmViXkEyXkFqcGc@._V1_.jpg',
+      rating: 4.9,
+      author: 'OdaFan',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'anime-jjk',
+      topicId: 'gojo-vs-sukuna',
+      title: 'Jujutsu Kaisen: Cursed Techniques & Special Grades',
+      imageUrl: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227',
+      rating: 5.0,
+      author: 'Sorcerer',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'anime-naruto',
+      topicId: 'naruto',
+      title: 'Naruto: Hidden Leaf Hokages & Chunin Exams',
+      imageUrl: 'https://m.media-amazon.com/images/M/MV5BNTk3MDA1ZjAtNTRhYS00YzNiLTgwOGEtYWRmYTQ3NjA0NTAwXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
+      rating: 4.8,
+      author: 'KonohaGenin',
+      difficulty: 'EASY',
+      questionCount: 110,
+    },
+    {
+      id: 'anime-bleach',
+      topicId: 'bleach',
+      title: 'Bleach: Soul Society & Espada Numbers',
+      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHgv812hd8ZACsQrISDtQjzxMEDcv78Vf7yBRGZ9iVCPA2UHIKbpYeW5Fk&s=10',
+      rating: 4.8,
+      author: 'Shinikami',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+  ], []);
+
+  const handleVoteMode = () => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    createRoom(currentUser.username, 'one-piece', 5, 15, 4);
   };
-
-  const handleJoinRoom = () => {
-    if (!currentUser) { setIsAuthModalOpen(true); return; }
-    setIsJoinModalOpen(true);
-  };
-
-  const handleExploreTopics = () => {
-    if (!currentUser) { setIsAuthModalOpen(true); return; }
-    setCurrentView('categories');
-  };
-
-  const handleQuickStartOnePiece = () => {
-    if (!currentUser) { setIsAuthModalOpen(true); return; }
-    createRoom(currentUser.username, 'one-piece', 5, 15, 2);
-  };
-
-  const featuredTopics = [
-    { label: 'One Piece', tag: 'Anime', image: '/imu.png' },
-    { label: 'Jujutsu Kaisen', tag: 'Anime', image: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227' },
-    { label: 'Physics', tag: 'Science', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/10/Einstein_tongue.jpg/800px-Einstein_tongue.jpg' },
-    { label: 'Chemistry', tag: 'Science', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a3/Hydrogen_Spectra.jpg/800px-Hydrogen_Spectra.jpg' },
-  ];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] transition-colors pb-16">
-
-      {/* ── Subnav Category Bar ── */}
+    <div className="w-full min-h-screen bg-[#FFFDF4] dark:bg-[#100F0F] text-black dark:text-[#FEFEFD] transition-colors pb-24 md:pb-16 font-sans">
+      {/* ── Subnav Category Bar (Image 3 & 4) ── */}
       <div className="w-full border-b border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
         <div className="max-w-[1248px] mx-auto px-4 md:px-6">
-          <CategoryNav activeSlug="" />
+          <CategoryNav activeCategory="start" />
         </div>
       </div>
 
-      {/* ── Hero Band: "Join Game? Enter PIN" ── */}
-      <section className="border-b border-[#CECCC5] dark:border-[#363535]">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-6 sm:py-8">
-          <div className="bg-[#EBDAC3] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              {/* Left: Join prompt */}
-              <div className="space-y-1">
-                <h2 className="font-nunito font-extrabold text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
-                  Join Game? Enter PIN / Room Code:
-                </h2>
-                <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
-                  Jump straight into a live match with your friends
-                </p>
-              </div>
+      {/* ── Mobile Join PIN Band (Visible on Mobile under navbar as in Image 1) ── */}
+      <MobileJoinBar />
 
-              {/* Right: Input + Join button */}
-              <div className="flex items-center gap-3 flex-1 sm:max-w-sm">
-                <input
-                  type="text"
-                  placeholder="e.g. AB12CD"
-                  maxLength={6}
-                  onClick={handleJoinRoom}
-                  readOnly
-                  className="flex-1 min-w-0 px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none cursor-pointer"
-                />
-                <Button variant="arena" size="md" onClick={handleJoinRoom}>
-                  Join
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── Main Responsive Container (Quiz.com md:custom-container) ── */}
+      <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-3 md:pt-6 space-y-6">
 
-      {/* ── Live Stats Strip ── */}
-      <section className="border-b border-[#CECCC5] dark:border-[#363535]">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-4">
-          <div className="flex flex-wrap items-center gap-4 sm:gap-8">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse inline-block" />
-              <span className="font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
-                {globalStats.totalPlayersCount} Active Players
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-[#B9843E]" />
-              <span className="font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
-                {globalStats.totalRoomsCreated} Rooms Created
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#23616A]" />
-              <span className="font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
-                {globalStats.overallAccuracy}% Arena Accuracy
-              </span>
-            </div>
-
-            {/* CTA buttons on the right */}
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleExploreTopics}>
-                <Compass className="w-3.5 h-3.5" />
-                Browse
-              </Button>
-              <Button variant="arena" size="sm" onClick={handleCreateRoom}>
-                <Plus className="w-3.5 h-3.5" />
-                Create Room
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Featured Quick Play ── */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 space-y-6">
-        {/* Section heading */}
-        <div className="flex items-end justify-between border-b border-[#CECCC5] dark:border-[#363535] pb-4">
-          <div>
-            <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
-              Featured Quick Match
-            </h2>
-            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
-              Dive into a ready-made battle
-            </p>
-          </div>
-          <button
-            onClick={handleExploreTopics}
-            className="font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] hover:underline"
-          >
-            See all →
-          </button>
-        </div>
-
-        {/* Hero + Side cards grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-0 border border-[#CECCC5] dark:border-[#363535]">
-          {/* Main hero card */}
-          <div
-            className="lg:col-span-2 group relative border-b lg:border-b-0 lg:border-r border-[#CECCC5] dark:border-[#363535] cursor-pointer hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] transition-colors"
-            onClick={handleQuickStartOnePiece}
-          >
-            {/* Image */}
-            <div className="relative h-64 sm:h-80 lg:h-96 overflow-hidden bg-[#E5E3DB] dark:bg-[#1E1D1D]">
-              <SafeImage
-                src="/imu.png"
-                fallbackSrc="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5v8aImTlIh60FlNLO18G7LEclN2vkaKhR4pfu5vjkGcQ4s05Mc27gjYfi&s=10"
-                alt="One Piece Grand Line Arena"
-                className="w-full h-full object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
-              />
-              {/* Category pill */}
-              <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
-                Anime
-              </span>
-            </div>
-
-            {/* Card body */}
-            <div className="p-6 space-y-3">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-[1.4]">
-                    One Piece Grand Line Arena
-                  </h3>
-                  <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize mt-1">
-                    Test your knowledge of Devil Fruits, Yonko powers, Haki, and the Void Century.
-                  </p>
-                </div>
-                <Button variant="arena" size="md" onClick={handleQuickStartOnePiece} className="shrink-0">
-                  Play Now
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-3 pt-2 border-t border-[#CECCC5] dark:border-[#363535]">
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-                  <Users className="w-3.5 h-3.5" /> 2–4 Players
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-                  Level 05
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-                  10 Questions
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Side: recently published stream */}
-          <div className="flex flex-col divide-y divide-[#CECCC5] dark:divide-[#363535]">
-            <div className="px-5 py-4">
-              <h3 className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] uppercase">
-                Recently Published
-              </h3>
-            </div>
-
-            {featuredTopics.map((topic, i) => (
-              <button
-                key={i}
-                onClick={handleExploreTopics}
-                className="group flex items-center gap-3 px-5 py-4 hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] transition-colors text-left w-full"
-              >
-                {/* Thumbnail */}
-                <div className="w-12 h-12 shrink-0 overflow-hidden bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
-                  <SafeImage
-                    src={topic.image}
-                    alt={topic.label}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] leading-none truncate">
-                    {topic.label}
-                  </div>
-                  <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-                    {topic.tag}
-                  </span>
-                </div>
-                <span className="text-[#CECCC5] dark:text-[#363535] group-hover:text-[#000000] dark:group-hover:text-[#FEFEFD] transition-colors">→</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Explore Categories Teaser ── */}
-      <section className="border-t border-[#CECCC5] dark:border-[#363535]">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 sm:p-8 bg-[#F7F5ED] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535]">
-            <div className="text-center sm:text-left">
-              <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-[1.4]">
-                Explore 5 Categories · 40+ Topics
+        {/* ── Dual Hero Promo Banners (Image 1 & 3) ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Card 1: Create a quiz */}
+          <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left justify-center space-y-2 z-1 w-full md:w-auto">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
+                Create a quiz
               </h2>
-              <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize mt-1">
-                Anime, Series, Movies, Chemistry, Physics — pick your arena.
+              <p className="font-roboto text-xs sm:text-sm font-bold opacity-90 leading-tight">
+                Play for free with 300 participants
+              </p>
+              <div className="pt-2">
+                <QuizButton
+                  color="green"
+                  size="md"
+                  onClick={() => {
+                    if (!currentUser) { setIsAuthModalOpen(true); return; }
+                    setIsCreateModalOpen(true);
+                  }}
+                >
+                  Quiz editor
+                </QuizButton>
+              </div>
+            </div>
+            {/* Visual Icon Art */}
+            <div className="hidden lg:flex w-28 h-28 shrink-0 items-center justify-center opacity-85">
+              <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center border-2 border-white/20">
+                <BookOpen className="w-12 h-12 text-[#00A76D]" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: A.I. */}
+          <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
+            <div className="flex flex-col items-center md:items-start text-center md:text-left justify-center space-y-2 z-1 w-full md:w-auto">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
+                A.I.
+              </h2>
+              <p className="font-roboto text-xs sm:text-sm font-bold opacity-90 leading-tight">
+                Generate a quiz from any subject or pdf
+              </p>
+              <div className="pt-2">
+                <QuizButton
+                  color="cyan"
+                  size="md"
+                  onClick={() => {
+                    if (!currentUser) { setIsAuthModalOpen(true); return; }
+                    setSelectedTopicId('gojo-vs-sukuna');
+                    setCurrentView('difficulty');
+                  }}
+                >
+                  Quiz generator
+                </QuizButton>
+              </div>
+            </div>
+            {/* Visual Icon Art */}
+            <div className="hidden lg:flex w-28 h-28 shrink-0 items-center justify-center opacity-85">
+              <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center border-2 border-white/20">
+                <Sparkles className="w-12 h-12 text-[#6FEEFF]" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Carousel 1: Recently published (Image 1 & 3) ── */}
+        <QuizCarousel
+          title="Recently published"
+          quizzes={recentlyPublishedQuizzes}
+        />
+
+        {/* ── Carousel 2: Popular quizzes created by AI (Image 1 & 3) ── */}
+        <QuizCarousel
+          title="Popular quizzes created by AI"
+          quizzes={aiQuizzes}
+        />
+
+        {/* ── Vote Mode Banner (from Image 3) ── */}
+        <div className="w-full bg-[#19444A] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-sm">
+          <div className="flex items-center gap-3 text-center sm:text-left">
+            <div className="w-10 h-10 rounded-full bg-white/10 hidden sm:flex items-center justify-center">
+              <Vote className="w-5 h-5 text-[#FFC679]" />
+            </div>
+            <div>
+              <h3 className="font-nunito font-black text-base sm:text-lg">
+                Can&apos;t decide? Let players vote
+              </h3>
+              <p className="font-roboto text-xs opacity-80">
+                Host a multiplayer match where participants vote on rounds and questions
               </p>
             </div>
-            <Button variant="arena" size="lg" onClick={handleExploreTopics}>
-              Browse All Categories
-            </Button>
           </div>
+          <QuizButton
+            color="yellow"
+            size="sm"
+            onClick={handleVoteMode}
+          >
+            Start vote mode
+          </QuizButton>
         </div>
-      </section>
+
+        {/* ── Carousel 3: Best rating right now (Image 2 & 3) ── */}
+        <QuizCarousel
+          title="Best rating right now"
+          quizzes={bestRatedQuizzes}
+        />
+
+        {/* ── Carousel 4: Popular right now (Image 2 & 3) ── */}
+        <QuizCarousel
+          title="Popular right now"
+          quizzes={popularQuizzes}
+        />
+
+        {/* ── Carousel 5: Anime Category Section (Image 2 & 3) ── */}
+        <QuizCarousel
+          title="Anime"
+          seeAllCount={15}
+          onSeeAll={() => {
+            setSelectedCategoryId('anime');
+            setCurrentView('topics');
+          }}
+          quizzes={animeCategoryQuizzes}
+        />
+      </div>
     </div>
   );
 }

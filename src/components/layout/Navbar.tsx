@@ -1,172 +1,142 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Home, Compass, Trophy, Plus, LogIn, User, Settings, Film } from 'lucide-react';
-import { Button } from '../ui/Button';
+import { Search, Menu, User, Settings, LogIn, Trophy } from 'lucide-react';
+import { QuizLogo } from '../ui/QuizLogo';
 
 export function Navbar() {
   const {
-    currentView,
     setCurrentView,
     room,
     currentPlayer,
-    setIsCreateModalOpen,
+    joinRoom,
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
   } = useGame();
   const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
 
-  const navLinks = [
-    { label: 'Start', view: 'landing' as const, icon: Home },
-    { label: 'Entertainment', view: 'entertainment' as const, icon: Film },
-    { label: 'Categories', view: 'categories' as const, icon: Compass },
-    { label: 'Leaderboard', view: null, icon: Trophy },
-  ];
+  const [desktopPin, setDesktopPin] = useState('');
 
-  const handleNavClick = (view: 'landing' | 'entertainment' | 'categories' | null) => {
-    if (view === null) {
-      // Leaderboard
-      if (!currentUser) { setIsAuthModalOpen(true); return; }
-      setIsGlobalLeaderboardOpen(true);
-      return;
-    }
-    if (view === 'categories' && !currentUser) {
+  const handleDesktopJoin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!desktopPin.trim()) return;
+    if (!currentUser) {
       setIsAuthModalOpen(true);
       return;
     }
-    setCurrentView(view);
+    const cleanPin = desktopPin.replace(/\s+/g, '').toUpperCase();
+    joinRoom(cleanPin, currentUser.username);
   };
 
-  const isActiveView = (view: 'landing' | 'entertainment' | 'categories' | null) => {
-    if (view === 'landing') return currentView === 'landing';
-    if (view === 'entertainment') return currentView === 'entertainment';
-    if (view === 'categories') return ['categories', 'topics', 'difficulty'].includes(currentView);
-    return false;
+  const handleDesktopPinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let raw = e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    if (raw.length > 6) raw = raw.slice(0, 6);
+    if (raw.length > 3) {
+      setDesktopPin(`${raw.slice(0, 3)} ${raw.slice(3)}`);
+    } else {
+      setDesktopPin(raw);
+    }
   };
 
   return (
     <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] dark:bg-[#100F0F] border-b border-[#CECCC5] dark:border-[#363535] transition-colors">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+      <div className="max-w-[1248px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
 
-        {/* Brand - Quiz.com Multicolor signature styling */}
+        {/* Brand Logo - Bubbly Quiz.com */}
         <button
           onClick={() => setCurrentView('landing')}
-          className="flex items-center gap-2 group focus:outline-none shrink-0"
+          className="focus:outline-none shrink-0 cursor-pointer"
         >
-          <div className="flex items-center font-nunito font-black text-2xl tracking-tight select-none">
-            <span className="text-[#00A2CA]">Q</span>
-            <span className="text-[#FFA7A0]">u</span>
-            <span className="text-[#00AFC6]">i</span>
-            <span className="text-[#FFC679]">z</span>
-            <span className="text-black dark:text-[#FEFEFD] ml-0.5">.com</span>
-          </div>
+          <QuizLogo />
         </button>
 
-        {/* Desktop Category Navigation */}
-        <nav className="hidden md:flex items-end gap-0 h-full pt-1">
-          {navLinks.map(({ label, view, icon: Icon }) => {
-            const active = isActiveView(view);
-            return (
-              <button
-                key={label}
-                onClick={() => handleNavClick(view)}
-                className={`relative flex items-center gap-1.5 px-4 h-full pb-0 font-nunito font-extrabold text-[15px] tracking-[0.48px] leading-[1.36] transition-colors focus:outline-none ${
-                  active
-                    ? 'text-[#000000] dark:text-[#FEFEFD]'
-                    : 'text-[#595955] dark:text-[#A4A3A3] hover:text-[#000000] dark:hover:text-[#FEFEFD]'
-                }`}
-              >
-                {label}
-                {/* Active underline indicator */}
-                {active && (
-                  <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[#000000] dark:bg-[#FEFEFD] rounded-full" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        {/* Center: Desktop Salmon PIN Join Band (Visible on Desktop / PC as in Image 3) */}
+        <div className="hidden lg:flex items-center">
+          <form
+            onSubmit={handleDesktopJoin}
+            className="flex items-center gap-3 bg-[#FFA7A0] px-4 py-1.5 rounded-xl border border-black/10 shadow-sm"
+          >
+            <div className="flex flex-col font-nunito text-xs font-black text-black leading-none whitespace-nowrap">
+              <span>Join Game?</span>
+              <span className="opacity-80">Enter PIN:</span>
+            </div>
+            <input
+              type="text"
+              placeholder="123 456"
+              maxLength={7}
+              value={desktopPin}
+              onChange={handleDesktopPinChange}
+              onClick={() => {
+                if (!currentUser) setIsAuthModalOpen(true);
+                else setIsJoinModalOpen(true);
+              }}
+              className="w-28 text-center font-nunito font-extrabold text-sm rounded-full py-1 px-2 bg-white text-black border-2 border-black focus:outline-none shadow-inner tracking-wider"
+            />
+          </form>
+        </div>
 
-        {/* Right Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Room status indicator */}
-          {room && currentPlayer && (currentView === 'lobby' || currentView === 'game') ? (
+        {/* Right Actions: Search icon, Menu icon, Avatar Circle (as in Image 1 & 3) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Active room live badge if participating */}
+          {room && currentPlayer && (
             <button
               onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-[#CECCC5] dark:border-[#363535] hover:border-[#000000] dark:hover:border-[#FEFEFD] transition-all text-xs cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1 bg-black text-white text-xs font-nunito font-bold rounded-full cursor-pointer"
             >
-              <span className="font-nunito font-extrabold text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px]">
-                {room.code}
-              </span>
-              <span className="text-[#CECCC5] dark:text-[#363535]">•</span>
-              <span
-                className={`w-2 h-2 rounded-full inline-block ${
-                  room.status === 'LOBBY'
-                    ? 'bg-[#B9843E]'
-                    : 'bg-[#4CA471] animate-pulse'
-                }`}
-              />
-              <span className="font-nunito font-extrabold text-[#000000] dark:text-[#FEFEFD]">
-                {room.status === 'LOBBY' ? 'Lobby' : 'Live'}
-              </span>
+              <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
+              <span>{room.code}</span>
             </button>
-          ) : (
-            <div className="hidden sm:flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  if (!currentUser) { setIsAuthModalOpen(true); return; }
-                  setIsJoinModalOpen(true);
-                }}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Join
-              </Button>
-              <Button
-                variant="arena"
-                size="sm"
-                onClick={() => {
-                  if (!currentUser) { setIsAuthModalOpen(true); return; }
-                  setIsCreateModalOpen(true);
-                }}
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Create Room
-              </Button>
-            </div>
           )}
 
-          {/* User avatar / sign in */}
+          {/* Search Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUser) setIsAuthModalOpen(true);
+              else setCurrentView('categories');
+            }}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+            title="Search quizzes"
+          >
+            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+
+          {/* Leaderboard / Menu Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!currentUser) setIsAuthModalOpen(true);
+              else setIsGlobalLeaderboardOpen(true);
+            }}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+            title="Leaderboard / Menu"
+          >
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
+          </button>
+
+          {/* User Profile Avatar Circle */}
           {currentUser ? (
             <button
               onClick={() => setIsSettingsModalOpen(true)}
-              className="flex items-center gap-2 pl-2 border-l border-[#CECCC5] dark:border-[#363535] hover:opacity-80 transition-opacity"
-              title="Settings"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-black dark:border-white shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              title={`${currentUser.username} (Settings)`}
             >
-              <div className="w-8 h-8 bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center overflow-hidden border border-[#CECCC5] dark:border-[#363535]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.username}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className="hidden lg:inline font-nunito font-extrabold text-sm text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px]">
-                {currentUser.username}
-              </span>
-              <Settings className="w-3.5 h-3.5 text-[#595955] dark:text-[#A4A3A3]" />
+              <img
+                src={currentUser.avatarUrl}
+                alt={currentUser.username}
+                className="w-full h-full object-cover"
+              />
             </button>
           ) : (
-            <Button
-              variant="primary"
-              size="sm"
+            <button
               onClick={() => setIsAuthModalOpen(true)}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+              title="Sign In"
             >
-              <User className="w-3.5 h-3.5" />
-              Sign In
-            </Button>
+              <User className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
           )}
         </div>
       </div>
