@@ -94,21 +94,36 @@ export function Navbar() {
         </nav>
 
         {/* Actions & Utilities */}
-        <div className="flex items-center gap-2.5">
-          {/* Room quick controls */}
-          {room && room.status !== 'FINISHED' ? (
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Room quick controls - Option 3 Minimalist Style */}
+          {room && currentPlayer && (currentView === 'lobby' || currentView === 'game') ? (
             <button
               onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 text-white dark:bg-slate-800 border border-slate-700/80 hover:border-slate-500 shadow-sm transition-all"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all text-xs cursor-pointer group"
+              title="Click to view Arena"
             >
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                Room
-              </span>
-              <span className="font-mono text-xs font-bold tracking-widest text-white">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">Room</span>
+              <span className="font-mono font-black text-slate-900 dark:text-white tracking-wider text-xs sm:text-sm">
                 {room.code}
               </span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 dark:bg-slate-700 text-slate-300 border border-slate-700/80">
-                {room.status === 'LOBBY' ? 'Lobby' : 'Live'}
+              <span className="text-slate-300 dark:text-slate-700 mx-0.5">•</span>
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`w-2 h-2 rounded-full inline-block ${
+                    room.status === 'LOBBY'
+                      ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.7)]'
+                      : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] animate-pulse'
+                  }`}
+                />
+                <span
+                  className={`font-semibold text-xs ${
+                    room.status === 'LOBBY'
+                      ? 'text-amber-600 dark:text-amber-400'
+                      : 'text-emerald-600 dark:text-emerald-400'
+                  }`}
+                >
+                  {room.status === 'LOBBY' ? 'Lobby' : 'Live'}
+                </span>
               </span>
             </button>
           ) : (
