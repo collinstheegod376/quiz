@@ -23,11 +23,11 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Quiz.com — Real-Time Multiplayer Quiz Game',
+  title: 'AniZuki — Real-Time Anime Quiz Game',
   description:
-    'Playful, competitive 2–4 player real-time multiplayer quiz game inspired by Quiz.com with progressive difficulty tiers and instant zero-delay gameplay.',
-  keywords: ['quiz', 'quiz.com', 'multiplayer', 'anime', 'trivia', 'entertainment', 'gaming'],
-  authors: [{ name: 'Quiz.com' }],
+    'AniZuki is a real-time multiplayer anime quiz game. Challenge friends with One Piece, Naruto, JJK, Demon Slayer trivia and more.',
+  keywords: ['anizuki', 'anime quiz', 'multiplayer quiz', 'jujutsu kaisen', 'one piece', 'trivia', 'entertainment'],
+  authors: [{ name: 'AniZuki' }],
 };
 
 export const viewport = {
@@ -35,7 +35,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: '#0B0C10',
+  themeColor: '#FFFDF4',
 };
 
 export default function RootLayout({
@@ -44,8 +44,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${nunito.variable} ${roboto.variable}`} suppressHydrationWarning>
-      <body className="min-h-screen flex flex-col antialiased pb-16 md:pb-0 font-sans">
+    // Light mode only — no "dark" class
+    <html lang="en" className={`${nunito.variable} ${roboto.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen flex flex-col antialiased font-sans bg-[#FFFDF4]">
         <AuthProvider>
           <ThemeProvider>
             <GameProvider>

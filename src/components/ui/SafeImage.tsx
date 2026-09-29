@@ -31,21 +31,21 @@ export function SafeImage({
   if (hasFailed) {
     return (
       <div
-        className={`w-full h-full flex flex-col items-center justify-center bg-gradient-to-tr from-slate-900 via-slate-800 to-red-950/40 text-slate-300 p-4 text-center ${className}`}
+        className={`w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#E5E3DB] to-[#CECCC5] text-[#595955] p-4 text-center ${className}`}
       >
-        <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/30 flex items-center justify-center text-red-400 font-display font-black text-sm mb-2">
-          ARENA
+        <div className="w-10 h-10 rounded-xl bg-black/10 border border-black/10 flex items-center justify-center text-black font-nunito font-black text-xs mb-2">
+          ✦
         </div>
-        <span className="text-xs font-bold line-clamp-1 text-slate-200">{alt}</span>
+        <span className="text-xs font-bold line-clamp-2 text-[#595955]">{alt}</span>
       </div>
     );
   }
 
   return (
     <div className={`relative ${className}`} style={{ overflow: 'hidden' }}>
-      {/* Shimmer skeleton shown while loading */}
+      {/* Shimmer skeleton while loading */}
       {!isLoaded && (
-        <div className="absolute inset-0 bg-slate-800 animate-pulse" />
+        <div className="absolute inset-0 bg-[#E5E3DB] animate-pulse" />
       )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
@@ -54,6 +54,7 @@ export function SafeImage({
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
+        crossOrigin="anonymous"
         onError={handleError}
         onLoad={() => setIsLoaded(true)}
         className={`w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}

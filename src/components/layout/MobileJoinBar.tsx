@@ -40,7 +40,7 @@ export function MobileJoinBar() {
   };
 
   return (
-    <div className="w-full md:hidden px-3 pt-3 pb-1">
+    <div className="w-full md:hidden px-3 pt-3 pb-2">
       <div className="rounded-xl bg-[#FFA7A0] p-3 shadow-sm border border-black/10 flex flex-col items-center justify-center w-full overflow-hidden">
         <form onSubmit={handleJoin} className="flex flex-row items-center justify-between w-full gap-2">
           {/* Label */}

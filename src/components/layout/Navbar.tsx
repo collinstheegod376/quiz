@@ -3,8 +3,19 @@
 import React, { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Search, Menu, User, Settings, LogIn, Trophy } from 'lucide-react';
+import {
+  Search,
+  Menu,
+  User,
+  X,
+  Trophy,
+  Plus,
+  Film,
+  Home,
+  Compass,
+} from 'lucide-react';
 import { QuizLogo } from '../ui/QuizLogo';
+import { CATEGORY_NAV_ITEMS, CategoryNav } from './CategoryNav';
 
 export function Navbar() {
   const {
@@ -14,10 +25,14 @@ export function Navbar() {
     joinRoom,
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
+    setIsCreateModalOpen,
+    setSelectedCategoryId,
   } = useGame();
   const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
 
   const [desktopPin, setDesktopPin] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState('start');
 
   const handleDesktopJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,106 +55,287 @@ export function Navbar() {
     }
   };
 
+  const handleMobileCategoryClick = (item: (typeof CATEGORY_NAV_ITEMS)[0]) => {
+    setActiveCategory(item.id);
+    if (item.id === 'start') {
+      setCurrentView('landing');
+    } else if (item.categoryId) {
+      setSelectedCategoryId(item.categoryId);
+      setCurrentView('topics');
+    }
+    setMobileMenuOpen(false);
+  };
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
-    <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] dark:bg-[#100F0F] border-b border-[#CECCC5] dark:border-[#363535] transition-colors">
-      <div className="max-w-[1248px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
+    <>
+      {/* ── Top Header ── */}
+      <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] border-b border-[#CECCC5] transition-colors">
+        <div className="max-w-[1248px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
 
-        {/* Brand Logo - Bubbly Quiz.com */}
-        <button
-          onClick={() => setCurrentView('landing')}
-          className="focus:outline-none shrink-0 cursor-pointer"
-        >
-          <QuizLogo />
-        </button>
-
-        {/* Center: Desktop Salmon PIN Join Band (Visible on Desktop / PC as in Image 3) */}
-        <div className="hidden lg:flex items-center">
-          <form
-            onSubmit={handleDesktopJoin}
-            className="flex items-center gap-3 bg-[#FFA7A0] px-4 py-1.5 rounded-xl border border-black/10 shadow-sm"
+          {/* Logo */}
+          <button
+            onClick={() => setCurrentView('landing')}
+            className="focus:outline-none shrink-0 cursor-pointer"
           >
-            <div className="flex flex-col font-nunito text-xs font-black text-black leading-none whitespace-nowrap">
-              <span>Join Game?</span>
-              <span className="opacity-80">Enter PIN:</span>
-            </div>
-            <input
-              type="text"
-              placeholder="123 456"
-              maxLength={7}
-              value={desktopPin}
-              onChange={handleDesktopPinChange}
+            <QuizLogo />
+          </button>
+
+          {/* Desktop: Salmon PIN Join Band */}
+          <div className="hidden lg:flex items-center">
+            <form
+              onSubmit={handleDesktopJoin}
+              className="flex items-center gap-3 bg-[#FFA7A0] px-4 py-1.5 rounded-xl border border-black/10 shadow-sm"
+            >
+              <div className="flex flex-col font-nunito text-xs font-black text-black leading-none whitespace-nowrap">
+                <span>Join Game?</span>
+                <span className="opacity-80">Enter PIN:</span>
+              </div>
+              <input
+                type="text"
+                placeholder="123 456"
+                maxLength={7}
+                value={desktopPin}
+                onChange={handleDesktopPinChange}
+                onClick={() => {
+                  if (!currentUser) setIsAuthModalOpen(true);
+                  else setIsJoinModalOpen(true);
+                }}
+                className="w-28 text-center font-nunito font-extrabold text-sm rounded-full py-1 px-2 bg-white text-black border-2 border-black focus:outline-none shadow-inner tracking-wider"
+              />
+            </form>
+          </div>
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+
+            {/* Active room live badge */}
+            {room && currentPlayer && (
+              <button
+                onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
+                className="flex items-center gap-1.5 px-3 py-1 bg-black text-white text-xs font-nunito font-bold rounded-full cursor-pointer"
+              >
+                <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
+                <span>{room.code}</span>
+              </button>
+            )}
+
+            {/* Search — desktop only */}
+            <button
+              type="button"
               onClick={() => {
                 if (!currentUser) setIsAuthModalOpen(true);
-                else setIsJoinModalOpen(true);
+                else setCurrentView('categories');
               }}
-              className="w-28 text-center font-nunito font-extrabold text-sm rounded-full py-1 px-2 bg-white text-black border-2 border-black focus:outline-none shadow-inner tracking-wider"
-            />
-          </form>
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              title="Search quizzes"
+            >
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Rankings — desktop only */}
+            <button
+              type="button"
+              onClick={() => {
+                if (!currentUser) setIsAuthModalOpen(true);
+                else setIsGlobalLeaderboardOpen(true);
+              }}
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              title="Rankings"
+            >
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+
+            {/* Avatar */}
+            {currentUser ? (
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-black shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                title={`${currentUser.username} (Settings)`}
+              >
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.username}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                title="Sign In"
+              >
+                <User className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
+
+            {/* Mobile Hamburger — opens side drawer */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="md:hidden w-9 h-9 rounded-full bg-[#E5E3DB] hover:bg-black/10 flex items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Right Actions: Search icon, Menu icon, Avatar Circle (as in Image 1 & 3) */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {/* Active room live badge if participating */}
-          {room && currentPlayer && (
-            <button
-              onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-              className="flex items-center gap-1.5 px-3 py-1 bg-black text-white text-xs font-nunito font-bold rounded-full cursor-pointer"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
-              <span>{room.code}</span>
-            </button>
-          )}
+        {/* Desktop Category Sub-nav (second row, desktop only) */}
+        <div className="hidden md:block border-t border-[#CECCC5] bg-[#FFFDF4]">
+          <div className="max-w-[1248px] mx-auto px-4 md:px-6">
+            <CategoryNav
+              activeCategory={activeCategory}
+              onSelectCategory={(id) => setActiveCategory(id)}
+            />
+          </div>
+        </div>
+      </header>
 
-          {/* Search Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!currentUser) setIsAuthModalOpen(true);
-              else setCurrentView('categories');
-            }}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
-            title="Search quizzes"
-          >
-            <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+      {/* ── Mobile Side Drawer Overlay ── */}
+      <div
+        className={`fixed inset-0 z-50 md:hidden pointer-events-none ${mobileMenuOpen ? 'pointer-events-auto' : ''}`}
+        aria-hidden={!mobileMenuOpen}
+      >
+        {/* Backdrop */}
+        <div
+          className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
+            mobileMenuOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={closeMobileMenu}
+        />
 
-          {/* Leaderboard / Menu Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (!currentUser) setIsAuthModalOpen(true);
-              else setIsGlobalLeaderboardOpen(true);
-            }}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
-            title="Leaderboard / Menu"
-          >
-            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
+        {/* Drawer Panel — slides in from right */}
+        <div
+          className={`absolute right-0 top-0 h-full w-[290px] max-w-[85vw] bg-[#FFFDF4] shadow-2xl flex flex-col transition-transform duration-300 ease-out ${
+            mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {/* Drawer Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#CECCC5] shrink-0">
+            <QuizLogo />
+            <button
+              type="button"
+              onClick={closeMobileMenu}
+              className="w-9 h-9 rounded-full bg-[#E5E3DB] flex items-center justify-center cursor-pointer hover:bg-black/10 transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5 text-black" />
+            </button>
+          </div>
 
-          {/* User Profile Avatar Circle */}
-          {currentUser ? (
+          {/* Drawer Body — scrollable */}
+          <div className="flex-1 overflow-y-auto px-4 py-5">
+
+            {/* Categories Section */}
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-3">
+              Categories
+            </p>
+            <div className="space-y-1">
+              {CATEGORY_NAV_ITEMS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleMobileCategoryClick(item)}
+                  className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm ${
+                    activeCategory === item.id
+                      ? 'bg-black text-white'
+                      : 'text-black hover:bg-[#E5E3DB]'
+                  }`}
+                >
+                  <div className={`w-5 h-5 shrink-0 ${activeCategory === item.id ? 'text-white' : 'text-black'}`}>
+                    {item.iconSvg}
+                  </div>
+                  <span>{item.name}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-[#CECCC5] my-5" />
+
+            {/* Navigation Section */}
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-3">
+              Navigation
+            </p>
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+              >
+                <Home className="w-5 h-5 shrink-0" />
+                <span>Home</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { setCurrentView('entertainment'); closeMobileMenu(); }}
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+              >
+                <Film className="w-5 h-5 shrink-0" />
+                <span>Entertainment</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) setIsAuthModalOpen(true);
+                  else setCurrentView('categories');
+                  closeMobileMenu();
+                }}
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+              >
+                <Compass className="w-5 h-5 shrink-0" />
+                <span>All Categories</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) setIsAuthModalOpen(true);
+                  else setIsGlobalLeaderboardOpen(true);
+                  closeMobileMenu();
+                }}
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+              >
+                <Trophy className="w-5 h-5 shrink-0" />
+                <span>Rankings</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) setIsAuthModalOpen(true);
+                  else setCurrentView('categories');
+                  closeMobileMenu();
+                }}
+                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+              >
+                <Search className="w-5 h-5 shrink-0" />
+                <span>Search Quizzes</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Drawer Footer — Create Quiz CTA */}
+          <div className="p-4 border-t border-[#CECCC5] shrink-0">
             <button
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-black dark:border-white shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-              title={`${currentUser.username} (Settings)`}
+              type="button"
+              onClick={() => {
+                if (!currentUser) setIsAuthModalOpen(true);
+                else setIsCreateModalOpen(true);
+                closeMobileMenu();
+              }}
+              className="w-full h-11 bg-black text-white font-nunito font-black text-sm rounded-full flex items-center justify-center gap-2 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"
             >
-              <img
-                src={currentUser.avatarUrl}
-                alt={currentUser.username}
-                className="w-full h-full object-cover"
-              />
+              <Plus className="w-4 h-4" />
+              Create Quiz
             </button>
-          ) : (
-            <button
-              onClick={() => setIsAuthModalOpen(true)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-              title="Sign In"
-            >
-              <User className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
-          )}
+          </div>
         </div>
       </div>
-    </header>
+    </>
   );
 }

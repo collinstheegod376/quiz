@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { CategoryNav } from '@/components/layout/CategoryNav';
 import { MobileJoinBar } from '@/components/layout/MobileJoinBar';
 import { QuizButton } from '@/components/ui/QuizButton';
 import { TOPICS } from '@/data/topics';
@@ -240,18 +239,11 @@ export function EntertainmentScreen() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] transition-colors pb-24 md:pb-16 font-sans">
-      {/* ── Subnav Category Bar ── */}
-      <div className="w-full border-b border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
-        <div className="max-w-[1248px] mx-auto px-4 md:px-6">
-          <CategoryNav activeCategory="anime" />
-        </div>
-      </div>
-
-      {/* ── Mobile Join PIN Band ── */}
+    <div className="w-full min-h-screen bg-[#FFFDF4] text-[#000000] pb-8 font-sans">
+      {/* Mobile Join PIN Band */}
       <MobileJoinBar />
 
-      {/* ── Main Container (Quiz.com md:custom-container) ── */}
+      {/* Main Container */}
       <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-4 md:pt-6 space-y-6">
 
         {/* ── Promotional Banners: Create Quiz & A.I. Generator ── */}

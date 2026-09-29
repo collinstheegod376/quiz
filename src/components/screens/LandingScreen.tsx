@@ -3,7 +3,6 @@
 import React, { useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { CategoryNav } from '../layout/CategoryNav';
 import { MobileJoinBar } from '../layout/MobileJoinBar';
 import { QuizButton } from '../ui/QuizButton';
 import { QuizCarousel, QuizCardData } from '../ui/QuizCarousel';
@@ -284,21 +283,14 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FFFDF4] dark:bg-[#100F0F] text-black dark:text-[#FEFEFD] transition-colors pb-24 md:pb-16 font-sans">
-      {/* ── Subnav Category Bar (Image 3 & 4) ── */}
-      <div className="w-full border-b border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
-        <div className="max-w-[1248px] mx-auto px-4 md:px-6">
-          <CategoryNav activeCategory="start" />
-        </div>
-      </div>
-
-      {/* ── Mobile Join PIN Band (Visible on Mobile under navbar as in Image 1) ── */}
+    <div className="w-full min-h-screen bg-[#FFFDF4] text-black pb-8 font-sans">
+      {/* ── Mobile Join PIN Band (below navbar on mobile) ── */}
       <MobileJoinBar />
 
-      {/* ── Main Responsive Container (Quiz.com md:custom-container) ── */}
+      {/* ── Main Content ── */}
       <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-3 md:pt-6 space-y-6">
 
-        {/* ── Dual Hero Promo Banners (Image 1 & 3) ── */}
+        {/* ── Dual Hero Promo Banners ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card 1: Create a quiz */}
           <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
