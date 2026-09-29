@@ -119,7 +119,7 @@ export function QuestionScreen() {
         {options.map((opt) => {
           const isSelected = selectedOption === opt.key;
           const isReveal = room.status === 'REVEAL';
-          const isCorrectOption = isReveal && lastRevealResult?.correctOption === opt.key;
+          const isCorrectOption = isReveal && currentQuestion.correctOption === opt.key;
           const isWrongSelectedOption = isReveal && isSelected && !isCorrectOption;
 
           let buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md active:scale-[0.99] cursor-pointer';

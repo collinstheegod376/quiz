@@ -561,9 +561,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
 
+      const correctOpt = q.correctOption || 'A';
+      const isCorrect = option === correctOpt;
+      const responseTimeMs = Date.now() - answerTimeStartRef.current;
+      const responseSeconds = Math.min(currentRoom.timePerQuestion, Math.max(1, responseTimeMs / 1000));
+      
+      let pointsAwarded = 0;
+      let timeBonus = 0;
+      const basePoints = 1000;
+      
+      if (isCorrect) {
+        timeBonus = Math.max(0, Math.floor(500 - responseSeconds * 20));
+        pointsAwarded = basePoints + timeBonus;
+      }
+
       const updatedPlayers = currentRoom.players.map((p) =>
         p.id === player.id
-          ? { ...p, hasAnswered: true, selectedOption: option }
+          ? { 
+              ...p, 
+              hasAnswered: true, 
+              selectedOption: option,
+              score: p.score + pointsAwarded,
+              correctAnswers: p.correctAnswers + (isCorrect ? 1 : 0),
+              totalResponseTimeMs: p.totalResponseTimeMs + responseTimeMs
+            }
           : p
       );
       const nextRoom = { ...currentRoom, players: updatedPlayers };
@@ -589,40 +610,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const correctOpt = q.correctOption || 'A';
     const isCorrect = chosenOption === correctOpt;
 
-    const responseTimeMs = Date.now() - answerTimeStartRef.current;
-    const responseSeconds = Math.min(currentRoom.timePerQuestion, Math.max(1, responseTimeMs / 1000));
-
-    let pointsAwarded = 0;
-    let timeBonus = 0;
-    const basePoints = 1000;
-
-    if (isCorrect) {
-      sound.playCorrect();
-      timeBonus = Math.max(0, Math.floor(500 - responseSeconds * 20));
-      pointsAwarded = basePoints + timeBonus;
-      incrementStat('correctAnswers');
-    } else {
-      sound.playIncorrect();
+    // Local sounds & stats
+    if (chosenOption) {
+      if (isCorrect) {
+        sound.playCorrect();
+        incrementStat('correctAnswers');
+      } else {
+        sound.playIncorrect();
+      }
+      incrementStat('totalAnswers');
     }
 
-    incrementStat('totalAnswers');
-    incrementStat('totalScore', pointsAwarded);
+    // ONLY the host pushes the state transition and simulates bots.
+    // This prevents race conditions where multiple clients overwrite the room.
+    if (!player.isHost) {
+      return;
+    }
 
-    const sortedBefore = [...currentRoom.players].sort((a, b) => b.score - a.score);
-    const prevRank = sortedBefore.findIndex((p) => p.id === player.id) + 1;
-
+    const basePoints = 1000;
     const updatedPlayers = currentRoom.players.map((p) => {
-      if (p.id === player.id) {
-        return {
-          ...p,
-          score: p.score + pointsAwarded,
-          correctAnswers: p.correctAnswers + (isCorrect ? 1 : 0),
-          totalResponseTimeMs: p.totalResponseTimeMs + responseTimeMs,
-          hasAnswered: true,
-          selectedOption: chosenOption || undefined,
-        };
-      }
-
       // Bot simulation
       if (p.id.startsWith('bot_')) {
         const botCorrect = Math.random() > 0.35;
@@ -644,34 +650,19 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Human players (mark as answered if timer ran out without selecting)
+      // Their score was already updated directly in submitAnswer if they answered!
       return {
         ...p,
         hasAnswered: true,
       };
     });
 
-    const sortedAfter = [...updatedPlayers].sort((a, b) => b.score - a.score);
-    const newRank = sortedAfter.findIndex((p) => p.id === player.id) + 1;
-
-    const revealResult: AnswerSubmissionResult = {
-      isCorrect,
-      correctOption: correctOpt,
-      pointsAwarded,
-      basePoints: isCorrect ? basePoints : 0,
-      timeBonus,
-      responseTimeMs,
-      explanation: q.explanation || 'Accurate recall of official source canon.',
-      newScore: (player.score || 0) + pointsAwarded,
-      rank: newRank,
-      previousRank: prevRank,
-    };
-
-    setLastRevealResult(revealResult);
     const updatedRoom: Room = {
       ...currentRoom,
       status: 'REVEAL',
       players: updatedPlayers,
     };
+    
     setRoom(updatedRoom);
     saveRoomToSupabase(updatedRoom);
   }, [incrementStat]);
@@ -713,16 +704,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [room?.status, room?.currentQuestionIndex, room?.players, timerSeconds, handleQuestionEnd]);
 
-  // ─── Auto-advance from REVEAL to NEXT QUESTION ─────────────────────────────
-  useEffect(() => {
-    // Only the host should trigger the auto-advance to prevent multiple Supabase updates
-    if (room?.status === 'REVEAL' && currentPlayer?.isHost) {
-      const timer = setTimeout(() => {
-        advanceToNextState();
-      }, 3000); // 3 second reveal
-      return () => clearTimeout(timer);
-    }
-  }, [room?.status, currentPlayer?.isHost, advanceToNextState]);
 
   // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
   const advanceToNextState = useCallback(async () => {
@@ -762,6 +743,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveRoomToSupabase(nextQRoom);
     }
   }, [incrementStat]);
+
+  // ─── Auto-advance from REVEAL to NEXT QUESTION ─────────────────────────────
+  useEffect(() => {
+    // Only the host should trigger the auto-advance to prevent multiple Supabase updates
+    if (room?.status === 'REVEAL' && currentPlayer?.isHost) {
+      const timer = setTimeout(() => {
+        advanceToNextState();
+      }, 3000); // 3 second reveal
+      return () => clearTimeout(timer);
+    }
+  }, [room?.status, currentPlayer?.isHost, advanceToNextState]);
 
   const playAgain = async () => {
     if (!room) return;
