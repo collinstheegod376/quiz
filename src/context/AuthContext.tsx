@@ -21,6 +21,7 @@ export interface UserAccount {
 interface AuthContextType {
   currentUser: UserAccount | null;
   isAuthenticated: boolean;
+  isAuthLoading: boolean;
   isSupabaseConnected: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, password: string, avatarUrl?: string) => Promise<{ success: boolean; error?: string }>;
@@ -66,6 +67,7 @@ function mapRowToAccount(row: any): UserAccount {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [globalStats, setGlobalStats] = useState({
@@ -128,48 +130,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ─── Initial session load ──────────────────────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
-      const savedSession = localStorage.getItem(SESSION_KEY);
-      if (!savedSession) {
-        setIsAuthModalOpen(true);
-        refreshGlobalStats();
-        return;
-      }
-
-      // 1. Try to load user profile from Supabase if configured
-      if (isSupabaseConfigured) {
-        try {
-          const { data, error } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .ilike('username', savedSession)
-            .maybeSingle();
-
-          if (!error && data) {
-            const account = mapRowToAccount(data);
-            setCurrentUser(account);
-            refreshGlobalStats();
-            return;
-          }
-        } catch (err) {
-          console.warn('[Auth] Supabase fetch session failed, falling back:', err);
-        }
-      }
-
-      // 2. Fallback to localStorage accounts
       try {
-        const savedAccountsStr = localStorage.getItem(ACCOUNTS_KEY);
-        const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
-        const found = accounts.find((a) => a.username.toLowerCase() === savedSession.toLowerCase());
-        if (found) {
-          setCurrentUser(found);
-        } else {
+        const savedSession = localStorage.getItem(SESSION_KEY);
+        if (!savedSession) {
+          setIsAuthModalOpen(true);
+          refreshGlobalStats();
+          return;
+        }
+
+        // 1. Try to load user profile from Supabase if configured
+        if (isSupabaseConfigured) {
+          try {
+            const { data, error } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .ilike('username', savedSession)
+              .maybeSingle();
+
+            if (!error && data) {
+              const account = mapRowToAccount(data);
+              setCurrentUser(account);
+              refreshGlobalStats();
+              return;
+            }
+          } catch (err) {
+            console.warn('[Auth] Supabase fetch session failed, falling back:', err);
+          }
+        }
+
+        // 2. Fallback to localStorage accounts
+        try {
+          const savedAccountsStr = localStorage.getItem(ACCOUNTS_KEY);
+          const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
+          const found = accounts.find((a) => a.username.toLowerCase() === savedSession.toLowerCase());
+          if (found) {
+            setCurrentUser(found);
+          } else {
+            setIsAuthModalOpen(true);
+          }
+        } catch {
           setIsAuthModalOpen(true);
         }
-      } catch {
-        setIsAuthModalOpen(true);
-      }
 
-      refreshGlobalStats();
+        refreshGlobalStats();
+      } finally {
+        // Always mark loading complete — prevents login modal flash on refresh
+        setIsAuthLoading(false);
+      }
     };
 
     initAuth();
@@ -508,6 +515,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
+        isAuthLoading,
         isSupabaseConnected: isSupabaseConfigured,
         login,
         register,

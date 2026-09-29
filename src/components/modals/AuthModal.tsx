@@ -13,13 +13,16 @@ import {
 import { Button } from '../ui/Button';
 
 export function AuthModal() {
-  const { isAuthModalOpen, login, register, isAuthenticated } = useAuth();
+  const { isAuthModalOpen, isAuthLoading, login, register, isAuthenticated } = useAuth();
   const [tab, setTab] = useState<'login' | 'register'>('register');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('Ace');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Don't render until we know whether the user is logged in — prevents login flash on refresh
+  if (isAuthLoading) return null;
 
   // Hide only when authenticated AND modal is explicitly closed
   if (isAuthenticated && !isAuthModalOpen) return null;
