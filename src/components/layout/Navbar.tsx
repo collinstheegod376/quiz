@@ -135,31 +135,31 @@ export function Navbar() {
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Achievements */}
+            {/* Achievements — desktop only */}
             <button
               type="button"
               onClick={() => setCurrentView('achievements')}
-              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Achievements"
             >
               <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC679]" />
             </button>
 
-            {/* Rankings */}
+            {/* Rankings — desktop only */}
             <button
               type="button"
               onClick={() => setIsGlobalLeaderboardOpen(true)}
-              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Rankings"
             >
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Dark / Light Mode Toggle */}
+            {/* Dark / Light Mode Toggle — desktop only */}
             <button
               type="button"
               onClick={toggleTheme}
-              className="flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {theme === 'dark' ? (
@@ -251,14 +251,28 @@ export function Navbar() {
             <Link href="/" onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}>
               <QuizLogo />
             </Link>
-            <button
-              type="button"
-              onClick={closeMobileMenu}
-              className="w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5 text-black dark:text-white" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors border border-[#CECCC5] dark:border-[#363535]"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? (
+                  <Sun className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Moon className="w-4 h-4 text-[#23616A]" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={closeMobileMenu}
+                className="w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors border border-[#CECCC5] dark:border-[#363535]"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5 text-black dark:text-white" />
+              </button>
+            </div>
           </div>
 
           {/* Drawer Body — scrollable */}
