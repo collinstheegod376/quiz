@@ -12,7 +12,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
     ],
   },
-  allowedDevOrigins: ['172.20.10.2', 'localhost'],
+  allowedDevOrigins: ['172.20.10.2', 'localhost', '127.0.0.1', 'anizuki.sbs', '*.anizuki.sbs'],
 };
 
 export default nextConfig;

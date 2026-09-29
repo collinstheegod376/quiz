@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -159,20 +160,18 @@ export function Navbar() {
               </button>
             ) : (
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  type="button"
-                  onClick={() => openAuthModal('login')}
+                <Link
+                  href="/login"
                   className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer"
                 >
                   Log In
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openAuthModal('register')}
+                </Link>
+                <Link
+                  href="/signup"
                   className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-black text-xs sm:text-sm bg-black hover:bg-black/80 text-white shadow-sm transition-all cursor-pointer"
                 >
                   Sign Up
-                </button>
+                </Link>
               </div>
             )}
 
@@ -263,20 +262,20 @@ export function Navbar() {
                     Sign in to track scores & compete
                   </p>
                   <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => { openAuthModal('login'); closeMobileMenu(); }}
+                    <Link
+                      href="/login"
+                      onClick={closeMobileMenu}
                       className="w-full py-2 rounded-lg bg-white border border-black/20 text-black font-nunito font-bold text-xs text-center hover:bg-black/5"
                     >
                       Log In
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { openAuthModal('register'); closeMobileMenu(); }}
+                    </Link>
+                    <Link
+                      href="/signup"
+                      onClick={closeMobileMenu}
                       className="w-full py-2 rounded-lg bg-black text-white font-nunito font-black text-xs text-center hover:bg-black/80"
                     >
                       Sign Up
-                    </button>
+                    </Link>
                   </div>
                 </div>
               )}

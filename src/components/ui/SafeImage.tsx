@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface SafeImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;
@@ -16,38 +16,25 @@ export function SafeImage({
   className = '',
   ...props
 }: SafeImageProps) {
-  const [currentSrc, setCurrentSrc] = useState(src);
-  const [hasFailed, setHasFailed] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(src);
-    setHasFailed(false);
-    setIsLoaded(false);
+    setImgSrc(src);
+    setHasError(false);
   }, [src]);
 
-  useEffect(() => {
-    if (imgRef.current && imgRef.current.complete) {
-      if (imgRef.current.naturalWidth > 0) {
-        setIsLoaded(true);
-      }
-    }
-  }, [currentSrc]);
-
   const handleError = () => {
-    if (currentSrc !== fallbackSrc && fallbackSrc) {
-      setCurrentSrc(fallbackSrc);
+    if (imgSrc !== fallbackSrc && fallbackSrc) {
+      setImgSrc(fallbackSrc);
     } else {
-      setHasFailed(true);
+      setHasError(true);
     }
   };
 
-  if (hasFailed) {
+  if (hasError) {
     return (
-      <div
-        className="w-full h-full flex flex-col items-center justify-center bg-[#E5E3DB] dark:bg-[#2A2929] text-[#595955] p-2 text-center select-none"
-      >
+      <div className="w-full h-full flex flex-col items-center justify-center bg-[#E5E3DB] text-[#595955] p-2 text-center select-none">
         <div className="w-8 h-8 rounded-lg bg-black/10 flex items-center justify-center text-black font-nunito font-black text-xs mb-1">
           ✦
         </div>
@@ -57,21 +44,13 @@ export function SafeImage({
   }
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#E5E3DB] dark:bg-[#2A2929]">
-      {!isLoaded && (
-        <div className="absolute inset-0 bg-[#E5E3DB] animate-pulse pointer-events-none" />
-      )}
+    <div className="relative w-full h-full overflow-hidden bg-[#E5E3DB]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        ref={imgRef}
-        src={currentSrc}
+        src={imgSrc}
         alt={alt}
-        decoding="async"
         onError={handleError}
-        onLoad={() => setIsLoaded(true)}
-        className={`w-full h-full object-cover transition-opacity duration-300 ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
-        } ${className}`}
+        className={`w-full h-full object-cover ${className}`}
         {...props}
       />
     </div>
