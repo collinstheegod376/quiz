@@ -3,14 +3,13 @@
 import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Home, Compass, Trophy, Plus, LogIn } from 'lucide-react';
+import { Home, Compass, Trophy, Plus, Film } from 'lucide-react';
 
 export function MobileNav() {
   const {
     currentView,
     setCurrentView,
     setIsCreateModalOpen,
-    setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
     isGlobalLeaderboardOpen,
   } = useGame();
@@ -20,38 +19,34 @@ export function MobileNav() {
   if (currentView === 'game') return null;
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-[#0B0C10]/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-around safe-bottom">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#FFFDF4]/95 dark:bg-[#100F0F]/95 backdrop-blur-md border-t border-[#CECCC5] dark:border-[#363535] px-2 py-1 flex items-center justify-around safe-bottom select-none">
+      {/* Start / Home */}
       <button
         onClick={() => setCurrentView('landing')}
-        className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
+        className={`flex flex-col items-center gap-0.5 py-1 px-2 font-nunito font-extrabold text-[11px] transition-colors cursor-pointer ${
           currentView === 'landing'
-            ? 'text-red-600 dark:text-red-400'
-            : 'text-slate-500 dark:text-slate-400'
+            ? 'text-black dark:text-[#FEFEFD]'
+            : 'text-[#595955] dark:text-[#A4A3A3] opacity-70 hover:opacity-100'
         }`}
       >
-        <Home className="w-5 h-5" />
-        <span>Home</span>
+        <Home className="w-4 h-4" />
+        <span>Start</span>
       </button>
 
+      {/* Entertainment */}
       <button
-        onClick={() => {
-          if (!currentUser) {
-            setIsAuthModalOpen(true);
-            return;
-          }
-          setCurrentView('categories');
-        }}
-        className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-          currentView === 'categories' || currentView === 'topics' || currentView === 'difficulty'
-            ? 'text-red-600 dark:text-red-400'
-            : 'text-slate-500 dark:text-slate-400'
+        onClick={() => setCurrentView('entertainment')}
+        className={`flex flex-col items-center gap-0.5 py-1 px-2 font-nunito font-extrabold text-[11px] transition-colors cursor-pointer ${
+          currentView === 'entertainment'
+            ? 'text-black dark:text-[#FEFEFD]'
+            : 'text-[#595955] dark:text-[#A4A3A3] opacity-70 hover:opacity-100'
         }`}
       >
-        <Compass className="w-5 h-5" />
-        <span>Play</span>
+        <Film className="w-4 h-4" />
+        <span>Entertainment</span>
       </button>
 
-      {/* Main Action FAB */}
+      {/* Center 3D Create Button */}
       <button
         onClick={() => {
           if (!currentUser) {
@@ -60,25 +55,33 @@ export function MobileNav() {
           }
           setIsCreateModalOpen(true);
         }}
-        className="w-12 h-12 -mt-5 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-600 text-white flex items-center justify-center shadow-lg shadow-red-600/40 border-2 border-white dark:border-slate-900 active:scale-95 transition-transform"
+        className="w-11 h-11 -mt-4 rounded-full bg-black dark:bg-[#1E1D1D] p-[2px] shadow-md active:scale-95 transition-transform flex items-center justify-center cursor-pointer"
       >
-        <Plus className="w-6 h-6" strokeWidth={2.5} />
+        <div className="w-full h-full rounded-full bg-[#00A76D] flex items-center justify-center text-white border border-white/20">
+          <Plus className="w-5 h-5" strokeWidth={3} />
+        </div>
       </button>
 
+      {/* Categories / Play */}
       <button
         onClick={() => {
           if (!currentUser) {
             setIsAuthModalOpen(true);
             return;
           }
-          setIsJoinModalOpen(true);
+          setCurrentView('categories');
         }}
-        className="flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold text-slate-500 dark:text-slate-400"
+        className={`flex flex-col items-center gap-0.5 py-1 px-2 font-nunito font-extrabold text-[11px] transition-colors cursor-pointer ${
+          currentView === 'categories' || currentView === 'topics' || currentView === 'difficulty'
+            ? 'text-black dark:text-[#FEFEFD]'
+            : 'text-[#595955] dark:text-[#A4A3A3] opacity-70 hover:opacity-100'
+        }`}
       >
-        <LogIn className="w-5 h-5" />
-        <span>Join</span>
+        <Compass className="w-4 h-4" />
+        <span>Categories</span>
       </button>
 
+      {/* Leaderboard */}
       <button
         onClick={() => {
           if (!currentUser) {
@@ -87,12 +90,14 @@ export function MobileNav() {
           }
           setIsGlobalLeaderboardOpen(true);
         }}
-        className={`flex flex-col items-center gap-1 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors ${
-          isGlobalLeaderboardOpen ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'
+        className={`flex flex-col items-center gap-0.5 py-1 px-2 font-nunito font-extrabold text-[11px] transition-colors cursor-pointer ${
+          isGlobalLeaderboardOpen
+            ? 'text-black dark:text-[#FEFEFD]'
+            : 'text-[#595955] dark:text-[#A4A3A3] opacity-70 hover:opacity-100'
         }`}
       >
-        <Trophy className="w-5 h-5" />
-        <span>Leaderboard</span>
+        <Trophy className="w-4 h-4" />
+        <span>Rankings</span>
       </button>
     </nav>
   );

@@ -11,6 +11,7 @@ import { LobbyScreen } from '@/components/screens/LobbyScreen';
 import { QuestionScreen } from '@/components/screens/QuestionScreen';
 import { AnswerRevealScreen } from '@/components/screens/AnswerRevealScreen';
 import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
+import { EntertainmentScreen } from '@/components/screens/EntertainmentScreen';
 
 const PROTECTED_VIEWS = ['categories', 'topics', 'difficulty', 'lobby', 'game'];
 
@@ -27,7 +28,7 @@ export default function HomePage() {
   }, [isAuthenticated, currentView, setCurrentView, setIsAuthModalOpen]);
 
   // Don't render protected content until authenticated
-  if (!isAuthenticated && currentView !== 'landing') {
+  if (!isAuthenticated && currentView !== 'landing' && currentView !== 'entertainment') {
     return <LandingScreen />;
   }
 
@@ -39,6 +40,8 @@ export default function HomePage() {
   }
 
   switch (currentView) {
+    case 'entertainment':
+      return <EntertainmentScreen />;
     case 'categories':
       return <CategoryScreen />;
     case 'topics':

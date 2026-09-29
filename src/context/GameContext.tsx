@@ -15,7 +15,7 @@ import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-export type AppView = 'landing' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
+export type AppView = 'landing' | 'entertainment' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
 
 interface GameContextType {
   // Navigation & Selection

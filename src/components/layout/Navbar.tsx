@@ -3,7 +3,7 @@
 import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
-import { Home, Compass, Trophy, Plus, LogIn, User, Settings } from 'lucide-react';
+import { Home, Compass, Trophy, Plus, LogIn, User, Settings, Film } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function Navbar() {
@@ -19,12 +19,13 @@ export function Navbar() {
   const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
 
   const navLinks = [
-    { label: 'Home', view: 'landing' as const, icon: Home },
+    { label: 'Start', view: 'landing' as const, icon: Home },
+    { label: 'Entertainment', view: 'entertainment' as const, icon: Film },
     { label: 'Categories', view: 'categories' as const, icon: Compass },
     { label: 'Leaderboard', view: null, icon: Trophy },
   ];
 
-  const handleNavClick = (view: 'landing' | 'categories' | null) => {
+  const handleNavClick = (view: 'landing' | 'entertainment' | 'categories' | null) => {
     if (view === null) {
       // Leaderboard
       if (!currentUser) { setIsAuthModalOpen(true); return; }
@@ -38,8 +39,9 @@ export function Navbar() {
     setCurrentView(view);
   };
 
-  const isActiveView = (view: 'landing' | 'categories' | null) => {
+  const isActiveView = (view: 'landing' | 'entertainment' | 'categories' | null) => {
     if (view === 'landing') return currentView === 'landing';
+    if (view === 'entertainment') return currentView === 'entertainment';
     if (view === 'categories') return ['categories', 'topics', 'difficulty'].includes(currentView);
     return false;
   };
@@ -48,18 +50,18 @@ export function Navbar() {
     <header className="sticky top-0 z-40 w-full bg-[#FFFDF4] dark:bg-[#100F0F] border-b border-[#CECCC5] dark:border-[#363535] transition-colors">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
 
-        {/* Brand */}
+        {/* Brand - Quiz.com Multicolor signature styling */}
         <button
           onClick={() => setCurrentView('landing')}
           className="flex items-center gap-2 group focus:outline-none shrink-0"
         >
-          <div className="w-9 h-9 flex items-center justify-center bg-[#EBDAC3] border border-[#000000]/20 dark:border-[#EBDAC3]/30">
-            {/* Q logo mark */}
-            <span className="font-nunito font-black text-[#000000] text-base leading-none tracking-tight">Q</span>
+          <div className="flex items-center font-nunito font-black text-2xl tracking-tight select-none">
+            <span className="text-[#00A2CA]">Q</span>
+            <span className="text-[#FFA7A0]">u</span>
+            <span className="text-[#00AFC6]">i</span>
+            <span className="text-[#FFC679]">z</span>
+            <span className="text-black dark:text-[#FEFEFD] ml-0.5">.com</span>
           </div>
-          <span className="font-nunito font-black text-[18px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-none">
-            Quiz<span className="text-[#23616A]">Arena</span>
-          </span>
         </button>
 
         {/* Desktop Category Navigation */}
@@ -70,7 +72,7 @@ export function Navbar() {
               <button
                 key={label}
                 onClick={() => handleNavClick(view)}
-                className={`relative flex items-center gap-1.5 px-4 h-full pb-0 font-nunito font-extrabold text-[16px] tracking-[0.48px] leading-[1.36] transition-colors focus:outline-none ${
+                className={`relative flex items-center gap-1.5 px-4 h-full pb-0 font-nunito font-extrabold text-[15px] tracking-[0.48px] leading-[1.36] transition-colors focus:outline-none ${
                   active
                     ? 'text-[#000000] dark:text-[#FEFEFD]'
                     : 'text-[#595955] dark:text-[#A4A3A3] hover:text-[#000000] dark:hover:text-[#FEFEFD]'
@@ -79,7 +81,7 @@ export function Navbar() {
                 {label}
                 {/* Active underline indicator */}
                 {active && (
-                  <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[#000000] dark:bg-[#FEFEFD]" />
+                  <span className="absolute bottom-0 left-4 right-4 h-[3px] bg-[#000000] dark:bg-[#FEFEFD] rounded-full" />
                 )}
               </button>
             );
@@ -167,56 +169,6 @@ export function Navbar() {
             </Button>
           )}
         </div>
-      </div>
-
-      {/* Mobile bottom nav strip */}
-      <div className="md:hidden flex items-center border-t border-[#CECCC5] dark:border-[#363535] overflow-x-auto">
-        {navLinks.map(({ label, view, icon: Icon }) => {
-          const active = isActiveView(view);
-          return (
-            <button
-              key={label}
-              onClick={() => handleNavClick(view)}
-              className={`relative flex items-center gap-1.5 px-4 py-2.5 font-nunito font-extrabold text-[14px] tracking-[0.42px] whitespace-nowrap transition-colors ${
-                active
-                  ? 'text-[#000000] dark:text-[#FEFEFD]'
-                  : 'text-[#595955] dark:text-[#A4A3A3]'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-              {active && (
-                <span className="absolute bottom-0 left-3 right-3 h-[2px] bg-[#000000] dark:bg-[#FEFEFD]" />
-              )}
-            </button>
-          );
-        })}
-
-        {/* Mobile Create/Join */}
-        {!(room && currentPlayer) && (
-          <div className="ml-auto flex items-center gap-1 px-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                if (!currentUser) { setIsAuthModalOpen(true); return; }
-                setIsJoinModalOpen(true);
-              }}
-            >
-              <LogIn className="w-3.5 h-3.5" />
-            </Button>
-            <Button
-              variant="arena"
-              size="sm"
-              onClick={() => {
-                if (!currentUser) { setIsAuthModalOpen(true); return; }
-                setIsCreateModalOpen(true);
-              }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        )}
       </div>
     </header>
   );

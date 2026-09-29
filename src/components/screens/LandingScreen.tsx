@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Users, Flame, Award, Plus, LogIn, Compass } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { SafeImage } from '../ui/SafeImage';
+import { CategoryNav } from '../layout/CategoryNav';
 
 export function LandingScreen() {
   const { setCurrentView, setIsCreateModalOpen, setIsJoinModalOpen, createRoom } = useGame();
@@ -39,7 +40,14 @@ export function LandingScreen() {
   ];
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] transition-colors">
+    <div className="min-h-[calc(100vh-4rem)] bg-[#FFFDF4] dark:bg-[#100F0F] text-[#000000] dark:text-[#FEFEFD] transition-colors pb-16">
+
+      {/* ── Subnav Category Bar ── */}
+      <div className="w-full border-b border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
+        <div className="max-w-[1248px] mx-auto px-4 md:px-6">
+          <CategoryNav activeSlug="" />
+        </div>
+      </div>
 
       {/* ── Hero Band: "Join Game? Enter PIN" ── */}
       <section className="border-b border-[#CECCC5] dark:border-[#363535]">
