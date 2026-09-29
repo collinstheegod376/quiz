@@ -431,6 +431,41 @@ export function LandingScreen() {
           }}
           quizzes={animeCategoryQuizzes}
         />
+
+        {/* ── Meet the Creator & SEO Section ── */}
+        <footer className="mt-12 pt-8 pb-4 border-t border-[#CECCC5] text-center space-y-4">
+          <div className="max-w-2xl mx-auto space-y-2">
+            <h4 className="font-nunito font-black text-lg text-black">
+              Anizuki — The Human Robo Anime Arena
+            </h4>
+            <p className="font-roboto text-xs text-[#595955] leading-relaxed">
+              Designed and engineered from scratch by{' '}
+              <a
+                href="https://www.promisedkillua.sbs/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-black underline hover:text-[#00A76D] transition-colors"
+              >
+                Promised Killua
+              </a>{' '}
+              (nerfed_killua). Built with Next.js, React, TypeScript, and Supabase for lightning-fast real-time multiplayer trivia.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-xs font-nunito font-bold">
+            <a
+              href="https://www.promisedkillua.sbs/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black text-white hover:bg-black/80 transition-colors shadow-sm"
+            >
+              <span>Explore Promised Killua&apos;s Portfolio</span>
+              <span className="text-[#6FEEFF]">↗</span>
+            </a>
+          </div>
+          <p className="text-[11px] text-[#595955] font-roboto pt-2">
+            © {new Date().getFullYear()} Anizuki. All rights reserved. Built by Promised Killua.
+          </p>
+        </footer>
       </div>
     </div>
   );

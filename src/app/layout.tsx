@@ -23,11 +23,48 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'AniZuki — Real-Time Anime Quiz Game',
+  title: 'Anizuki — Real-Time Anime Trivia & Quiz Arena',
   description:
-    'AniZuki is a real-time multiplayer anime quiz game. Challenge friends with One Piece, Naruto, JJK, Demon Slayer trivia and more.',
-  keywords: ['anizuki', 'anime quiz', 'multiplayer quiz', 'jujutsu kaisen', 'one piece', 'trivia', 'entertainment'],
-  authors: [{ name: 'AniZuki' }],
+    'Play Anizuki, the ultimate human robo quiz arena built on Next.js. Real-time anime trivia battles, multiplayer lobbies, and instant challenges.',
+  keywords: [
+    'Anizuki',
+    'anime quiz game',
+    'human robo quiz',
+    'Next.js quiz app',
+    'multiplayer anime trivia',
+    'real-time trivia arena',
+    'One Piece quiz',
+    'Jujutsu Kaisen trivia',
+    'anime battle quiz',
+    'Promised Killua',
+  ],
+  authors: [{ name: 'Promised Killua', url: 'https://www.promisedkillua.sbs/' }],
+  creator: 'Promised Killua',
+  metadataBase: new URL('https://anizuki.sbs'),
+  openGraph: {
+    type: 'website',
+    url: 'https://anizuki.sbs',
+    title: 'Anizuki — Real-Time Anime Trivia & Quiz Arena',
+    description:
+      'Experience Anizuki: the next-gen anime quiz arena built with Next.js & Supabase. Designed by Promised Killua.',
+    siteName: 'Anizuki',
+    images: [
+      {
+        url: '/images/topics/gojo-vs-sukuna.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Anizuki Anime Quiz Arena',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Anizuki — Real-Time Anime Trivia & Quiz Arena',
+    description:
+      'The ultimate human robo anime quiz experience powered by Next.js. Created by Promised Killua.',
+    creator: '@nerfed_killua',
+    images: ['/images/topics/gojo-vs-sukuna.jpg'],
+  },
 };
 
 export const viewport = {

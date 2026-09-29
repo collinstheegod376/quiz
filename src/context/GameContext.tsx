@@ -52,6 +52,7 @@ interface GameContextType {
   lastRevealResult: AnswerSubmissionResult | null;
   advanceToNextState: () => void;
   playAgain: () => void;
+  goToNextLevel: () => Promise<void>;
 
   // Sound & Modals
   isSoundMuted: boolean;
@@ -794,6 +795,52 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setIsAnswerSubmitted(false);
   };
 
+  const goToNextLevel = async () => {
+    if (!room) return;
+    sound.playClick();
+    const currentLvl = room.difficultyLevel || selectedDifficultyLevel || 1;
+    const nextLvl = currentLvl >= 9 ? 1 : currentLvl + 1;
+    setSelectedDifficultyLevel(nextLvl);
+
+    const confirmedPlayerCount = room.players.length;
+    const calculatedCount = calculateGameLength(confirmedPlayerCount);
+    const questions = getQuestionsForMatch(room.topicId, nextLvl, calculatedCount);
+    setGameQuestions(questions);
+
+    const updatedRoom: Room = {
+      ...room,
+      difficultyLevel: nextLvl,
+      status: 'QUESTION',
+      playerCountAtStart: confirmedPlayerCount,
+      calculatedQuestionCount: calculatedCount,
+      currentQuestionIndex: 0,
+      questionStartedAt: Date.now(),
+      questions: questions,
+      players: room.players.map((p) => ({
+        ...p,
+        score: 0,
+        correctAnswers: 0,
+        totalResponseTimeMs: 0,
+        hasAnswered: false,
+        selectedOption: undefined,
+        isReady: true,
+      })),
+    };
+
+    setLocalQuestionIndex(0);
+    setIsLocalReveal(false);
+    setIsMatchFinished(false);
+    setLastRevealResult(null);
+    setSelectedOption(null);
+    setIsAnswerSubmitted(false);
+    setTimerSeconds(updatedRoom.timePerQuestion || 15);
+    setRoom(updatedRoom);
+    setCurrentView('game');
+
+    await saveRoomToSupabase(updatedRoom);
+    logActivity(`Advancing to Level ${nextLvl}!`, 'system');
+  };
+
   return (
     <GameContext.Provider
       value={{
@@ -826,6 +873,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         lastRevealResult,
         advanceToNextState: advanceLocalQuestion,
         playAgain,
+        goToNextLevel,
         isSoundMuted,
         toggleSound,
         isCreateModalOpen,

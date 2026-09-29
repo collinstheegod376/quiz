@@ -11,11 +11,12 @@ import {
   RotateCcw,
   Home,
   Award,
+  ArrowRight,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function FinalResultsScreen() {
-  const { room, currentPlayer, playAgain, leaveRoom } = useGame();
+  const { room, currentPlayer, playAgain, goToNextLevel, leaveRoom } = useGame();
 
   useEffect(() => {
     try {
@@ -169,10 +170,23 @@ export function FinalResultsScreen() {
       </div>
 
       {/* ── Actions ── */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-        <Button variant="arena" size="xl" onClick={playAgain} className="w-full sm:w-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+        <Button
+          variant="arena"
+          size="xl"
+          onClick={goToNextLevel}
+          className="w-full sm:w-auto flex items-center justify-center gap-2"
+        >
+          <ArrowRight className="w-5 h-5 text-[#6FEEFF]" />
+          <span>
+            {(room.difficultyLevel || 1) >= 9
+              ? 'Loop Back to Level 1'
+              : `Next Level (Level ${(room.difficultyLevel || 1) + 1})`}
+          </span>
+        </Button>
+        <Button variant="outline" size="xl" onClick={playAgain} className="w-full sm:w-auto">
           <RotateCcw className="w-5 h-5" />
-          Play Again
+          Replay Current Level
         </Button>
         <Button variant="outline" size="xl" onClick={leaveRoom} className="w-full sm:w-auto">
           <Home className="w-5 h-5" />
