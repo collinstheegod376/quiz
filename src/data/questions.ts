@@ -1,22 +1,32 @@
 import { Question } from '@/types/quiz';
 import { AOT_QUESTIONS } from './questions_aot';
 import { BLEACH_QUESTIONS } from './questions_bleach';
+import { BREAKING_BAD_QUESTIONS } from './questions_breakingbad';
 import { DBZ_QUESTIONS } from './questions_dbz';
 import { DEMON_SLAYER_QUESTIONS } from './questions_demonslayer';
 import { FMA_QUESTIONS } from './questions_fma';
+import { GAME_OF_THRONES_QUESTIONS } from './questions_got';
 import { HXH_QUESTIONS } from './questions_hxh';
+import { JUJUTSU_KAISEN_QUESTIONS } from './questions_jjk';
 import { NARUTO_QUESTIONS } from './questions_naruto';
 import { ONE_PIECE_QUESTIONS } from './questions_onepiece';
+import { STRANGER_THINGS_QUESTIONS } from './questions_strangerthings';
+import { THE_BOYS_QUESTIONS } from './questions_theboys';
 
 export const SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
   ...BLEACH_QUESTIONS,
+  ...BREAKING_BAD_QUESTIONS,
   ...DBZ_QUESTIONS,
   ...DEMON_SLAYER_QUESTIONS,
   ...FMA_QUESTIONS,
+  ...GAME_OF_THRONES_QUESTIONS,
   ...HXH_QUESTIONS,
+  ...JUJUTSU_KAISEN_QUESTIONS,
   ...NARUTO_QUESTIONS,
   ...ONE_PIECE_QUESTIONS,
+  ...STRANGER_THINGS_QUESTIONS,
+  ...THE_BOYS_QUESTIONS,
   // ONE PIECE (Level 1 - Casual)
   {
     id: 'op-l1-1',
