@@ -177,9 +177,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+  // ─── Reset question UI on every new question ──────────────────────────────
+  const roomStatus = room?.status;
+  const currentQuestionIdx = room?.currentQuestionIndex;
+
+  useEffect(() => {
+    if (roomStatus === 'QUESTION') {
+      setSelectedOption(null);
+      setIsAnswerSubmitted(false);
+      setTimerSeconds(room?.timePerQuestion || 15);
+      setAnswerTimeStart(Date.now());
+      isTransitioningRef.current = false;
+    }
+  }, [roomStatus, currentQuestionIdx, room?.timePerQuestion]);
+
   // ─── Periodic Room Polling (guarantees cross-device sync) ────────────────
   useEffect(() => {
     if (!room?.code || !isSupabaseConfigured) return;
+
+    // Fast poll during active gameplay, relaxed poll in lobby
+    const pollIntervalMs = room.status === 'QUESTION' || room.status === 'REVEAL' ? 750 : 1500;
 
     const interval = setInterval(async () => {
       try {
@@ -193,9 +210,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           const remoteRoom = data.state as Room;
           setRoom((prev) => {
             if (!prev) return remoteRoom;
-            // Only update state if player count, status, or question index changed
-            if (
+
+            // Check if there are any meaningful differences
+            const playersChanged =
               remoteRoom.players.length !== prev.players.length ||
+              remoteRoom.players.some((rp) => {
+                const lp = prev.players.find((p) => p.id === rp.id);
+                return !lp || lp.hasAnswered !== rp.hasAnswered || lp.score !== rp.score;
+              });
+
+            if (
+              playersChanged ||
               remoteRoom.status !== prev.status ||
               remoteRoom.currentQuestionIndex !== prev.currentQuestionIndex
             ) {
@@ -223,10 +248,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.warn('[Room poll error]:', err);
       }
-    }, 1500);
+    }, pollIntervalMs);
 
     return () => clearInterval(interval);
-  }, [room?.code]);
+  }, [room?.code, room?.status]);
 
   // ─── Save room (Strict Supabase) ──────────────────────────────────────────
   const saveRoomToSupabase = async (updatedRoom: Room) => {
@@ -245,8 +270,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('[Supabase] Failed to save room:', error.message);
-      } else {
-        console.log(`[Supabase] Room ${updatedRoom.code} saved.`);
       }
     } catch (err) {
       console.error('[Supabase saveRoom] error:', err);
@@ -312,15 +335,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       players: [hostPlayer],
     };
 
-    await saveRoomToSupabase(newRoom);
-    subscribeToRoom(roomCode);
-    incrementStat('roomsCreated');
-
     setCurrentPlayer(hostPlayer);
     setRoom(newRoom);
     setCurrentView('lobby');
     setIsCreateModalOpen(false);
     logActivity(`${hostPlayer.displayName} created room ${newRoom.code}`, 'join');
+
+    await saveRoomToSupabase(newRoom);
+    subscribeToRoom(roomCode);
+    incrementStat('roomsCreated');
   };
 
   // ─── Join Room (Strict Supabase) ───────────────────────────────────────────
@@ -349,7 +372,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!data || !data.state) {
-        console.warn('[JoinRoom] Room not found on Supabase:', cleanCode);
         return {
           success: false,
           error: `Room "${cleanCode}" was not found in Supabase. Verify the 6-character code.`,
@@ -391,9 +413,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         players: [...targetRoom.players, joinedPlayer],
       };
 
-      await saveRoomToSupabase(updatedRoom);
-      subscribeToRoom(cleanCode);
-
       setCurrentPlayer(joinedPlayer);
       setRoom(updatedRoom);
       if (updatedRoom.questions && updatedRoom.questions.length > 0) {
@@ -402,6 +421,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setCurrentView('lobby');
       setIsJoinModalOpen(false);
       logActivity(`${joinedPlayer.displayName} joined the room`, 'join');
+
+      await saveRoomToSupabase(updatedRoom);
+      subscribeToRoom(cleanCode);
       return { success: true };
     } catch (err: any) {
       console.error('[JoinRoom] Error:', err);
@@ -439,9 +461,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       players: [...room.players, botPlayer],
     };
 
-    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     logActivity(`${botPlayer.displayName} joined the room`, 'join');
+    await saveRoomToSupabase(updatedRoom);
   };
 
   const removePlayer = async (playerId: string) => {
@@ -451,11 +473,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       ...room,
       players: room.players.filter((p) => p.id !== playerId),
     };
-    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     if (removed) {
       logActivity(`${removed.displayName} left the room`, 'leave');
     }
+    await saveRoomToSupabase(updatedRoom);
   };
 
   const togglePlayerReady = async () => {
@@ -465,18 +487,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       p.id === currentPlayer.id ? { ...p, isReady: !p.isReady } : p
     );
     const updatedRoom: Room = { ...room, players: updatedPlayers };
-    await saveRoomToSupabase(updatedRoom);
-    setRoom(updatedRoom);
     const isNowReady = !currentPlayer.isReady;
     setCurrentPlayer({ ...currentPlayer, isReady: isNowReady });
+    setRoom(updatedRoom);
     logActivity(`${currentPlayer.displayName} is ${isNowReady ? 'Ready' : 'Not Ready'}`, 'ready');
+    await saveRoomToSupabase(updatedRoom);
   };
 
   const leaveRoom = async () => {
     sound.playClick();
     if (currentPlayer && room) {
       logActivity(`${currentPlayer.displayName} left the arena`, 'leave');
-      // Remove player from room in Supabase
       const updatedRoom: Room = {
         ...room,
         players: room.players.filter((p) => p.id !== currentPlayer.id),
@@ -484,12 +505,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       if (updatedRoom.players.length > 0) {
         await saveRoomToSupabase(updatedRoom);
       } else {
-        // Delete room if empty
         await supabase.from('realtime_rooms').delete().eq('code', room.code);
       }
     }
 
-    // Unsubscribe from realtime
     if (realtimeChannelRef.current) {
       supabase.removeChannel(realtimeChannelRef.current);
       realtimeChannelRef.current = null;
@@ -530,14 +549,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })),
     };
 
-    await saveRoomToSupabase(updatedRoom);
-    setRoom(updatedRoom);
-    setCurrentView('game');
+    setCurrentPlayer((prev) => (prev ? { ...prev, score: 0, correctAnswers: 0, totalResponseTimeMs: 0, hasAnswered: false, selectedOption: undefined } : null));
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setTimerSeconds(room.timePerQuestion || 15);
     setAnswerTimeStart(Date.now());
+    setRoom(updatedRoom);
+    setCurrentView('game');
     logActivity('Match commenced! Question 1 underway.', 'system');
+
+    await saveRoomToSupabase(updatedRoom);
   };
 
   const currentQuestion =
@@ -549,135 +570,209 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           : null)
       : null;
 
-  // ─── Submit Answer ─────────────────────────────────────────────────────────
+  // ─── Transition QUESTION → REVEAL ─────────────────────────────────────────
+  const handleQuestionEnd = useCallback(
+    async (overrideRoom?: Room) => {
+      const currentRoom = overrideRoom || roomRef.current;
+      const player = currentPlayerRef.current;
+      const q = currentQuestionRef.current;
+      const chosenOption = selectedOptionRef.current;
+
+      if (!currentRoom || currentRoom.status !== 'QUESTION' || !q || !player || isTransitioningRef.current) {
+        return;
+      }
+      isTransitioningRef.current = true;
+
+      const correctOpt = q.correctOption || 'A';
+      const isCorrect = chosenOption === correctOpt;
+
+      // Play local result sound immediately
+      if (chosenOption) {
+        if (isCorrect) {
+          sound.playCorrect();
+          incrementStat('correctAnswers');
+        } else {
+          sound.playIncorrect();
+        }
+        incrementStat('totalAnswers');
+      }
+
+      // ONLY the host triggers state transition to REVEAL in database
+      if (!player.isHost) {
+        return;
+      }
+
+      const basePoints = 1000;
+      const updatedPlayers = currentRoom.players.map((p) => {
+        // Bot evaluation if bot hasn't submitted yet
+        if (p.id.startsWith('bot_') && !p.hasAnswered) {
+          const botCorrect = Math.random() > 0.35;
+          const botResponseSec = 2 + Math.floor(Math.random() * 4);
+          const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
+          const botPoints = botCorrect ? basePoints + botBonus : 0;
+          const botOpt = botCorrect
+            ? correctOpt
+            : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
+
+          return {
+            ...p,
+            score: p.score + botPoints,
+            correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
+            totalResponseTimeMs: p.totalResponseTimeMs + botResponseSec * 1000,
+            hasAnswered: true,
+            selectedOption: botOpt,
+          };
+        }
+
+        return {
+          ...p,
+          hasAnswered: true,
+        };
+      });
+
+      const updatedRoom: Room = {
+        ...currentRoom,
+        status: 'REVEAL',
+        players: updatedPlayers,
+      };
+
+      setRoom(updatedRoom);
+      saveRoomToSupabase(updatedRoom);
+    },
+    [incrementStat]
+  );
+
+  // ─── Live Bot Simulation during Question (Host only) ────────────────────────
+  useEffect(() => {
+    if (!room || room.status !== 'QUESTION' || !currentPlayer?.isHost) return;
+
+    const bots = room.players.filter((p) => p.id.startsWith('bot_') && !p.hasAnswered);
+    if (bots.length === 0) return;
+
+    const timeouts: NodeJS.Timeout[] = [];
+
+    bots.forEach((bot) => {
+      // Stagger bot answer between 1.5s and 4.5s
+      const delayMs = 1500 + Math.random() * 3000;
+      const timer = setTimeout(() => {
+        setRoom((prev) => {
+          if (!prev || prev.status !== 'QUESTION') return prev;
+          const q = prev.questions?.[prev.currentQuestionIndex] || currentQuestionRef.current;
+          const correctOpt = q?.correctOption || 'A';
+          const botCorrect = Math.random() > 0.35;
+          const botResponseSec = Math.round(delayMs / 1000);
+          const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
+          const botPoints = botCorrect ? 1000 + botBonus : 0;
+          const botOpt = botCorrect
+            ? correctOpt
+            : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
+
+          const updatedPlayers = prev.players.map((p) =>
+            p.id === bot.id
+              ? {
+                  ...p,
+                  score: p.score + botPoints,
+                  correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
+                  totalResponseTimeMs: p.totalResponseTimeMs + delayMs,
+                  hasAnswered: true,
+                  selectedOption: botOpt,
+                }
+              : p
+          );
+
+          const nextRoom = { ...prev, players: updatedPlayers };
+          saveRoomToSupabase(nextRoom);
+
+          // Check if all players answered now!
+          if (updatedPlayers.every((p) => p.hasAnswered)) {
+            setTimerSeconds(0);
+            handleQuestionEnd(nextRoom);
+          }
+
+          return nextRoom;
+        });
+      }, delayMs);
+
+      timeouts.push(timer);
+    });
+
+    return () => {
+      timeouts.forEach((t) => clearTimeout(t));
+    };
+  }, [room?.status, room?.currentQuestionIndex, currentPlayer?.isHost, handleQuestionEnd]);
+
+  // ─── Submit Answer (Instant Optimistic UI + Background Supabase Sync) ───────
   const submitAnswer = useCallback(
-    async (option: 'A' | 'B' | 'C' | 'D') => {
+    (option: 'A' | 'B' | 'C' | 'D') => {
       const currentRoom = roomRef.current;
       const player = currentPlayerRef.current;
       const q = currentQuestionRef.current;
-      if (!currentRoom || !player || isAnswerSubmitted || !q) return;
+      if (!currentRoom || !player || isAnswerSubmitted || !q || currentRoom.status !== 'QUESTION') return;
+
       sound.playClick();
 
+      // 1. INSTANT LOCAL STATE UPDATE (zero latency UI)
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
 
       const correctOpt = q.correctOption || 'A';
       const isCorrect = option === correctOpt;
-      const responseTimeMs = Date.now() - answerTimeStartRef.current;
-      const responseSeconds = Math.min(currentRoom.timePerQuestion, Math.max(1, responseTimeMs / 1000));
-      
+      const responseTimeMs = Math.max(50, Date.now() - answerTimeStartRef.current);
+      const responseSeconds = Math.min(currentRoom.timePerQuestion || 15, Math.max(0.5, responseTimeMs / 1000));
+
       let pointsAwarded = 0;
       let timeBonus = 0;
       const basePoints = 1000;
-      
+
       if (isCorrect) {
         timeBonus = Math.max(0, Math.floor(500 - responseSeconds * 20));
         pointsAwarded = basePoints + timeBonus;
       }
 
+      const updatedPlayer: Player = {
+        ...player,
+        hasAnswered: true,
+        selectedOption: option,
+        score: player.score + pointsAwarded,
+        correctAnswers: player.correctAnswers + (isCorrect ? 1 : 0),
+        totalResponseTimeMs: player.totalResponseTimeMs + responseTimeMs,
+      };
+
+      setCurrentPlayer(updatedPlayer);
+
       const updatedPlayers = currentRoom.players.map((p) =>
-        p.id === player.id
-          ? { 
-              ...p, 
-              hasAnswered: true, 
-              selectedOption: option,
-              score: p.score + pointsAwarded,
-              correctAnswers: p.correctAnswers + (isCorrect ? 1 : 0),
-              totalResponseTimeMs: p.totalResponseTimeMs + responseTimeMs
-            }
-          : p
+        p.id === player.id ? updatedPlayer : p
       );
-      const nextRoom = { ...currentRoom, players: updatedPlayers };
+
+      const nextRoom: Room = { ...currentRoom, players: updatedPlayers };
       setRoom(nextRoom);
+
+      // 2. BACKGROUND NON-BLOCKING SUPABASE SYNC
       saveRoomToSupabase(nextRoom);
       logActivity(`${player.displayName} submitted an answer`, 'answer');
+
+      // 3. INSTANT FINISH IF ALL PLAYERS ANSWERED
+      const allAnswered = updatedPlayers.every((p) => p.hasAnswered);
+      if (allAnswered) {
+        setTimerSeconds(0);
+        handleQuestionEnd(nextRoom);
+      }
     },
-    [isAnswerSubmitted]
+    [isAnswerSubmitted, handleQuestionEnd]
   );
-
-  // ─── Transition QUESTION → REVEAL ─────────────────────────────────────────
-  const handleQuestionEnd = useCallback(async () => {
-    const currentRoom = roomRef.current;
-    const player = currentPlayerRef.current;
-    const q = currentQuestionRef.current;
-    const chosenOption = selectedOptionRef.current;
-
-    if (!currentRoom || currentRoom.status !== 'QUESTION' || !q || !player || isTransitioningRef.current) {
-      return;
-    }
-    isTransitioningRef.current = true;
-
-    const correctOpt = q.correctOption || 'A';
-    const isCorrect = chosenOption === correctOpt;
-
-    // Local sounds & stats
-    if (chosenOption) {
-      if (isCorrect) {
-        sound.playCorrect();
-        incrementStat('correctAnswers');
-      } else {
-        sound.playIncorrect();
-      }
-      incrementStat('totalAnswers');
-    }
-
-    // ONLY the host pushes the state transition and simulates bots.
-    // This prevents race conditions where multiple clients overwrite the room.
-    if (!player.isHost) {
-      return;
-    }
-
-    const basePoints = 1000;
-    const updatedPlayers = currentRoom.players.map((p) => {
-      // Bot simulation
-      if (p.id.startsWith('bot_')) {
-        const botCorrect = Math.random() > 0.35;
-        const botResponseSec = 3 + Math.floor(Math.random() * 8);
-        const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
-        const botPoints = botCorrect ? basePoints + botBonus : 0;
-        const botOpt = botCorrect
-          ? correctOpt
-          : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
-
-        return {
-          ...p,
-          score: p.score + botPoints,
-          correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
-          totalResponseTimeMs: p.totalResponseTimeMs + botResponseSec * 1000,
-          hasAnswered: true,
-          selectedOption: botOpt,
-        };
-      }
-
-      // Human players (mark as answered if timer ran out without selecting)
-      // Their score was already updated directly in submitAnswer if they answered!
-      return {
-        ...p,
-        hasAnswered: true,
-      };
-    });
-
-    const updatedRoom: Room = {
-      ...currentRoom,
-      status: 'REVEAL',
-      players: updatedPlayers,
-    };
-    
-    setRoom(updatedRoom);
-    saveRoomToSupabase(updatedRoom);
-  }, [incrementStat]);
 
   // Keep currentQuestionRef synchronized
   useEffect(() => {
     currentQuestionRef.current = currentQuestion;
   }, [currentQuestion]);
 
-  // ─── Countdown timer ───────────────────────────────────────────────────────
+  // ─── Countdown timer & Instant Finish on All Answered ──────────────────────
   useEffect(() => {
     if (!room || room.status !== 'QUESTION') return;
 
     const allAnswered = room.players.length > 0 && room.players.every((p) => p.hasAnswered);
     if (allAnswered) {
+      setTimerSeconds(0);
       handleQuestionEnd();
       return;
     }
@@ -703,7 +798,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     return () => clearInterval(timer);
   }, [room?.status, room?.currentQuestionIndex, room?.players, timerSeconds, handleQuestionEnd]);
-
 
   // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
   const advanceToNextState = useCallback(async () => {
@@ -744,13 +838,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [incrementStat]);
 
-  // ─── Auto-advance from REVEAL to NEXT QUESTION ─────────────────────────────
+  // ─── Auto-advance from REVEAL to NEXT QUESTION (Fast & Crisp 2.0s reveal) ──
   useEffect(() => {
-    // Only the host should trigger the auto-advance to prevent multiple Supabase updates
     if (room?.status === 'REVEAL' && currentPlayer?.isHost) {
       const timer = setTimeout(() => {
         advanceToNextState();
-      }, 3000); // 3 second reveal
+      }, 2000); // 2 second crisp reveal
       return () => clearTimeout(timer);
     }
   }, [room?.status, currentPlayer?.isHost, advanceToNextState]);
