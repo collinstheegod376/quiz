@@ -42,6 +42,7 @@ const AchievementContext = createContext<AchievementContextType | undefined>(und
 
 export function AchievementProvider({ children }: { children: React.ReactNode }) {
   const [userStates, setUserStates] = useState<Record<string, UserAchievementState>>({});
+  const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   const [activeToast, setActiveToast] = useState<Achievement | null>(null);
 
   // Load from localStorage on mount
@@ -68,7 +69,6 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
 
   const triggerCelebration = useCallback((achievement: Achievement) => {
     sound.playAchievement();
-    setActiveToast(achievement);
 
     try {
       confetti({
@@ -80,7 +80,21 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
     } catch {
       // Ignore
     }
+
+    setToastQueue((prev) => {
+      if (prev.some((a) => a.id === achievement.id)) return prev;
+      return [...prev, achievement];
+    });
   }, []);
+
+  // Dequeue next toast when previous one dismisses
+  useEffect(() => {
+    if (!activeToast && toastQueue.length > 0) {
+      const nextToast = toastQueue[0];
+      setActiveToast(nextToast);
+      setToastQueue((prev) => prev.slice(1));
+    }
+  }, [activeToast, toastQueue]);
 
   const dismissToast = useCallback(() => {
     setActiveToast(null);

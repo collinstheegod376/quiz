@@ -313,11 +313,11 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-// Helper: Shuffles options A, B, C, D while maintaining 100% accurate correctOption mapping
+// Helper: Shuffles options A, B, C, D while maintaining 100% accurate correctOption and explanation mapping
 export function shuffleQuestionOptions(question: Question): Question {
   if (!question.correctOption) return { ...question };
 
-  const correctKey = question.correctOption;
+  const correctKey = String(question.correctOption).trim().toUpperCase() as 'A' | 'B' | 'C' | 'D';
   const rawOptions = [
     { text: question.optionA, wasCorrect: correctKey === 'A' },
     { text: question.optionB, wasCorrect: correctKey === 'B' },
@@ -325,6 +325,7 @@ export function shuffleQuestionOptions(question: Question): Question {
     { text: question.optionD, wasCorrect: correctKey === 'D' },
   ];
 
+  const correctText = rawOptions.find((o) => o.wasCorrect)?.text || '';
   const shuffled = shuffleArray(rawOptions);
   const keys: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
   let newCorrect: 'A' | 'B' | 'C' | 'D' = 'A';
@@ -335,6 +336,15 @@ export function shuffleQuestionOptions(question: Question): Question {
     }
   });
 
+  // Keep explanation in sync if it hardcodes the option letter
+  let updatedExplanation = question.explanation;
+  if (updatedExplanation) {
+    // If it says "Option X is correct", replace with the actual answer text
+    updatedExplanation = updatedExplanation
+      .replace(/Option\s+[A-D]\s+is\s+correct/gi, `"${correctText}" is correct`)
+      .replace(new RegExp(`Option\\s+${correctKey}\\b`, 'gi'), `Option ${newCorrect}`);
+  }
+
   return {
     ...question,
     optionA: shuffled[0].text,
@@ -342,6 +352,7 @@ export function shuffleQuestionOptions(question: Question): Question {
     optionC: shuffled[2].text,
     optionD: shuffled[3].text,
     correctOption: newCorrect,
+    explanation: updatedExplanation,
   };
 }
 

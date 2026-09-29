@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGame } from '@/context/GameContext';
 import confetti from 'canvas-confetti';
 import {
@@ -21,6 +21,7 @@ export function FinalResultsScreen() {
   const { room, currentPlayer, playAgain, goToNextRound, leaveRoom } = useGame();
   const { checkMatchAchievements } = useAchievements();
   const { currentUser } = useAuth();
+  const hasEvaluatedRef = useRef<string | null>(null);
 
   useEffect(() => {
     try {
@@ -35,6 +36,10 @@ export function FinalResultsScreen() {
     }
 
     if (room && currentPlayer) {
+      const matchKey = `${room.id || room.code}-${room.difficultyLevel}-${currentPlayer.id}`;
+      if (hasEvaluatedRef.current === matchKey) return;
+      hasEvaluatedRef.current = matchKey;
+
       const sorted = [...room.players].sort((a, b) => b.score - a.score);
       const myRank = sorted.findIndex((p) => p.id === currentPlayer.id) + 1;
       const avgSec =

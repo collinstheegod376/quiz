@@ -60,7 +60,9 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
 
           // Check if current user is in top 10, top 3, or #1
           if (currentUser) {
-            const userIdx = mapped.findIndex((m) => m.username === currentUser.username);
+            const userIdx = mapped.findIndex(
+              (m) => m.username.trim().toLowerCase() === currentUser.username.trim().toLowerCase()
+            );
             if (userIdx !== -1) {
               checkLeaderboardRank(userIdx + 1);
             }
