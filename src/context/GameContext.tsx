@@ -13,7 +13,9 @@ import { getQuestionsForMatch } from '@/data/questions';
 import { calculateGameLength, generateRoomCode } from '@/lib/utils';
 import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
+const ROOMS_STORE_KEY = 'quiz_arena_active_rooms';
 
 export type AppView = 'landing' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
 
@@ -97,6 +99,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Supabase Realtime subscription ───────────────────────────────────────
   const subscribeToRoom = useCallback((roomCode: string) => {
+    if (!isSupabaseConfigured) return;
+
     // Unsubscribe any existing channel first
     if (realtimeChannelRef.current) {
       supabase.removeChannel(realtimeChannelRef.current);
@@ -158,17 +162,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // ─── Save room to Supabase ─────────────────────────────────────────────────
+  // ─── Save room (Supabase + Local fallback) ─────────────────────────────────
   const saveRoomToSupabase = async (updatedRoom: Room) => {
-    const { error } = await supabase
-      .from('realtime_rooms')
-      .upsert(
-        { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
-        { onConflict: 'code' }
-      );
+    // 1. Mirror locally for instant multi-tab fallback
+    try {
+      const stored = localStorage.getItem(ROOMS_STORE_KEY);
+      const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
+      rooms[updatedRoom.code] = updatedRoom;
+      localStorage.setItem(ROOMS_STORE_KEY, JSON.stringify(rooms));
+    } catch {}
 
-    if (error) {
-      console.error('[Supabase] Failed to save room:', error.message);
+    // 2. Persist to Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('realtime_rooms')
+          .upsert(
+            { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
+            { onConflict: 'code' }
+          );
+
+        if (error) {
+          console.error('[Supabase] Failed to save room:', error.message);
+        }
+      } catch (err) {
+        console.warn('[Supabase saveRoom] error:', err);
+      }
     }
   };
 
@@ -248,20 +267,39 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const cleanCode = roomCode.trim().toUpperCase();
     const finalName = displayName.trim() || currentUser?.username || 'Challenger';
 
-    console.log('[JoinRoom] Fetching room from Supabase:', cleanCode);
+    let targetRoom: Room | null = null;
 
-    const { data, error } = await supabase
-      .from('realtime_rooms')
-      .select('state')
-      .eq('code', cleanCode)
-      .single();
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('realtime_rooms')
+          .select('state')
+          .eq('code', cleanCode)
+          .maybeSingle();
 
-    if (error || !data) {
-      console.warn('[JoinRoom] Room not found:', error?.message);
-      return false;
+        if (!error && data?.state) {
+          targetRoom = data.state as Room;
+        }
+      } catch (err) {
+        console.warn('[JoinRoom] Supabase query error:', err);
+      }
     }
 
-    const targetRoom = data.state as Room;
+    // Fallback to local storage
+    if (!targetRoom) {
+      try {
+        const stored = localStorage.getItem(ROOMS_STORE_KEY);
+        const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
+        if (rooms[cleanCode]) {
+          targetRoom = rooms[cleanCode];
+        }
+      } catch {}
+    }
+
+    if (!targetRoom) {
+      console.warn('[JoinRoom] Room not found:', cleanCode);
+      return false;
+    }
 
     const maxAllowed = targetRoom.maxPlayers || 4;
     if (targetRoom.players.length >= maxAllowed) {

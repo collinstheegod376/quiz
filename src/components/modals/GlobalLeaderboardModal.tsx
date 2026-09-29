@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, UserAccount } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
   X,
   Trophy,
@@ -22,14 +22,15 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchLeaderboard = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      // 1. Fetch from Supabase
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('total_score', { ascending: false })
-        .limit(50);
+    if (isSupabaseConfigured) {
+      setIsLoading(true);
+      try {
+        // 1. Fetch from Supabase
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .order('total_score', { ascending: false })
+          .limit(50);
 
       if (!error && data && data.length > 0) {
         const mapped: UserAccount[] = data.map((row) => ({
@@ -46,12 +47,13 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
             totalAnswers: row.total_answers || 0,
           },
         }));
-        setLeaderboardEntries(mapped);
-        setIsLoading(false);
-        return;
+          setLeaderboardEntries(mapped);
+          setIsLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn('[Leaderboard] Supabase query failed:', e);
       }
-    } catch (e) {
-      console.warn('[Leaderboard] Supabase query failed:', e);
     }
 
     // 2. Fallback to local accounts
@@ -72,6 +74,8 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
     if (!isOpen) return;
 
     fetchLeaderboard();
+
+    if (!isSupabaseConfigured) return;
 
     // Subscribe to live leaderboard changes on Supabase
     const channel = supabase

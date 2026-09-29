@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export interface UserAccount {
   username: string;
@@ -21,6 +21,7 @@ export interface UserAccount {
 interface AuthContextType {
   currentUser: UserAccount | null;
   isAuthenticated: boolean;
+  isSupabaseConnected: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, password: string, avatarUrl?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -74,32 +75,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     overallAccuracy: 0,
   });
 
-  // ─── Refresh Global Stats from Supabase ──────────────────────────────────────
+  // ─── Refresh Global Stats ──────────────────────────────────────────────────
   const refreshGlobalStats = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('rooms_created, matches_played, wins, total_score, correct_answers, total_answers');
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('rooms_created, matches_played, wins, total_score, correct_answers, total_answers');
 
-      if (!error && data && data.length > 0) {
-        const totalAnswers = data.reduce((acc, row) => acc + (row.total_answers || 0), 0);
-        const correctAnswers = data.reduce((acc, row) => acc + (row.correct_answers || 0), 0);
-        const computedAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-        const totalMatches = data.reduce((acc, row) => acc + (row.matches_played || 0), 0);
-        const totalRooms = data.reduce((acc, row) => acc + (row.rooms_created || 0), 0);
+        if (!error && data && data.length > 0) {
+          const totalAnswers = data.reduce((acc, row) => acc + (row.total_answers || 0), 0);
+          const correctAnswers = data.reduce((acc, row) => acc + (row.correct_answers || 0), 0);
+          const computedAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+          const totalMatches = data.reduce((acc, row) => acc + (row.matches_played || 0), 0);
+          const totalRooms = data.reduce((acc, row) => acc + (row.rooms_created || 0), 0);
 
-        const realStats = {
-          totalRoomsCreated: totalRooms,
-          totalMatchesPlayed: totalMatches,
-          totalPlayersCount: data.length,
-          overallAccuracy: computedAccuracy,
-        };
-        localStorage.setItem(GLOBAL_STATS_KEY, JSON.stringify(realStats));
-        setGlobalStats(realStats);
-        return;
+          const realStats = {
+            totalRoomsCreated: totalRooms,
+            totalMatchesPlayed: totalMatches,
+            totalPlayersCount: data.length,
+            overallAccuracy: computedAccuracy,
+          };
+          localStorage.setItem(GLOBAL_STATS_KEY, JSON.stringify(realStats));
+          setGlobalStats(realStats);
+          return;
+        }
+      } catch (e) {
+        console.warn('[GlobalStats] Supabase query failed:', e);
       }
-    } catch (e) {
-      console.warn('[GlobalStats] Supabase query failed, falling back to local storage:', e);
     }
 
     // LocalStorage fallback
@@ -132,22 +135,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // 1. Try to load user profile from Supabase
-      try {
-        const { data, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .ilike('username', savedSession)
-          .maybeSingle();
+      // 1. Try to load user profile from Supabase if configured
+      if (isSupabaseConfigured) {
+        try {
+          const { data, error } = await supabase
+            .from('user_profiles')
+            .select('*')
+            .ilike('username', savedSession)
+            .maybeSingle();
 
-        if (!error && data) {
-          const account = mapRowToAccount(data);
-          setCurrentUser(account);
-          refreshGlobalStats();
-          return;
+          if (!error && data) {
+            const account = mapRowToAccount(data);
+            setCurrentUser(account);
+            refreshGlobalStats();
+            return;
+          }
+        } catch (err) {
+          console.warn('[Auth] Supabase fetch session failed, falling back:', err);
         }
-      } catch (err) {
-        console.warn('[Auth] Supabase fetch session failed, trying local fallback:', err);
       }
 
       // 2. Fallback to localStorage accounts
@@ -180,27 +185,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Username and password are required.' };
     }
 
-    // 1. Attempt Supabase login
-    try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .ilike('username', cleanUser)
-        .maybeSingle();
+    // 1. Attempt Supabase login if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { data, error } = await supabase
+          .from('user_profiles')
+          .select('*')
+          .ilike('username', cleanUser)
+          .maybeSingle();
 
-      if (!error && data) {
-        if (data.password_hash !== password) {
-          return { success: false, error: 'Incorrect password.' };
+        if (!error && data) {
+          if (data.password_hash !== password) {
+            return { success: false, error: 'Incorrect password.' };
+          }
+          const account = mapRowToAccount(data);
+          setCurrentUser(account);
+          localStorage.setItem(SESSION_KEY, account.username);
+          setIsAuthModalOpen(false);
+          refreshGlobalStats();
+          return { success: true };
         }
-        const account = mapRowToAccount(data);
-        setCurrentUser(account);
-        localStorage.setItem(SESSION_KEY, account.username);
-        setIsAuthModalOpen(false);
-        refreshGlobalStats();
-        return { success: true };
+      } catch (err) {
+        console.warn('[Login] Supabase login error:', err);
       }
-    } catch (err) {
-      console.warn('[Login] Supabase login error:', err);
     }
 
     // 2. Fallback to localStorage login
@@ -242,47 +249,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${cleanUser}`;
 
-    // 1. Check & Insert in Supabase
-    try {
-      const { data: existing } = await supabase
-        .from('user_profiles')
-        .select('id')
-        .ilike('username', cleanUser)
-        .maybeSingle();
+    // 1. Check & Insert in Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const { data: existing } = await supabase
+          .from('user_profiles')
+          .select('id')
+          .ilike('username', cleanUser)
+          .maybeSingle();
 
-      if (existing) {
-        return { success: false, error: 'Username is already registered. Please log in.' };
+        if (existing) {
+          return { success: false, error: 'Username is already registered. Please log in.' };
+        }
+
+        const { data: inserted, error: insertError } = await supabase
+          .from('user_profiles')
+          .insert({
+            username: cleanUser,
+            password_hash: password,
+            avatar_url: finalAvatar,
+            rooms_created: 0,
+            matches_played: 0,
+            wins: 0,
+            total_score: 0,
+            correct_answers: 0,
+            total_answers: 0,
+          })
+          .select('*')
+          .single();
+
+        if (!insertError && inserted) {
+          const account = mapRowToAccount(inserted);
+          setCurrentUser(account);
+          localStorage.setItem(SESSION_KEY, account.username);
+
+          // Also mirror in local storage
+          try {
+            const savedAccountsStr = localStorage.getItem(ACCOUNTS_KEY);
+            const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
+            if (!accounts.some((a) => a.username.toLowerCase() === cleanUser.toLowerCase())) {
+              accounts.push(account);
+              localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+            }
+          } catch {}
+
+          setIsAuthModalOpen(false);
+          refreshGlobalStats();
+          return { success: true };
+        }
+      } catch (err) {
+        console.warn('[Register] Supabase register error:', err);
       }
-
-      const { data: inserted, error: insertError } = await supabase
-        .from('user_profiles')
-        .insert({
-          username: cleanUser,
-          password_hash: password,
-          avatar_url: finalAvatar,
-          rooms_created: 0,
-          matches_played: 0,
-          wins: 0,
-          total_score: 0,
-          correct_answers: 0,
-          total_answers: 0,
-        })
-        .select('*')
-        .single();
-
-      if (!insertError && inserted) {
-        const account = mapRowToAccount(inserted);
-        setCurrentUser(account);
-        localStorage.setItem(SESSION_KEY, account.username);
-        setIsAuthModalOpen(false);
-        refreshGlobalStats();
-        return { success: true };
-      }
-    } catch (err) {
-      console.warn('[Register] Supabase register error:', err);
     }
 
-    // 2. Fallback to localStorage
+    // 2. Fallback to localStorage registration
     try {
       const savedAccountsStr = localStorage.getItem(ACCOUNTS_KEY);
       const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
@@ -331,13 +351,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const deleteAccount = async () => {
     if (!currentUser) return;
 
-    try {
-      await supabase
-        .from('user_profiles')
-        .delete()
-        .ilike('username', currentUser.username);
-    } catch (e) {
-      console.warn('[deleteAccount] Supabase delete error:', e);
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('user_profiles')
+          .delete()
+          .ilike('username', currentUser.username);
+      } catch (e) {
+        console.warn('[deleteAccount] Supabase delete error:', e);
+      }
     }
 
     try {
@@ -366,17 +388,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const updates: any = { updated_at: new Date().toISOString() };
 
     if (cleanUser && cleanUser.toLowerCase() !== currentUser.username.toLowerCase()) {
-      try {
-        const { data: existing } = await supabase
-          .from('user_profiles')
-          .select('id')
-          .ilike('username', cleanUser)
-          .maybeSingle();
+      if (isSupabaseConfigured) {
+        try {
+          const { data: existing } = await supabase
+            .from('user_profiles')
+            .select('id')
+            .ilike('username', cleanUser)
+            .maybeSingle();
 
-        if (existing) {
-          return { success: false, error: 'Username already taken' };
-        }
-      } catch {}
+          if (existing) {
+            return { success: false, error: 'Username already taken' };
+          }
+        } catch {}
+      }
       updates.username = cleanUser;
     }
 
@@ -388,14 +412,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updates.avatar_url = newAvatar;
     }
 
-    // 1. Supabase update
-    try {
-      await supabase
-        .from('user_profiles')
-        .update(updates)
-        .ilike('username', currentUser.username);
-    } catch (e) {
-      console.warn('[updateProfile] Supabase update error:', e);
+    // 1. Supabase update if configured
+    if (isSupabaseConfigured) {
+      try {
+        await supabase
+          .from('user_profiles')
+          .update(updates)
+          .ilike('username', currentUser.username);
+      } catch (e) {
+        console.warn('[updateProfile] Supabase update error:', e);
+      }
     }
 
     // 2. Local state update
@@ -447,21 +473,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     setCurrentUser(updatedUser);
 
-    // Sync to Supabase
-    try {
-      const dbCol = colMap[statKey];
-      await supabase
-        .from('user_profiles')
-        .update({
-          [dbCol]: newStatValue,
-          updated_at: new Date().toISOString(),
-        })
-        .ilike('username', currentUser.username);
-    } catch (e) {
-      console.warn('[incrementStat] Supabase error:', e);
+    // Sync to Supabase if configured
+    if (isSupabaseConfigured) {
+      try {
+        const dbCol = colMap[statKey];
+        await supabase
+          .from('user_profiles')
+          .update({
+            [dbCol]: newStatValue,
+            updated_at: new Date().toISOString(),
+          })
+          .ilike('username', currentUser.username);
+      } catch (e) {
+        console.warn('[incrementStat] Supabase error:', e);
+      }
     }
 
-    // Fallback sync to local storage
+    // Sync to local storage
     try {
       const savedAccountsStr = localStorage.getItem(ACCOUNTS_KEY);
       const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
@@ -480,6 +508,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         isAuthenticated: !!currentUser,
+        isSupabaseConnected: isSupabaseConfigured,
         login,
         register,
         logout,
