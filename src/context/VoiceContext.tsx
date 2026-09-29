@@ -517,6 +517,13 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     sound.playClick();
   };
 
+  // Auto-leave voice when room closes or user navigates away from room
+  useEffect(() => {
+    if (!room && isVoiceJoinedRef.current) {
+      leaveVoice();
+    }
+  }, [room]);
+
   // ─── Toggle Mute ─────────────────────────────────────────────────────────
   const toggleMute = () => {
     if (!localStreamRef.current) return;

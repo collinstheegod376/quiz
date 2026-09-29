@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
@@ -20,14 +20,16 @@ import { CATEGORY_NAV_ITEMS, CategoryNav } from './CategoryNav';
 
 export function Navbar() {
   const {
+    currentView,
     setCurrentView,
+    selectedCategoryId,
+    setSelectedCategoryId,
     room,
     currentPlayer,
     joinRoom,
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
     setIsCreateModalOpen,
-    setSelectedCategoryId,
   } = useGame();
   const {
     currentUser,
@@ -40,6 +42,19 @@ export function Navbar() {
   const [desktopPin, setDesktopPin] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('start');
+
+  // Keep active category tab in sync with global application view
+  useEffect(() => {
+    if (currentView === 'landing') {
+      setActiveCategory('start');
+    } else if (currentView === 'achievements') {
+      setActiveCategory('achievements');
+    } else if (currentView === 'leaderboard') {
+      setActiveCategory('leaderboard');
+    } else if (currentView === 'topics' && selectedCategoryId) {
+      setActiveCategory(selectedCategoryId);
+    }
+  }, [currentView, selectedCategoryId]);
 
   const handleDesktopJoin = (e: React.FormEvent) => {
     e.preventDefault();
