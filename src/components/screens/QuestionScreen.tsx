@@ -12,6 +12,7 @@ import {
   XCircle,
   AlertCircle,
   HelpCircle,
+  Zap,
 } from 'lucide-react';
 import { Badge } from '../ui/Badge';
 
@@ -20,11 +21,12 @@ export function QuestionScreen() {
     room,
     currentPlayer,
     currentQuestion,
+    localQuestionIndex,
+    isLocalReveal,
     selectedOption,
     isAnswerSubmitted,
     submitAnswer,
     timerSeconds,
-    lastRevealResult,
   } = useGame();
 
   const currentTopic = useMemo(() => {
@@ -39,10 +41,10 @@ export function QuestionScreen() {
 
   if (!room || !currentQuestion || !currentPlayer) return null;
 
-  const currentQNum = room.currentQuestionIndex + 1;
+  const currentQNum = localQuestionIndex + 1;
   const totalQ = room.calculatedQuestionCount;
-  const answeredCount = room.players.filter((p) => p.hasAnswered).length;
-  const totalPlayers = room.players.length;
+  const isReveal = isLocalReveal;
+  const isTimeCritical = timerSeconds <= 4;
 
   const options: Array<{ key: 'A' | 'B' | 'C' | 'D'; label: string }> = [
     { key: 'A', label: currentQuestion.optionA },
@@ -50,9 +52,6 @@ export function QuestionScreen() {
     { key: 'C', label: currentQuestion.optionC },
     { key: 'D', label: currentQuestion.optionD },
   ];
-
-  const isTimeCritical = timerSeconds <= 5;
-  const isReveal = room.status === 'REVEAL';
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fadeIn">
@@ -203,12 +202,16 @@ export function QuestionScreen() {
 
       {/* Participation & Status Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-          <Users className="w-4 h-4 text-red-500" />
-          <span className="font-semibold text-slate-900 dark:text-white">
-            {answeredCount} / {totalPlayers}
-          </span>
-          <span>players answered</span>
+        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
+          <div className="flex items-center gap-1.5 font-bold text-red-600 dark:text-red-400">
+            <Zap className="w-4 h-4 fill-current" />
+            <span>{currentPlayer.score.toLocaleString()} XP</span>
+          </div>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <div className="flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-slate-400" />
+            <span>{room.players.length} in Arena</span>
+          </div>
         </div>
 
         {isReveal ? (

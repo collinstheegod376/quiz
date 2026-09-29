@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   CategoryId,
   Room,
@@ -42,6 +42,8 @@ interface GameContextType {
   // Game Play
   startGame: () => void;
   currentQuestion: Question | null;
+  localQuestionIndex: number;
+  isLocalReveal: boolean;
   selectedOption: 'A' | 'B' | 'C' | 'D' | null;
   isAnswerSubmitted: boolean;
   submitAnswer: (option: 'A' | 'B' | 'C' | 'D') => void;
@@ -524,6 +526,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setCurrentView('landing');
   };
 
+  const [localQuestionIndex, setLocalQuestionIndex] = useState<number>(0);
+  const [isLocalReveal, setIsLocalReveal] = useState<boolean>(false);
+  const localQuestionIndexRef = useRef<number>(0);
+
+  useEffect(() => {
+    localQuestionIndexRef.current = localQuestionIndex;
+  }, [localQuestionIndex]);
+
   // ─── Start Game ────────────────────────────────────────────────────────────
   const startGame = async () => {
     if (!room) return;
@@ -553,182 +563,83 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })),
     };
 
-    setCurrentPlayer((prev) => (prev ? { ...prev, score: 0, correctAnswers: 0, totalResponseTimeMs: 0, hasAnswered: false, selectedOption: undefined } : null));
+    setLocalQuestionIndex(0);
+    setIsLocalReveal(false);
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setTimerSeconds(room.timePerQuestion || 15);
     setAnswerTimeStart(Date.now());
+    setCurrentPlayer((prev) => (prev ? { ...prev, score: 0, correctAnswers: 0, totalResponseTimeMs: 0, hasAnswered: false, selectedOption: undefined } : null));
     setRoom(updatedRoom);
     setCurrentView('game');
-    logActivity('Match commenced! Question 1 underway.', 'system');
+    logActivity('Match commenced! Questions underway.', 'system');
 
     await saveRoomToSupabase(updatedRoom);
   };
 
-  const currentQuestion =
-    room && room.status !== 'LOBBY'
-      ? (gameQuestions.length > room.currentQuestionIndex
-          ? gameQuestions[room.currentQuestionIndex]
-          : room.questions && room.questions.length > room.currentQuestionIndex
-          ? room.questions[room.currentQuestionIndex]
-          : null)
-      : null;
+  const currentQuestion = useMemo(() => {
+    if (!room || room.status === 'LOBBY') return null;
+    const qList = gameQuestions.length > 0 ? gameQuestions : room.questions || [];
+    if (localQuestionIndex < qList.length) {
+      return qList[localQuestionIndex];
+    }
+    return null;
+  }, [room, gameQuestions, localQuestionIndex]);
 
-  // ─── Transition QUESTION → REVEAL ─────────────────────────────────────────
-  const handleQuestionEnd = useCallback(
-    async (overrideRoom?: Room) => {
-      const currentRoom = overrideRoom || roomRef.current;
-      const player = currentPlayerRef.current;
-      const q = currentQuestionRef.current;
-      const chosenOption = selectedOptionRef.current;
-
-      if (!currentRoom || currentRoom.status !== 'QUESTION' || !q || !player || isTransitioningRef.current) {
-        return;
-      }
-      isTransitioningRef.current = true;
-
-      const correctOpt = q.correctOption || 'A';
-      const isCorrect = chosenOption === correctOpt;
-
-      // Play local result sound immediately
-      if (chosenOption) {
-        if (isCorrect) {
-          sound.playCorrect();
-          incrementStat('correctAnswers');
-        } else {
-          sound.playIncorrect();
-        }
-        incrementStat('totalAnswers');
-      }
-
-      // ONLY the host triggers state transition to REVEAL in database
-      if (!player.isHost) {
-        return;
-      }
-
-      const basePoints = 1000;
-      const updatedPlayers = currentRoom.players.map((p) => {
-        // Bot evaluation if bot hasn't submitted yet
-        if (p.id.startsWith('bot_') && !p.hasAnswered) {
-          const botCorrect = Math.random() > 0.35;
-          const botResponseSec = 2 + Math.floor(Math.random() * 4);
-          const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
-          const botPoints = botCorrect ? basePoints + botBonus : 0;
-          const botOpt = botCorrect
-            ? correctOpt
-            : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
-
-          return {
-            ...p,
-            score: p.score + botPoints,
-            correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
-            totalResponseTimeMs: p.totalResponseTimeMs + botResponseSec * 1000,
-            hasAnswered: true,
-            selectedOption: botOpt,
-          };
-        }
-
-        return {
-          ...p,
-          hasAnswered: true,
-        };
-      });
-
-      const updatedRoom: Room = {
-        ...currentRoom,
-        status: 'REVEAL',
-        players: updatedPlayers,
-      };
-
-      setRoom(updatedRoom);
-      saveRoomToSupabase(updatedRoom);
-    },
-    [incrementStat]
-  );
-
-  // ─── Live Bot Simulation during Question (Host only) ────────────────────────
+  // Keep currentQuestionRef synchronized
   useEffect(() => {
-    if (!room || room.status !== 'QUESTION' || !currentPlayer?.isHost) return;
+    currentQuestionRef.current = currentQuestion;
+  }, [currentQuestion]);
 
-    const bots = room.players.filter((p) => p.id.startsWith('bot_') && !p.hasAnswered);
-    if (bots.length === 0) return;
+  // ─── Advance to Next Local Question ────────────────────────────────────────
+  const advanceLocalQuestion = useCallback(() => {
+    const currentRoom = roomRef.current;
+    const totalCount = currentRoom?.calculatedQuestionCount || gameQuestions.length || 10;
+    const nextIdx = localQuestionIndexRef.current + 1;
 
-    const timeouts: NodeJS.Timeout[] = [];
+    if (nextIdx >= totalCount) {
+      // Completed all questions!
+      incrementStat('matchesPlayed');
+      setRoom((prev) => (prev ? { ...prev, status: 'FINAL_RESULTS' } : prev));
+      sound.playWin();
 
-    bots.forEach((bot) => {
-      // Stagger bot answer between 1.5s and 4.5s
-      const delayMs = 1500 + Math.random() * 3000;
-      const timer = setTimeout(() => {
-        setRoom((prev) => {
-          if (!prev || prev.status !== 'QUESTION') return prev;
-          const q = prev.questions?.[prev.currentQuestionIndex] || currentQuestionRef.current;
-          const correctOpt = q?.correctOption || 'A';
-          const botCorrect = Math.random() > 0.35;
-          const botResponseSec = Math.round(delayMs / 1000);
-          const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
-          const botPoints = botCorrect ? 1000 + botBonus : 0;
-          const botOpt = botCorrect
-            ? correctOpt
-            : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
+      // Check if winner
+      const sorted = [...(currentRoom?.players || [])].sort((a, b) => b.score - a.score);
+      if (sorted[0]?.id === currentPlayerRef.current?.id) {
+        incrementStat('wins');
+      }
+    } else {
+      setLocalQuestionIndex(nextIdx);
+      setSelectedOption(null);
+      setIsAnswerSubmitted(false);
+      setIsLocalReveal(false);
+      setTimerSeconds(currentRoom?.timePerQuestion || 15);
+      setAnswerTimeStart(Date.now());
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    }
+  }, [gameQuestions.length, incrementStat]);
 
-          const updatedPlayers = prev.players.map((p) =>
-            p.id === bot.id
-              ? {
-                  ...p,
-                  score: p.score + botPoints,
-                  correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
-                  totalResponseTimeMs: p.totalResponseTimeMs + delayMs,
-                  hasAnswered: true,
-                  selectedOption: botOpt,
-                }
-              : p
-          );
-
-          const nextRoom = { ...prev, players: updatedPlayers };
-          saveRoomToSupabase(nextRoom);
-
-          // Check if all players answered now!
-          if (updatedPlayers.every((p) => p.hasAnswered)) {
-            setTimerSeconds(0);
-            handleQuestionEnd(nextRoom);
-          }
-
-          return nextRoom;
-        });
-      }, delayMs);
-
-      timeouts.push(timer);
-    });
-
-    return () => {
-      timeouts.forEach((t) => clearTimeout(t));
-    };
-  }, [room?.status, room?.currentQuestionIndex, currentPlayer?.isHost, handleQuestionEnd]);
-
-  // ─── Submit Answer (Instant Optimistic UI + Background Supabase Sync) ───────
+  // ─── Submit Answer (Instant Local Progression + Background Supabase Sync) ──
   const submitAnswer = useCallback(
     (option: 'A' | 'B' | 'C' | 'D') => {
       const currentRoom = roomRef.current;
       const player = currentPlayerRef.current;
       const q = currentQuestionRef.current;
-      if (!currentRoom || !player || isAnswerSubmitted || !q || currentRoom.status !== 'QUESTION') return;
+      if (!currentRoom || !player || isAnswerSubmitted || !q || isLocalReveal) return;
 
-      // Prevent accidental touch/click bleed from previous screen or rapid taps within first 350ms
-      const elapsedSinceStart = Date.now() - answerTimeStartRef.current;
-      if (elapsedSinceStart < 350) {
-        console.warn('[SubmitAnswer] Ignored tap during initial 350ms grace period to prevent touch bleed.');
-        return;
-      }
+      // 300ms tap bleed protection
+      const elapsed = Date.now() - answerTimeStartRef.current;
+      if (elapsed < 300) return;
 
-      sound.playClick();
-
-      // 1. INSTANT LOCAL STATE UPDATE (zero latency UI)
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
+      setIsLocalReveal(true);
 
       const correctOpt = q.correctOption || 'A';
       const isCorrect = option === correctOpt;
-      const responseTimeMs = Math.max(50, Date.now() - answerTimeStartRef.current);
+      const responseTimeMs = Math.max(50, elapsed);
       const responseSeconds = Math.min(currentRoom.timePerQuestion || 15, Math.max(0.5, responseTimeMs / 1000));
 
       let pointsAwarded = 0;
@@ -736,9 +647,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const basePoints = 1000;
 
       if (isCorrect) {
+        sound.playCorrect();
+        incrementStat('correctAnswers');
         timeBonus = Math.max(0, Math.floor(500 - responseSeconds * 20));
         pointsAwarded = basePoints + timeBonus;
+      } else {
+        sound.playIncorrect();
       }
+      incrementStat('totalAnswers');
 
       const updatedPlayer: Player = {
         ...player,
@@ -754,42 +670,34 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const updatedPlayers = currentRoom.players.map((p) =>
         p.id === player.id ? updatedPlayer : p
       );
-
       const nextRoom: Room = { ...currentRoom, players: updatedPlayers };
       setRoom(nextRoom);
 
-      // 2. BACKGROUND NON-BLOCKING SUPABASE SYNC
+      // Async background Supabase update (non-blocking)
       saveRoomToSupabase(nextRoom);
-      logActivity(`${player.displayName} submitted an answer`, 'answer');
 
-      // 3. INSTANT FINISH IF ALL PLAYERS ANSWERED
-      const allAnswered = updatedPlayers.every((p) => p.hasAnswered);
-      if (allAnswered) {
-        setTimerSeconds(0);
-        handleQuestionEnd(nextRoom);
-      }
+      // 700ms crisp micro-reveal then zero-delay jump to next question
+      setTimeout(() => {
+        advanceLocalQuestion();
+      }, 700);
     },
-    [isAnswerSubmitted, handleQuestionEnd]
+    [isAnswerSubmitted, isLocalReveal, incrementStat, advanceLocalQuestion]
   );
 
-  // Keep currentQuestionRef synchronized
+  // ─── Local Question Countdown Timer ────────────────────────────────────────
   useEffect(() => {
-    currentQuestionRef.current = currentQuestion;
-  }, [currentQuestion]);
-
-  // ─── Countdown timer & Instant Finish on All Answered ──────────────────────
-  useEffect(() => {
-    if (!room || room.status !== 'QUESTION') return;
-
-    const allAnswered = room.players.length > 0 && room.players.every((p) => p.hasAnswered);
-    if (allAnswered) {
-      setTimerSeconds(0);
-      handleQuestionEnd();
-      return;
-    }
+    if (!room || (room.status !== 'QUESTION' && room.status !== 'REVEAL') || isLocalReveal) return;
 
     if (timerSeconds <= 0) {
-      handleQuestionEnd();
+      // Time ran out on this question
+      setIsAnswerSubmitted(true);
+      setIsLocalReveal(true);
+      sound.playIncorrect();
+      incrementStat('totalAnswers');
+
+      setTimeout(() => {
+        advanceLocalQuestion();
+      }, 700);
       return;
     }
 
@@ -800,7 +708,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }
         if (prev <= 1) {
           clearInterval(timer);
-          handleQuestionEnd();
+          setIsAnswerSubmitted(true);
+          setIsLocalReveal(true);
+          sound.playIncorrect();
+          incrementStat('totalAnswers');
+          setTimeout(() => {
+            advanceLocalQuestion();
+          }, 700);
           return 0;
         }
         return prev - 1;
@@ -808,56 +722,39 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [room?.status, room?.currentQuestionIndex, room?.players, timerSeconds, handleQuestionEnd]);
+  }, [room?.status, localQuestionIndex, timerSeconds, isLocalReveal, advanceLocalQuestion, incrementStat]);
 
-  // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
-  const advanceToNextState = useCallback(async () => {
-    const currentRoom = roomRef.current;
-    if (!currentRoom) return;
-    sound.playClick();
-    isTransitioningRef.current = false;
-
-    const nextIndex = currentRoom.currentQuestionIndex + 1;
-    if (nextIndex >= currentRoom.calculatedQuestionCount) {
-      const finalRoom: Room = { ...currentRoom, status: 'FINAL_RESULTS' };
-      setRoom(finalRoom);
-      saveRoomToSupabase(finalRoom);
-
-      incrementStat('matchesPlayed');
-      const sorted = [...currentRoom.players].sort((a, b) => b.score - a.score);
-      if (sorted[0]?.id === currentPlayerRef.current?.id) {
-        incrementStat('wins');
-      }
-    } else {
-      const nextQRoom: Room = {
-        ...currentRoom,
-        status: 'QUESTION',
-        currentQuestionIndex: nextIndex,
-        questionStartedAt: Date.now(),
-        players: currentRoom.players.map((p) => ({
-          ...p,
-          hasAnswered: false,
-          selectedOption: undefined,
-        })),
-      };
-      setRoom(nextQRoom);
-      setSelectedOption(null);
-      setIsAnswerSubmitted(false);
-      setTimerSeconds(currentRoom.timePerQuestion || 15);
-      setAnswerTimeStart(Date.now());
-      saveRoomToSupabase(nextQRoom);
-    }
-  }, [incrementStat]);
-
-  // ─── Auto-advance from REVEAL to NEXT QUESTION (Fast & Crisp 2.0s reveal) ──
+  // ─── Simulated Rivals / Bots Progression (Host Only) ───────────────────────
   useEffect(() => {
-    if (room?.status === 'REVEAL' && currentPlayer?.isHost) {
-      const timer = setTimeout(() => {
-        advanceToNextState();
-      }, 2000); // 2 second crisp reveal
-      return () => clearTimeout(timer);
-    }
-  }, [room?.status, currentPlayer?.isHost, advanceToNextState]);
+    if (!room || room.status !== 'QUESTION' || !currentPlayer?.isHost) return;
+
+    const bots = room.players.filter((p) => p.id.startsWith('bot_'));
+    if (bots.length === 0) return;
+
+    const interval = setInterval(() => {
+      setRoom((prev) => {
+        if (!prev || prev.status !== 'QUESTION') return prev;
+        const updatedPlayers = prev.players.map((p) => {
+          if (p.id.startsWith('bot_') && Math.random() > 0.4) {
+            const isBotCorrect = Math.random() > 0.35;
+            const botPoints = isBotCorrect ? 1000 + Math.floor(Math.random() * 400) : 0;
+            return {
+              ...p,
+              score: p.score + botPoints,
+              correctAnswers: p.correctAnswers + (isBotCorrect ? 1 : 0),
+            };
+          }
+          return p;
+        });
+
+        const nextRoom = { ...prev, players: updatedPlayers };
+        saveRoomToSupabase(nextRoom);
+        return nextRoom;
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [room?.status, currentPlayer?.isHost]);
 
   const playAgain = async () => {
     if (!room) return;
@@ -907,12 +804,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         removePlayer,
         startGame,
         currentQuestion,
+        localQuestionIndex,
+        isLocalReveal,
         selectedOption,
         isAnswerSubmitted,
         submitAnswer,
         timerSeconds,
         lastRevealResult,
-        advanceToNextState,
+        advanceToNextState: advanceLocalQuestion,
         playAgain,
         isSoundMuted,
         toggleSound,

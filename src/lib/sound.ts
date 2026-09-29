@@ -115,6 +115,30 @@ class SoundController {
       // Ignored
     }
   }
+
+  public playWin() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((freq, index) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + index * 0.1);
+        gain.gain.setValueAtTime(0.15, now + index * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + index * 0.1 + 0.4);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + index * 0.1);
+        osc.stop(now + index * 0.1 + 0.45);
+      });
+    } catch {
+      // Ignored
+    }
+  }
 }
 
 export const sound = new SoundController();
