@@ -151,7 +151,7 @@ export function LandingScreen() {
               {/* Poster image */}
               <div className="relative h-80 sm:h-96 w-full overflow-hidden bg-slate-900">
                 <SafeImage
-                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRd342Ea7VlsTU1o4YDtfu9ECqslDg1SizIaAYK_aaSvg&s=10"
+                  src="/imu.png"
                   fallbackSrc="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5v8aImTlIh60FlNLO18G7LEclN2vkaKhR4pfu5vjkGcQ4s05Mc27gjYfi&s=10"
                   alt="One Piece Official Anime Poster"
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
