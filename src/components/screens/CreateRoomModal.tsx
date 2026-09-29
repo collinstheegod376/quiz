@@ -32,6 +32,7 @@ export function CreateRoomModal() {
   const [displayName, setDisplayName] = useState(currentUser?.username || 'PlayerOne');
   const [timePerQ, setTimePerQ] = useState(15);
   const [targetPlayers, setTargetPlayers] = useState<2 | 3 | 4>(2);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (currentUser?.username) {
@@ -41,9 +42,14 @@ export function CreateRoomModal() {
 
   if (!isCreateModalOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    createRoom(displayName, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
+    setIsCreating(true);
+    try {
+      await createRoom(displayName, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const currentTopic = TOPICS.find((t) => t.id === selectedTopicId) || TOPICS[0];
@@ -205,9 +211,9 @@ export function CreateRoomModal() {
           </div>
 
           {/* Submit */}
-          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl">
+          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl" disabled={isCreating}>
             <Zap className="w-4 h-4 fill-current" />
-            Create Arena & Enter Lobby
+            {isCreating ? 'Initializing Arena...' : 'Create Arena & Enter Lobby'}
           </Button>
         </form>
       </div>

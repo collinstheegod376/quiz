@@ -13,6 +13,7 @@ export function JoinRoomModal() {
   const [displayName, setDisplayName] = useState(currentUser?.username || 'Challenger');
   const [roomCode, setRoomCode] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
 
   useEffect(() => {
     if (currentUser?.username) {
@@ -22,12 +23,14 @@ export function JoinRoomModal() {
 
   if (!isJoinModalOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     const clean = roomCode.trim().toUpperCase();
     if (!clean) return;
-    const success = joinRoom(clean, displayName);
+    setIsJoining(true);
+    const success = await joinRoom(clean, displayName);
+    setIsJoining(false);
     if (!success) {
       setErrorMsg('Room not found or max capacity reached. Please verify the 6-character room code.');
     }
@@ -110,9 +113,9 @@ export function JoinRoomModal() {
           )}
 
           {/* Submit */}
-          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl">
+          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl" disabled={isJoining}>
             <LogIn className="w-4 h-4" />
-            Connect to Lobby
+            {isJoining ? 'Connecting...' : 'Connect to Lobby'}
           </Button>
         </form>
       </div>

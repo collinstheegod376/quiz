@@ -19,27 +19,33 @@ export function AuthModal() {
   const [password, setPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('Ace');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Hide only when authenticated AND modal is explicitly closed
   if (isAuthenticated && !isAuthModalOpen) return null;
   // If not authenticated, always force-show regardless of isAuthModalOpen flag
   // (AuthContext will set isAuthModalOpen=true on load, but this is a belt-and-suspenders guard)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+    setIsSubmitting(true);
 
-    if (tab === 'login') {
-      const res = login(username, password);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Login failed.');
+    try {
+      if (tab === 'login') {
+        const res = await login(username, password);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Login failed.');
+        }
+      } else {
+        const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
+        const res = await register(username, password, avatarUrl);
+        if (!res.success) {
+          setErrorMsg(res.error || 'Registration failed.');
+        }
       }
-    } else {
-      const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
-      const res = register(username, password, avatarUrl);
-      if (!res.success) {
-        setErrorMsg(res.error || 'Registration failed.');
-      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,9 +181,13 @@ export function AuthModal() {
             <span>Zero email verification needed. Seamless instant access.</span>
           </div>
 
-          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl">
+          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl" disabled={isSubmitting}>
             <Zap className="w-4 h-4 fill-current" />
-            {tab === 'login' ? 'Sign In & Enter Arena' : 'Create Account & Play'}
+            {isSubmitting
+              ? 'Connecting to Arena...'
+              : tab === 'login'
+              ? 'Sign In & Enter Arena'
+              : 'Create Account & Play'}
           </Button>
         </form>
       </div>

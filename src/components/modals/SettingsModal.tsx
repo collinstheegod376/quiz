@@ -41,24 +41,31 @@ export function SettingsModal() {
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!isSettingsModalOpen || !currentUser) return null;
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedbackMsg(null);
+    setIsSaving(true);
 
-    const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
-    const res = updateProfile(
-      username !== currentUser.username ? username : undefined,
-      newPassword ? newPassword : undefined,
-      avatarUrl
-    );
+    try {
+      const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
+      const res = await updateProfile(
+        username !== currentUser.username ? username : undefined,
+        newPassword ? newPassword : undefined,
+        avatarUrl
+      );
 
-    if (res.success) {
-      setFeedbackMsg({ type: 'success', text: 'Profile settings updated successfully.' });
-      setNewPassword('');
-    } else {
-      setFeedbackMsg({ type: 'error', text: res.error || 'Failed to update profile.' });
+      if (res.success) {
+        setFeedbackMsg({ type: 'success', text: 'Profile settings updated successfully.' });
+        setNewPassword('');
+      } else {
+        setFeedbackMsg({ type: 'error', text: res.error || 'Failed to update profile.' });
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -68,8 +75,8 @@ export function SettingsModal() {
     setAvatarSeed(random);
   };
 
-  const handleDelete = () => {
-    deleteAccount();
+  const handleDelete = async () => {
+    await deleteAccount();
   };
 
   return (

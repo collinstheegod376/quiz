@@ -13,6 +13,7 @@ import { getQuestionsForMatch } from '@/data/questions';
 import { calculateGameLength, generateRoomCode } from '@/lib/utils';
 import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
+import { supabase } from '@/lib/supabase';
 
 export type AppView = 'landing' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game';
 
@@ -32,7 +33,7 @@ interface GameContextType {
   room: Room | null;
   activityLogs: RoomActivityLog[];
   createRoom: (displayName: string, topicId: string, levelNumber: number, timePerQ?: number, maxPlayers?: number) => void;
-  joinRoom: (roomCode: string, displayName: string) => boolean;
+  joinRoom: (roomCode: string, displayName: string) => Promise<boolean>;
   leaveRoom: () => void;
   togglePlayerReady: () => void;
   addMockBotPlayer: () => void;
@@ -62,8 +63,6 @@ interface GameContextType {
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
-const ROOMS_STORE_KEY = 'quiz_arena_active_rooms';
-
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const { currentUser, incrementStat } = useAuth();
 
@@ -88,95 +87,98 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState<boolean>(false);
   const [isGlobalLeaderboardOpen, setIsGlobalLeaderboardOpen] = useState<boolean>(false);
 
-  // Multi-tab channel for instant live room sync
-  const channelRef = useRef<BroadcastChannel | null>(null);
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const currentPlayerRef = useRef<Player | null>(null);
 
-  // Sync rooms across browser tabs via BroadcastChannel & Storage Event
+  // Keep ref in sync so realtime callback always has fresh player
   useEffect(() => {
-    const handleRoomData = (incomingRoom: Room) => {
-      if (!incomingRoom) return;
+    currentPlayerRef.current = currentPlayer;
+  }, [currentPlayer]);
 
-      setRoom((currentRoom) => {
-        if (!currentRoom || currentRoom.code !== incomingRoom.code) {
-          return currentRoom;
-        }
-
-        // Sync questions if provided
-        if (incomingRoom.questions && incomingRoom.questions.length > 0) {
-          setGameQuestions(incomingRoom.questions);
-        }
-
-        // Auto-switch view to 'game' when match starts
-        if (
-          incomingRoom.status === 'QUESTION' ||
-          incomingRoom.status === 'REVEAL' ||
-          incomingRoom.status === 'FINAL_RESULTS' ||
-          incomingRoom.status === 'FINISHED'
-        ) {
-          setCurrentView('game');
-        }
-
-        return incomingRoom;
-      });
-    };
-
-    // 1. BroadcastChannel
-    let channel: BroadcastChannel | null = null;
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      channel = new BroadcastChannel('quiz_arena_sync');
-      channelRef.current = channel;
-      channel.onmessage = (event) => {
-        if (event.data?.type === 'ROOM_UPDATE' && event.data?.data) {
-          handleRoomData(event.data.data);
-        }
-      };
+  // ─── Supabase Realtime subscription ───────────────────────────────────────
+  const subscribeToRoom = useCallback((roomCode: string) => {
+    // Unsubscribe any existing channel first
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
     }
 
-    // 2. Storage Event fallback
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === ROOMS_STORE_KEY && e.newValue && room) {
-        try {
-          const rooms: Record<string, Room> = JSON.parse(e.newValue);
-          if (rooms[room.code]) {
-            handleRoomData(rooms[room.code]);
+    const channel = supabase
+      .channel(`room:${roomCode}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'realtime_rooms',
+          filter: `code=eq.${roomCode}`,
+        },
+        (payload) => {
+          const incomingRoom = payload.new?.state as Room | undefined;
+          if (!incomingRoom) return;
+
+          // Sync questions if present
+          if (incomingRoom.questions && incomingRoom.questions.length > 0) {
+            setGameQuestions(incomingRoom.questions);
           }
-        } catch {
-          // Ignore
+
+          // Auto-switch view when game starts
+          if (
+            incomingRoom.status === 'QUESTION' ||
+            incomingRoom.status === 'REVEAL' ||
+            incomingRoom.status === 'FINAL_RESULTS' ||
+            incomingRoom.status === 'FINISHED'
+          ) {
+            setCurrentView('game');
+          }
+
+          setRoom(incomingRoom);
+
+          // Restore current player from incoming room by matching our player id
+          const myPlayer = currentPlayerRef.current;
+          if (myPlayer) {
+            const updated = incomingRoom.players.find((p) => p.id === myPlayer.id);
+            if (updated) setCurrentPlayer(updated);
+          }
         }
-      }
-    };
+      )
+      .subscribe((status) => {
+        console.log(`[Realtime] Channel room:${roomCode} status:`, status);
+      });
 
-    window.addEventListener('storage', handleStorageChange);
+    realtimeChannelRef.current = channel;
+  }, []);
 
+  // Unsubscribe on unmount
+  useEffect(() => {
     return () => {
-      if (channel) channel.close();
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [room]);
-
-  const saveRoomToStorage = (updatedRoom: Room) => {
-    try {
-      const stored = localStorage.getItem(ROOMS_STORE_KEY);
-      const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
-      rooms[updatedRoom.code] = updatedRoom;
-      localStorage.setItem(ROOMS_STORE_KEY, JSON.stringify(rooms));
-
-      // Post update to BroadcastChannel for instant live sync across open tabs
-      if (channelRef.current) {
-        channelRef.current.postMessage({ type: 'ROOM_UPDATE', data: updatedRoom });
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
       }
-    } catch {
-      // Ignore
+    };
+  }, []);
+
+  // ─── Save room to Supabase ─────────────────────────────────────────────────
+  const saveRoomToSupabase = async (updatedRoom: Room) => {
+    const { error } = await supabase
+      .from('realtime_rooms')
+      .upsert(
+        { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
+        { onConflict: 'code' }
+      );
+
+    if (error) {
+      console.error('[Supabase] Failed to save room:', error.message);
     }
   };
 
-  // Sound toggle
+  // ─── Sound toggle ──────────────────────────────────────────────────────────
   const toggleSound = () => {
     const muted = sound.toggleMute();
     setIsSoundMuted(muted);
   };
 
-  // Activity logger
+  // ─── Activity logger ───────────────────────────────────────────────────────
   const logActivity = (text: string, type: RoomActivityLog['type'] = 'system') => {
     const newLog: RoomActivityLog = {
       id: Math.random().toString(36).substring(2, 9),
@@ -187,8 +189,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setActivityLogs((prev) => [newLog, ...prev.slice(0, 19)]);
   };
 
-  // Create room
-  const createRoom = (
+  // ─── Create Room ───────────────────────────────────────────────────────────
+  const createRoom = async (
     displayName: string,
     topicId: string,
     levelNumber: number,
@@ -229,7 +231,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       players: [hostPlayer],
     };
 
-    saveRoomToStorage(newRoom);
+    await saveRoomToSupabase(newRoom);
+    subscribeToRoom(roomCode);
     incrementStat('roomsCreated');
 
     setCurrentPlayer(hostPlayer);
@@ -239,37 +242,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     logActivity(`${hostPlayer.displayName} created room ${newRoom.code}`, 'join');
   };
 
-  // Join room
-  const joinRoom = (roomCode: string, displayName: string): boolean => {
+  // ─── Join Room ─────────────────────────────────────────────────────────────
+  const joinRoom = async (roomCode: string, displayName: string): Promise<boolean> => {
     sound.playClick();
     const cleanCode = roomCode.trim().toUpperCase();
     const finalName = displayName.trim() || currentUser?.username || 'Challenger';
 
-    // Retrieve active rooms from localStorage
-    let targetRoom: Room | null = null;
-    try {
-      const stored = localStorage.getItem(ROOMS_STORE_KEY);
-      const rooms: Record<string, Room> = stored ? JSON.parse(stored) : {};
-      if (rooms[cleanCode]) {
-        targetRoom = rooms[cleanCode];
-      }
-    } catch {
-      // Ignore
-    }
+    console.log('[JoinRoom] Fetching room from Supabase:', cleanCode);
 
-    if (!targetRoom) {
-      if (room && room.code === cleanCode) {
-        targetRoom = room;
-      }
-    }
+    const { data, error } = await supabase
+      .from('realtime_rooms')
+      .select('state')
+      .eq('code', cleanCode)
+      .single();
 
-    // Do NOT generate mock rooms with fake players: return false if room does not exist
-    if (!targetRoom) {
+    if (error || !data) {
+      console.warn('[JoinRoom] Room not found:', error?.message);
       return false;
     }
 
+    const targetRoom = data.state as Room;
+
     const maxAllowed = targetRoom.maxPlayers || 4;
     if (targetRoom.players.length >= maxAllowed) {
+      console.warn('[JoinRoom] Room is full');
       return false;
     }
 
@@ -287,13 +283,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       isOnline: true,
     };
 
-    const updatedPlayers = [...targetRoom.players, joinedPlayer];
     const updatedRoom: Room = {
       ...targetRoom,
-      players: updatedPlayers,
+      players: [...targetRoom.players, joinedPlayer],
     };
 
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
+    subscribeToRoom(cleanCode);
 
     setCurrentPlayer(joinedPlayer);
     setRoom(updatedRoom);
@@ -308,8 +304,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
-  // Add mock player to room for instant multiplayer testing
-  const addMockBotPlayer = () => {
+  // ─── Add Mock Bot ──────────────────────────────────────────────────────────
+  const addMockBotPlayer = async () => {
     sound.playClick();
     if (!room) return;
     const maxCapacity = room.maxPlayers || 4;
@@ -338,59 +334,76 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       players: [...room.players, botPlayer],
     };
 
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     logActivity(`${botPlayer.displayName} joined the room`, 'join');
   };
 
-  const removePlayer = (playerId: string) => {
+  const removePlayer = async (playerId: string) => {
     if (!room) return;
     const removed = room.players.find((p) => p.id === playerId);
     const updatedRoom: Room = {
       ...room,
       players: room.players.filter((p) => p.id !== playerId),
     };
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     if (removed) {
       logActivity(`${removed.displayName} left the room`, 'leave');
     }
   };
 
-  const togglePlayerReady = () => {
+  const togglePlayerReady = async () => {
     if (!room || !currentPlayer) return;
     sound.playClick();
     const updatedPlayers = room.players.map((p) =>
       p.id === currentPlayer.id ? { ...p, isReady: !p.isReady } : p
     );
     const updatedRoom: Room = { ...room, players: updatedPlayers };
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     const isNowReady = !currentPlayer.isReady;
     setCurrentPlayer({ ...currentPlayer, isReady: isNowReady });
     logActivity(`${currentPlayer.displayName} is ${isNowReady ? 'Ready' : 'Not Ready'}`, 'ready');
   };
 
-  const leaveRoom = () => {
+  const leaveRoom = async () => {
     sound.playClick();
-    if (currentPlayer) {
+    if (currentPlayer && room) {
       logActivity(`${currentPlayer.displayName} left the arena`, 'leave');
+      // Remove player from room in Supabase
+      const updatedRoom: Room = {
+        ...room,
+        players: room.players.filter((p) => p.id !== currentPlayer.id),
+      };
+      if (updatedRoom.players.length > 0) {
+        await saveRoomToSupabase(updatedRoom);
+      } else {
+        // Delete room if empty
+        await supabase.from('realtime_rooms').delete().eq('code', room.code);
+      }
     }
+
+    // Unsubscribe from realtime
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
+    }
+
     setRoom(null);
     setCurrentPlayer(null);
     setGameQuestions([]);
     setCurrentView('landing');
   };
 
-  // Start game (Authoritative logic: calculates question count from confirmed players)
-  const startGame = () => {
+  // ─── Start Game ────────────────────────────────────────────────────────────
+  const startGame = async () => {
     if (!room) return;
     sound.playClick();
 
     const confirmedPlayerCount = room.players.length;
     const calculatedCount = calculateGameLength(confirmedPlayerCount);
 
-    // Retrieve unique questions for topic and difficulty
     const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount);
     setGameQuestions(questions);
 
@@ -412,7 +425,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })),
     };
 
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
     setCurrentView('game');
     setSelectedOption(null);
@@ -431,34 +444,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           : null)
       : null;
 
-  // Submit Answer
+  // ─── Submit Answer ─────────────────────────────────────────────────────────
   const submitAnswer = useCallback(
-    (option: 'A' | 'B' | 'C' | 'D') => {
+    async (option: 'A' | 'B' | 'C' | 'D') => {
       if (!room || !currentPlayer || isAnswerSubmitted || !currentQuestion) return;
       sound.playClick();
 
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
 
-      // Update current player answer status
-      setRoom((prev) => {
-        if (!prev) return null;
-        const updated = prev.players.map((p) =>
-          p.id === currentPlayer.id
-            ? { ...p, hasAnswered: true, selectedOption: option }
-            : p
-        );
-        const nextRoom = { ...prev, players: updated };
-        saveRoomToStorage(nextRoom);
-        return nextRoom;
-      });
+      const updatedPlayers = room.players.map((p) =>
+        p.id === currentPlayer.id
+          ? { ...p, hasAnswered: true, selectedOption: option }
+          : p
+      );
+      const nextRoom = { ...room, players: updatedPlayers };
+      await saveRoomToSupabase(nextRoom);
+      setRoom(nextRoom);
       logActivity(`${currentPlayer.displayName} submitted an answer`, 'answer');
     },
     [room, currentPlayer, isAnswerSubmitted, currentQuestion]
   );
 
-  // Transition QUESTION -> REVEAL
-  const handleQuestionEnd = useCallback(() => {
+  // ─── Transition QUESTION → REVEAL ─────────────────────────────────────────
+  const handleQuestionEnd = useCallback(async () => {
     if (!room || !currentQuestion || !currentPlayer) return;
 
     const chosenOption = selectedOption;
@@ -484,11 +493,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     incrementStat('totalAnswers');
     incrementStat('totalScore', pointsAwarded);
 
-    // Previous rank
     const sortedBefore = [...room.players].sort((a, b) => b.score - a.score);
     const prevRank = sortedBefore.findIndex((p) => p.id === currentPlayer.id) + 1;
 
-    // Simulate bot answers for other players
     const updatedPlayers = room.players.map((p) => {
       if (p.id === currentPlayer.id) {
         return {
@@ -541,15 +548,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       status: 'REVEAL',
       players: updatedPlayers,
     };
-    saveRoomToStorage(updatedRoom);
+    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
   }, [room, currentQuestion, currentPlayer, selectedOption, answerTimeStart, incrementStat]);
 
-  // Countdown timer effect during QUESTION phase
+  // ─── Countdown timer ───────────────────────────────────────────────────────
   useEffect(() => {
     if (!room || room.status !== 'QUESTION') return;
 
-    // Check if everyone answered
     const allAnswered = room.players.length > 0 && room.players.every((p) => p.hasAnswered);
     if (allAnswered) {
       handleQuestionEnd();
@@ -573,25 +579,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(timer);
   }, [room, timerSeconds, handleQuestionEnd]);
 
-  // State machine progression: REVEAL -> QUESTION (or FINAL_RESULTS) — no intermediate leaderboard
-  const advanceToNextState = useCallback(() => {
+  // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
+  const advanceToNextState = useCallback(async () => {
     if (!room) return;
     sound.playClick();
 
     const nextIndex = room.currentQuestionIndex + 1;
     if (nextIndex >= room.calculatedQuestionCount) {
       const finalRoom: Room = { ...room, status: 'FINAL_RESULTS' };
-      saveRoomToStorage(finalRoom);
+      await saveRoomToSupabase(finalRoom);
       setRoom(finalRoom);
 
-      // Record completed match
       incrementStat('matchesPlayed');
       const sorted = [...room.players].sort((a, b) => b.score - a.score);
       if (sorted[0]?.id === currentPlayer?.id) {
         incrementStat('wins');
       }
     } else {
-      // Reset for next question
       const nextQRoom: Room = {
         ...room,
         status: 'QUESTION',
@@ -603,7 +607,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           selectedOption: undefined,
         })),
       };
-      saveRoomToStorage(nextQRoom);
+      await saveRoomToSupabase(nextQRoom);
       setRoom(nextQRoom);
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
@@ -612,7 +616,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [room, currentPlayer, incrementStat]);
 
-  const playAgain = () => {
+  const playAgain = async () => {
     if (!room) return;
     sound.playClick();
     const resetRoom: Room = {
@@ -630,7 +634,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         isReady: p.isHost,
       })),
     };
-    saveRoomToStorage(resetRoom);
+    await saveRoomToSupabase(resetRoom);
     setRoom(resetRoom);
     setCurrentView('lobby');
     setLastRevealResult(null);

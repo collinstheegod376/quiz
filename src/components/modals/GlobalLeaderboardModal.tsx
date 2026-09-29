@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth, UserAccount } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 import {
   X,
   Trophy,
   Crown,
-  Medal,
-  Award,
-  Zap,
-  Target,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { Badge } from '../ui/Badge';
 
 interface GlobalLeaderboardModalProps {
   isOpen: boolean;
@@ -21,16 +18,77 @@ interface GlobalLeaderboardModalProps {
 
 export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardModalProps) {
   const { currentUser } = useAuth();
+  const [leaderboardEntries, setLeaderboardEntries] = useState<UserAccount[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const leaderboardEntries = useMemo(() => {
+  const fetchLeaderboard = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      // 1. Fetch from Supabase
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .order('total_score', { ascending: false })
+        .limit(50);
+
+      if (!error && data && data.length > 0) {
+        const mapped: UserAccount[] = data.map((row) => ({
+          username: row.username,
+          passwordHash: row.password_hash,
+          avatarUrl: row.avatar_url,
+          createdAt: row.created_at,
+          stats: {
+            roomsCreated: row.rooms_created || 0,
+            matchesPlayed: row.matches_played || 0,
+            wins: row.wins || 0,
+            totalScore: row.total_score || 0,
+            correctAnswers: row.correct_answers || 0,
+            totalAnswers: row.total_answers || 0,
+          },
+        }));
+        setLeaderboardEntries(mapped);
+        setIsLoading(false);
+        return;
+      }
+    } catch (e) {
+      console.warn('[Leaderboard] Supabase query failed:', e);
+    }
+
+    // 2. Fallback to local accounts
     try {
       const savedAccountsStr = localStorage.getItem('quiz_arena_accounts');
       const accounts: UserAccount[] = savedAccountsStr ? JSON.parse(savedAccountsStr) : [];
-      return accounts.sort((a, b) => (b.stats?.totalScore || 0) - (a.stats?.totalScore || 0));
+      setLeaderboardEntries(
+        accounts.sort((a, b) => (b.stats?.totalScore || 0) - (a.stats?.totalScore || 0))
+      );
     } catch {
-      return [];
+      setLeaderboardEntries([]);
+    } finally {
+      setIsLoading(false);
     }
-  }, [isOpen]);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetchLeaderboard();
+
+    // Subscribe to live leaderboard changes on Supabase
+    const channel = supabase
+      .channel('public:user_profiles_leaderboard')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'user_profiles' },
+        () => {
+          fetchLeaderboard();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, fetchLeaderboard]);
 
   if (!isOpen) return null;
 
@@ -59,8 +117,14 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
           </p>
         </div>
 
-        {/* Content: Empty State or Table */}
-        {leaderboardEntries.length === 0 ? (
+        {/* Loading Indicator */}
+        {isLoading && leaderboardEntries.length === 0 ? (
+          <div className="py-14 px-6 text-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-red-500 mx-auto" />
+            <p className="text-xs text-slate-400 font-medium">Fetching arena combatants from Supabase...</p>
+          </div>
+        ) : leaderboardEntries.length === 0 ? (
+          /* Empty State */
           <div className="py-14 px-6 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
             <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto">
               <Trophy className="w-6 h-6" />
@@ -73,6 +137,7 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
             </p>
           </div>
         ) : (
+          /* Leaderboard Table */
           <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
             <div className="grid grid-cols-12 p-3 text-xs font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
               <div className="col-span-2 text-center">Rank</div>
@@ -124,7 +189,7 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
                         {player.username}
                       </span>
                       {isCurrent && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-red-500/10 text-red-500 font-bold">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/10 text-red-500 font-bold">
                           You
                         </span>
                       )}

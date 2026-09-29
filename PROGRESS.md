@@ -48,4 +48,11 @@
 - Removed mandatory 2-player gate from `startGame` so host can start solo for testing.
 - Updated lobby badge and Start Match button label to reflect solo vs. multiplayer mode.
 - Fixed `isSupabaseConfigured` to correctly reject `your-project-id` and `your-anon-key-here` placeholder values.
-- Pushed all changes to `https://github.com/collinstheegod376/quiz.git` on branch `main`.
+- Created `supabase/migrations/04_realtime_rooms.sql` for flat room state synchronization over Supabase Realtime.
+- Created `supabase/migrations/05_user_profiles.sql` defining `user_profiles` schema with XP index, case-insensitive usernames, and RLS policies.
+- Created `supabase/SETUP_ALL_SUPABASE.sql` master one-click SQL script configuring both `realtime_rooms` and `user_profiles` with Realtime publications.
+- Migrated `GameContext.tsx` room lifecycle (creation, join by code, ready toggle, answer submission, play again, and leave) to Supabase `realtime_rooms` with live channels.
+- Refactored `AuthContext.tsx` to authenticate, register, update profiles, and record combatant stats in Supabase `user_profiles`.
+- Updated `GlobalLeaderboardModal.tsx` to stream live XP rankings and match wins directly from Supabase with Realtime updates.
+- Added loading indicators and async state protection in `AuthModal.tsx`, `SettingsModal.tsx`, `CreateRoomModal.tsx`, and `JoinRoomModal.tsx`.
+- Validated production build with `npx tsc --noEmit` and `npm run build` (all static routes passed without error).
