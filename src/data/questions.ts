@@ -1,4 +1,5 @@
 import { Question } from '@/types/quiz';
+import { AOT_QUESTIONS } from './questions_aot';
 import { BLEACH_QUESTIONS } from './questions_bleach';
 import { DBZ_QUESTIONS } from './questions_dbz';
 import { DEMON_SLAYER_QUESTIONS } from './questions_demonslayer';
@@ -8,6 +9,7 @@ import { NARUTO_QUESTIONS } from './questions_naruto';
 import { ONE_PIECE_QUESTIONS } from './questions_onepiece';
 
 export const SEED_QUESTIONS: Question[] = [
+  ...AOT_QUESTIONS,
   ...BLEACH_QUESTIONS,
   ...DBZ_QUESTIONS,
   ...DEMON_SLAYER_QUESTIONS,
