@@ -64,4 +64,11 @@
 - Upgraded `QuestionScreen.tsx` with distinct visual styles for player picks vs. answer reveals (emerald solid for correct pick, red solid for wrong pick, emerald outline for correct answer on timeout).
 - Fixed desktop/PC modal layout in `CreateRoomModal.tsx` and `JoinRoomModal.tsx` with responsive viewport scroll bounds (`max-h-[92vh] overflow-y-auto`) and backdrop dismiss.
 - Added `playWin()` audio synthesizer melody in `sound.ts` for final match conclusions.
-- Verified zero TypeScript and Lint errors across all Next.js App Router routes and pushed to GitHub `main`.
+- Extracted and analyzed exact CSS, layout, colors, and typography from live `https://quiz.com/` and `https://quiz.com/entertainment/`.
+- Configured Quiz.com typography with Nunito (800 bold, 900 black) as primary and Roboto for metadata and navigation.
+- Created `CategoryNav` component with all 9 Quiz.com categories (Start, Art & Literature, Entertainment, Geography, History, Languages, Science & Nature, Sports, Trivia), SVG icons, and active pill underline indicator.
+- Created `MobileJoinBar` with Quiz.com's salmon `#FFA7A0` band and thick 4px black-bordered PIN input.
+- Created `QuizButton` implementing Quiz.com's 3D pill button with dark undercut and tactile click bounce.
+- Built `EntertainmentScreen` and `/entertainment` route with dual promotional cards ("Create a quiz" and "A.I. Generator"), filter tag pills (`#All`, `#Anime`, `#TV Series`, `#Movies`, etc.), sort dropdown, and rich quiz feed.
+- Optimized responsive layouts for both PC (`custom-container`) and mobile (no clipped elements or double bars).
+- Tested type safety with `npx tsc --noEmit` (clean build) and pushed to GitHub branch `redesign-quiz-com`.
