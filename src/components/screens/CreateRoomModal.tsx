@@ -5,14 +5,7 @@ import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { TOPICS } from '@/data/topics';
 import { CATEGORIES } from '@/data/categories';
-import {
-  X,
-  Zap,
-  Users,
-  Clock,
-  Shield,
-  Layers,
-} from 'lucide-react';
+import { X, Users, Clock } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function CreateRoomModal() {
@@ -35,9 +28,7 @@ export function CreateRoomModal() {
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
-    if (currentUser?.username) {
-      setDisplayName(currentUser.username);
-    }
+    if (currentUser?.username) setDisplayName(currentUser.username);
   }, [currentUser]);
 
   if (!isCreateModalOpen) return null;
@@ -52,62 +43,54 @@ export function CreateRoomModal() {
     }
   };
 
-  const currentTopic = TOPICS.find((t) => t.id === selectedTopicId) || TOPICS[0];
   const currentCategoryTopics = TOPICS.filter((t) => t.categoryId === selectedCategoryId);
+
+  const selectClass = "w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] focus:outline-none appearance-none cursor-pointer";
+  const inputClass = "w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none";
+  const labelClass = "font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize block mb-1.5";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-md animate-fadeIn"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) setIsCreateModalOpen(false);
-      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/60 backdrop-blur-sm animate-fadeIn"
+      onClick={(e) => { if (e.target === e.currentTarget) setIsCreateModalOpen(false); }}
     >
-      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl bg-white dark:bg-[#12141C] border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 custom-scrollbar">
-        {/* Close Button */}
-        <button
-          onClick={() => setIsCreateModalOpen(false)}
-          className="absolute top-4 right-4 sm:top-5 sm:right-5 w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* Modal Header */}
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            Arena Host Setup
+      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-2xl">
+        {/* Header Band */}
+        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5 flex items-start justify-between">
+          <div>
+            <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
+              Create a Room
+            </h2>
+            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
+              Set up your arena and invite 1–3 rivals.
+            </p>
           </div>
-          <h2 className="text-2xl font-black font-display text-slate-900 dark:text-white">
-            Create a Room
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Set up your real-time arena and invite 1–3 rivals to test their knowledge.
-          </p>
+          <button
+            onClick={() => setIsCreateModalOpen(false)}
+            className="w-8 h-8 flex items-center justify-center bg-[#E5E3DB] border border-[#CECCC5] hover:bg-[#CECCC5] transition-colors"
+          >
+            <X className="w-4 h-4 text-[#000000]" />
+          </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
           {/* Display Name */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Host Display Name
-            </label>
+          <div>
+            <label className={labelClass}>Host Display Name</label>
             <input
               type="text"
               required
               maxLength={20}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your arena name..."
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              placeholder="Your arena name…"
+              className={inputClass}
             />
           </div>
 
-          {/* Category Dropdown */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Category
-            </label>
+          {/* Category */}
+          <div>
+            <label className={labelClass}>Category</label>
             <select
               value={selectedCategoryId}
               onChange={(e) => {
@@ -116,67 +99,51 @@ export function CreateRoomModal() {
                 const firstInCat = TOPICS.find((t) => t.categoryId === newCat);
                 if (firstInCat) setSelectedTopicId(firstInCat.id);
               }}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              className={selectClass}
             >
               {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>
 
-          {/* Topic Dropdown */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Topic / Franchise
-            </label>
+          {/* Topic */}
+          <div>
+            <label className={labelClass}>Topic / Franchise</label>
             <select
               value={selectedTopicId}
               onChange={(e) => setSelectedTopicId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              className={selectClass}
             >
               {currentCategoryTopics.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.questionCount} Questions)
-                </option>
+                <option key={t.id} value={t.id}>{t.name} ({t.questionCount} Questions)</option>
               ))}
             </select>
           </div>
 
-          {/* Difficulty Level */}
-          <div className="space-y-1.5">
-            <div className="flex justify-between items-center text-xs font-bold text-slate-700 dark:text-slate-300">
-              <span>Difficulty Tier</span>
-              <span className="text-red-600 dark:text-red-400">
+          {/* Difficulty */}
+          <div>
+            <label className={labelClass}>
+              Difficulty Level{' '}
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize ml-1">
                 Level {selectedDifficultyLevel.toString().padStart(2, '0')}
               </span>
-            </div>
+            </label>
             <select
               value={selectedDifficultyLevel}
               onChange={(e) => setSelectedDifficultyLevel(Number(e.target.value))}
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              className={selectClass}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((lvl) => (
-                <option key={lvl} value={lvl}>
-                  Level {lvl.toString().padStart(2, '0')}
-                </option>
+                <option key={lvl} value={lvl}>Level {lvl.toString().padStart(2, '0')}</option>
               ))}
             </select>
           </div>
 
-          {/* Number of Players / Capacity Selection */}
-          <div className="p-3.5 rounded-2xl bg-slate-100/70 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2.5">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <span className="flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-red-500" />
-                Select Number of Players
-              </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-bold">
-                {targetPlayers} Players ({targetPlayers === 2 ? 10 : targetPlayers === 3 ? 12 : 15} Questions)
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
+          {/* Players */}
+          <div>
+            <label className={labelClass}>Number of Players</label>
+            <div className="grid grid-cols-3 gap-0 border border-[#CECCC5] dark:border-[#363535]">
               {([2, 3, 4] as const).map((num) => {
                 const isSelected = targetPlayers === num;
                 const questionCount = num === 2 ? 10 : num === 3 ? 12 : 15;
@@ -185,17 +152,18 @@ export function CreateRoomModal() {
                     key={num}
                     type="button"
                     onClick={() => setTargetPlayers(num)}
-                    className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                    className={`flex flex-col items-center py-3 px-2 border-r last:border-r-0 border-[#CECCC5] dark:border-[#363535] text-center transition-colors ${
                       isSelected
-                        ? 'border-red-600 bg-red-500/10 dark:bg-red-950/40 text-red-600 dark:text-red-400 ring-2 ring-red-500/30 shadow-sm'
-                        : 'border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+                        ? 'bg-[#EBDAC3]'
+                        : 'bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
                     }`}
                   >
-                    <span className="font-bold text-slate-900 dark:text-white block text-xs">
-                      {num} Players
+                    <Users className="w-4 h-4 text-[#000000] dark:text-[#FEFEFD] mb-1" />
+                    <span className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
+                      {num}p
                     </span>
-                    <span className="text-[10px] block opacity-75 mt-0.5 font-medium">
-                      {questionCount} Questions
+                    <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                      {questionCount} Q's
                     </span>
                   </button>
                 );
@@ -203,22 +171,16 @@ export function CreateRoomModal() {
             </div>
           </div>
 
-          {/* Room Capacity constraints */}
-          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1">
-            <div className="flex items-center gap-1">
-              <Users className="w-3.5 h-3.5" />
-              <span>Min: 2 • Max: 4</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>15s Timer per Question</span>
-            </div>
+          {/* Info strip */}
+          <div className="flex items-center gap-2 p-3 bg-[#F7F5ED] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
+            <Clock className="w-4 h-4 text-[#23616A] shrink-0" />
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+              15 seconds per question · Match length auto-scales to player count
+            </span>
           </div>
 
-          {/* Submit */}
-          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl" disabled={isCreating}>
-            <Zap className="w-4 h-4 fill-current" />
-            {isCreating ? 'Initializing Arena...' : 'Create Arena & Enter Lobby'}
+          <Button type="submit" variant="arena" size="lg" className="w-full" disabled={isCreating} isLoading={isCreating}>
+            {isCreating ? 'Initializing Arena…' : 'Create Arena & Enter Lobby'}
           </Button>
         </form>
       </div>

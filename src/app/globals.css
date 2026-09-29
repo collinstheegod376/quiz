@@ -9,31 +9,31 @@
 
 @layer base {
   :root {
-    /* Light mode tokens */
-    --background: #F5F7FA;
-    --foreground: #0F172A;
-    --card: #FFFFFF;
-    --card-foreground: #0F172A;
-    --border: #E2E8F0;
-    --muted: #F1F5F9;
-    --muted-foreground: #64748B;
-    --accent: #E50914;
-    --accent-foreground: #FFFFFF;
-    --ring: #E50914;
+    /* Quiz.com Canonical Light Mode Tokens */
+    --background: #FFFDF4;
+    --foreground: #000000;
+    --card: #F7F5ED;
+    --card-foreground: #000000;
+    --border: #CECCC5;
+    --muted: #E5E3DB;
+    --muted-foreground: #595955;
+    --accent: #EBDAC3;
+    --accent-foreground: #000000;
+    --ring: #EBDAC3;
   }
 
   .dark {
-    /* Dark mode tokens */
-    --background: #0B0C10;
-    --foreground: #F0F4F8;
-    --card: #12141C;
-    --card-foreground: #F0F4F8;
-    --border: #1E2130;
-    --muted: #161824;
-    --muted-foreground: #8892A4;
-    --accent: #E50914;
-    --accent-foreground: #FFFFFF;
-    --ring: #E50914;
+    /* Quiz.com Derived Midnight Dark Mode Tokens */
+    --background: #100F0F;
+    --foreground: #FEFEFD;
+    --card: #1E1D1D;
+    --card-foreground: #FEFEFD;
+    --border: #363535;
+    --muted: #2A2929;
+    --muted-foreground: #A4A3A3;
+    --accent: #EBDAC3;
+    --accent-foreground: #000000;
+    --ring: #EBDAC3;
   }
 
   * {
@@ -49,20 +49,19 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-feature-settings: "cv11", "ss01";
+    font-family: var(--font-nunito), Nunito, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    line-height: 1.6;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    line-height: 1.4;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-outfit), var(--font-inter), sans-serif;
-    font-weight: 800;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
+    font-family: var(--font-nunito), Nunito, sans-serif;
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: 0.5px;
   }
 
   a {

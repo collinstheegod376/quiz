@@ -12,9 +12,7 @@ import {
   XCircle,
   AlertCircle,
   HelpCircle,
-  Zap,
 } from 'lucide-react';
-import { Badge } from '../ui/Badge';
 
 export function QuestionScreen() {
   const {
@@ -45,6 +43,7 @@ export function QuestionScreen() {
   const totalQ = room.calculatedQuestionCount;
   const isReveal = isLocalReveal;
   const isTimeCritical = timerSeconds <= 4;
+  const progress = isReveal ? 100 : (timerSeconds / room.timePerQuestion) * 100;
 
   const options: Array<{ key: 'A' | 'B' | 'C' | 'D'; label: string }> = [
     { key: 'A', label: currentQuestion.optionA },
@@ -54,194 +53,195 @@ export function QuestionScreen() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-fadeIn">
-      {/* Top Match Progress & Timer Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Badge variant="arena">
-            {currentCategory?.name} • {currentTopic?.name}
-          </Badge>
-          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-            Level {room.difficultyLevel.toString().padStart(2, '0')}
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-6 space-y-4 animate-fadeIn">
+
+      {/* ── Top HUD Bar ── */}
+      <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3">
+          {/* Category + Topic */}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize whitespace-nowrap">
+              {currentCategory?.name}
+            </span>
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize truncate hidden sm:inline">
+              {currentTopic?.name} · Level {room.difficultyLevel.toString().padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Question counter + Timer */}
+          <div className="flex items-center gap-4 shrink-0">
+            <span className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
+              {currentQNum.toString().padStart(2, '0')}{' '}
+              <span className="text-[#CECCC5] dark:text-[#363535] font-extrabold">/</span>{' '}
+              {totalQ.toString().padStart(2, '0')}
+            </span>
+
+            <div
+              className={`flex items-center gap-1.5 px-3 py-1.5 border font-mono font-black text-[16px] transition-all ${
+                isReveal
+                  ? 'border-[#4CA471]/50 bg-[#4CA471]/10 text-[#4CA471]'
+                  : isTimeCritical
+                  ? 'border-[#FF94AB]/50 bg-[#FF94AB]/10 text-[#FF94AB] animate-pulse'
+                  : 'border-[#CECCC5] dark:border-[#363535] bg-[#F7F5ED] dark:bg-[#1E1D1D] text-[#000000] dark:text-[#FEFEFD]'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+              <span>{isReveal ? '✓' : `${timerSeconds.toString().padStart(2, '0')}s`}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Timer progress bar */}
+        <div className="w-full bg-[#E5E3DB] dark:bg-[#2A2929] h-1">
+          <div
+            className={`h-full transition-all duration-1000 ease-linear ${
+              isReveal ? 'bg-[#4CA471]' : isTimeCritical ? 'bg-[#FF94AB]' : 'bg-[#23616A]'
+            }`}
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      {/* ── Question Card ── */}
+      <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F] p-6 sm:p-10">
+        <div className="flex items-start gap-3 mb-4">
+          <HelpCircle className="w-5 h-5 text-[#23616A] shrink-0 mt-0.5" />
+          <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+            {isReveal ? 'Round Result & Reveal' : 'Answer Submission'}
           </span>
         </div>
 
-        {/* Question Counter & Timer */}
-        <div className="flex items-center justify-between sm:justify-end gap-6">
-          <div className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            Question{' '}
-            <span className="text-red-600 dark:text-red-400 text-sm font-black font-display">
-              {currentQNum.toString().padStart(2, '0')}
-            </span>{' '}
-            / {totalQ.toString().padStart(2, '0')}
-          </div>
-
-          <div
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-mono text-base font-black transition-all ${
-              isReveal
-                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
-                : isTimeCritical
-                ? 'bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30 animate-pulse'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700'
-            }`}
-          >
-            <Clock className={`w-4 h-4 ${isTimeCritical && !isReveal ? 'text-red-600' : 'text-slate-400'}`} />
-            <span>{isReveal ? 'REVEAL' : `00:${timerSeconds.toString().padStart(2, '0')}`}</span>
-          </div>
-        </div>
+        <h2 className="font-nunito font-black text-[20px] sm:text-[30px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
+          {currentQuestion.questionText}
+        </h2>
       </div>
 
-      {/* Timer Progress Track */}
-      <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-        <div
-          className={`h-full transition-all duration-1000 ease-linear rounded-full ${
-            isReveal ? 'bg-emerald-500' : isTimeCritical ? 'bg-red-600 animate-pulse' : 'bg-red-500'
-          }`}
-          style={{ width: `${isReveal ? 100 : (timerSeconds / room.timePerQuestion) * 100}%` }}
-        />
-      </div>
-
-      {/* Question Card */}
-      <div className="relative rounded-3xl p-6 sm:p-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
-        {/* Subtle decorative glow */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl pointer-events-none -z-0" />
-
-        <div className="relative z-10 space-y-4">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-            <HelpCircle className="w-4 h-4 text-red-500" />
-            {isReveal ? 'Round Result & Reveal' : 'Answer Submission'}
-          </div>
-
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-slate-900 dark:text-white leading-relaxed tracking-tight">
-            {currentQuestion.questionText}
-          </h2>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {options.map((opt) => {
+      {/* ── Options Grid ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-[#CECCC5] dark:border-[#363535]">
+        {options.map((opt, idx) => {
           const isUserPick = selectedOption === opt.key;
           const isCorrect = currentQuestion.correctOption === opt.key;
 
-          let buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md active:scale-[0.99] cursor-pointer';
-          let badgeStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-slate-700';
+          let containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] hover:border-[#00AFC6] cursor-pointer';
+          let badgeStyle = 'bg-[#E5E3DB] dark:bg-[#2A2929] text-[#000000] dark:text-[#FEFEFD] border-[#CECCC5] dark:border-[#363535]';
+          let textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
 
           if (isReveal) {
             if (isUserPick && isCorrect) {
-              // User chose this and was CORRECT
-              buttonStyle = 'border-emerald-500 bg-emerald-500/15 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-500/50 shadow-lg scale-[1.01]';
-              badgeStyle = 'bg-emerald-500 text-white font-bold';
+              containerStyle = 'bg-[#4CA471]/15 border-[#4CA471] cursor-default';
+              badgeStyle = 'bg-[#4CA471] text-white border-[#4CA471]';
+              textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
             } else if (isUserPick && !isCorrect) {
-              // User chose this and was WRONG
-              buttonStyle = 'border-red-500 bg-red-500/15 text-red-900 dark:text-red-100 ring-2 ring-red-500/50 opacity-90';
-              badgeStyle = 'bg-red-500 text-white font-bold';
+              containerStyle = 'bg-[#FF94AB]/15 border-[#FF94AB] cursor-default';
+              badgeStyle = 'bg-[#FF94AB] text-[#000000] border-[#FF94AB]';
+              textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
             } else if (!isUserPick && isCorrect) {
-              // Correct option, but user did NOT pick this
-              buttonStyle = 'border-emerald-500/60 bg-emerald-500/5 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 ring-1 ring-emerald-500/30';
-              badgeStyle = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold';
+              containerStyle = 'bg-[#4CA471]/8 border-[#4CA471]/50 cursor-default';
+              badgeStyle = 'bg-[#4CA471]/20 text-[#4CA471] border-[#4CA471]/40';
+              textStyle = 'text-[#595955] dark:text-[#A4A3A3]';
             } else {
-              // Other options
-              buttonStyle = 'border-slate-200/50 dark:border-slate-800/50 bg-white/30 dark:bg-slate-900/30 opacity-30 cursor-not-allowed';
-              badgeStyle = 'bg-slate-200/50 dark:bg-slate-800/50 text-slate-400';
+              containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-40 cursor-default';
+              badgeStyle = 'bg-[#E5E3DB] dark:bg-[#2A2929] text-[#CECCC5] border-[#CECCC5]';
+              textStyle = 'text-[#CECCC5]';
             }
-          } else {
-            if (isUserPick) {
-              buttonStyle = 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100 ring-2 ring-red-500/40 shadow-lg';
-              badgeStyle = 'bg-red-600 text-white';
-            } else if (isAnswerSubmitted) {
-              buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 opacity-50 cursor-not-allowed';
-            }
+          } else if (isUserPick) {
+            containerStyle = 'bg-[#EBDAC3] border-[#000000] dark:border-[#FEFEFD] cursor-default';
+            badgeStyle = 'bg-[#000000] dark:bg-[#FEFEFD] text-[#FEFEFD] dark:text-[#000000] border-[#000000] dark:border-[#FEFEFD]';
+            textStyle = 'text-[#000000] dark:text-[#FEFEFD]';
+          } else if (isAnswerSubmitted) {
+            containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-50 cursor-not-allowed';
           }
+
+          const borderClass = idx % 2 === 0 && idx < options.length - 1 ? 'sm:border-r' : '';
+          const bottomBorderClass = idx < 2 ? 'border-b' : '';
 
           return (
             <button
               key={opt.key}
               disabled={isAnswerSubmitted || isReveal}
               onClick={() => submitAnswer(opt.key)}
-              className={`group relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border text-left transition-all duration-300 ${buttonStyle}`}
+              className={`group relative flex items-center gap-4 p-5 sm:p-6 border-b border-r border-[#CECCC5] dark:border-[#363535] last:border-b-0 text-left transition-all duration-150 ${containerStyle}`}
             >
-              {/* Option Letter Badge */}
+              {/* Option Letter */}
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-black text-sm shrink-0 transition-colors ${badgeStyle}`}
+                className={`w-10 h-10 flex items-center justify-center font-nunito font-black text-[16px] tracking-[0.48px] shrink-0 border transition-colors ${badgeStyle}`}
               >
                 {opt.key}
               </div>
 
-              {/* Option Text */}
-              <span className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100 flex-1 leading-snug">
+              {/* Text */}
+              <span className={`font-nunito font-extrabold text-[16px] tracking-[0.48px] leading-[1.36] flex-1 ${textStyle}`}>
                 {opt.label}
               </span>
 
-              {/* Reveal badges & indicators */}
-              {isReveal ? (
+              {/* Reveal indicator */}
+              {isReveal && (
                 isUserPick && isCorrect ? (
-                  <div className="shrink-0 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-lg">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="hidden sm:inline">Your Pick (Correct)</span>
-                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-[#4CA471] shrink-0" />
                 ) : isUserPick && !isCorrect ? (
-                  <div className="shrink-0 flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-bold bg-red-500/10 px-2 py-1 rounded-lg">
-                    <XCircle className="w-4 h-4" />
-                    <span className="hidden sm:inline">Your Pick</span>
-                  </div>
+                  <XCircle className="w-5 h-5 text-[#FF94AB] shrink-0" />
                 ) : isCorrect ? (
-                  <div className="shrink-0 flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-bold bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Correct Answer</span>
-                  </div>
+                  <CheckCircle2 className="w-5 h-5 text-[#4CA471] shrink-0" />
                 ) : null
-              ) : isUserPick ? (
-                <div className="shrink-0 text-red-600 dark:text-red-400">
-                  <CheckCircle2 className="w-5 h-5 fill-current/20" />
-                </div>
-              ) : null}
+              )}
             </button>
           );
         })}
       </div>
 
-      {/* Participation & Status Footer */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-3 text-slate-600 dark:text-slate-400">
-          <div className="flex items-center gap-1.5 font-bold text-red-600 dark:text-red-400">
-            <Zap className="w-4 h-4 fill-current" />
-            <span>{currentPlayer.score.toLocaleString()} XP</span>
-          </div>
-          <span className="text-slate-300 dark:text-slate-700">•</span>
+      {/* ── Status Footer ── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-4 bg-[#F7F5ED] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535]">
+        <div className="flex items-center gap-4 text-[12.8px]">
+          <span className="font-nunito font-black text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px]">
+            {currentPlayer.score.toLocaleString()} XP
+          </span>
+          <span className="text-[#CECCC5] dark:text-[#363535]">•</span>
           <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-slate-400" />
-            <span>{room.players.length} in Arena</span>
+            <Users className="w-3.5 h-3.5 text-[#595955] dark:text-[#A4A3A3]" />
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+              {room.players.length} in Arena
+            </span>
           </div>
         </div>
 
         {isReveal ? (
           selectedOption ? (
             selectedOption === currentQuestion.correctOption ? (
-              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Option {selectedOption} Locked • +XP Awarded!</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4CA471]/10 border border-[#4CA471]/30">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#4CA471]" />
+                <span className="font-nunito font-extrabold text-[12.8px] text-[#4CA471] tracking-[0.38px] capitalize">
+                  Correct! +XP Awarded
+                </span>
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-bold bg-rose-500/10 px-3 py-1 rounded-full border border-rose-500/20">
-                <XCircle className="w-3.5 h-3.5" />
-                <span>Option {selectedOption} Selected • Incorrect</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#FF94AB]/10 border border-[#FF94AB]/30">
+                <XCircle className="w-3.5 h-3.5 text-[#FF94AB]" />
+                <span className="font-nunito font-extrabold text-[12.8px] text-[#FF94AB] tracking-[0.38px] capitalize">
+                  Incorrect — Better luck next time
+                </span>
               </div>
             )
           ) : (
-            <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-              <Clock className="w-3.5 h-3.5" />
-              <span>Time Expired • No Option Selected</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
+              <Clock className="w-3.5 h-3.5 text-[#595955] dark:text-[#A4A3A3]" />
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                Time Expired
+              </span>
             </div>
           )
         ) : isAnswerSubmitted ? (
-          <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-            <Lock className="w-3.5 h-3.5" />
-            <span>Option {selectedOption} Locked • Waiting for rivals</span>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5]">
+            <Lock className="w-3.5 h-3.5 text-[#000000]" />
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+              Option {selectedOption} Locked — Awaiting rivals
+            </span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-slate-400 font-medium">
-            <AlertCircle className="w-3.5 h-3.5" />
-            <span>Tap an option to submit your answer</span>
+          <div className="flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-[#CECCC5] dark:text-[#363535]" />
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+              Tap an option to submit
+            </span>
           </div>
         )}
       </div>

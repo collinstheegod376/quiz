@@ -4,7 +4,7 @@ import React from 'react';
 import { useGame } from '@/context/GameContext';
 import { CATEGORIES } from '@/data/categories';
 import { CategoryId } from '@/types/quiz';
-import { Compass, ArrowRight, Layers, Flame } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { SafeImage } from '../ui/SafeImage';
 
 export function CategoryScreen() {
@@ -16,29 +16,25 @@ export function CategoryScreen() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fadeIn">
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 space-y-6 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#CECCC5] dark:border-[#363535] pb-6">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 dark:text-red-400 tracking-wider uppercase mb-1">
-            <Compass className="w-4 h-4" />
-            Category Catalog
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-black font-display text-slate-900 dark:text-white">
+          <h1 className="font-nunito font-black text-[30px] sm:text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
             Choose a Category
           </h1>
-          <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+          <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize mt-1">
             Select a universe to explore topics, franchises, and challenging quiz tiers.
           </p>
         </div>
-        <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 w-fit">
-          5 Curated Domains • 40+ Topics
-        </div>
+        <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize whitespace-nowrap">
+          5 Categories · 40+ Topics
+        </span>
       </div>
 
-      {/* Categories Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {CATEGORIES.map((category) => (
+      {/* Categories Grid — sharp-edged cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 border border-[#CECCC5] dark:border-[#363535] divide-y divide-[#CECCC5] dark:divide-[#363535] md:divide-y-0">
+        {CATEGORIES.map((category, idx) => (
           <div
             key={category.id}
             onClick={() => handleSelectCategory(category.id)}
@@ -47,47 +43,44 @@ export function CategoryScreen() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') handleSelectCategory(category.id);
             }}
-            className="group relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-md hover:shadow-2xl transition-all duration-300 hover:-translate-y-1.5 cursor-pointer flex flex-col justify-between"
+            className={`group relative cursor-pointer bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] transition-colors flex flex-col ${
+              idx !== CATEGORIES.length - 1 ? 'md:border-r border-[#CECCC5] dark:border-[#363535]' : ''
+            }`}
           >
-            {/* Image Banner */}
-            <div className="relative h-48 sm:h-52 w-full overflow-hidden bg-slate-950">
+            {/* Image Banner — sharp corners */}
+            <div className="relative h-44 w-full overflow-hidden bg-[#E5E3DB] dark:bg-[#1E1D1D]">
               <SafeImage
                 src={category.bannerImage}
                 alt={category.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent" />
 
-              {/* Tag / Topic count */}
-              <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md border border-white/10 text-white text-xs font-semibold">
-                <Layers className="w-3.5 h-3.5 text-red-500" />
-                {category.topicCount}+ Topics Available
-              </div>
-
-              {/* Title overlay */}
-              <div className="absolute bottom-4 left-4 right-4">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-red-400 drop-shadow">
-                  {category.tagline}
-                </span>
-                <h2 className="text-2xl font-black font-display text-white tracking-wide">
-                  {category.name}
-                </h2>
-              </div>
+              {/* Category pill overlay */}
+              <span className="absolute top-3 left-3 inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                {category.topicCount}+ Topics
+              </span>
             </div>
 
-            {/* Description & Action */}
-            <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
-              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                {category.description}
-              </p>
+            {/* Card body */}
+            <div className="p-5 flex-1 flex flex-col justify-between border-t border-[#CECCC5] dark:border-[#363535] space-y-3">
+              <div>
+                <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize block mb-1">
+                  {category.tagline}
+                </span>
+                <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-[1.4]">
+                  {category.name}
+                </h2>
+                <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize mt-1 line-clamp-2">
+                  {category.description}
+                </p>
+              </div>
 
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-bold text-red-600 dark:text-red-400 group-hover:text-red-500">
-                <span className="flex items-center gap-1.5">
-                  <Flame className="w-4 h-4" />
+              <div className="flex items-center justify-between pt-3 border-t border-[#CECCC5] dark:border-[#363535]">
+                <span className="font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
                   Explore Franchises
                 </span>
-                <div className="w-8 h-8 rounded-full bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                  <ArrowRight className="w-4 h-4" />
+                <div className="w-8 h-8 flex items-center justify-center bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] group-hover:border-[#000000] dark:group-hover:border-[#FEFEFD] transition-colors">
+                  <ArrowRight className="w-4 h-4 text-[#000000] dark:text-[#FEFEFD]" />
                 </div>
               </div>
             </div>

@@ -12,15 +12,9 @@ import {
   Play,
   LogOut,
   UserPlus,
-  Shield,
-  Layers,
-  Sparkles,
-  Flame,
-  Radio,
   CheckCircle2,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 
 export function LobbyScreen() {
   const {
@@ -59,147 +53,139 @@ export function LobbyScreen() {
   const maxCapacity = room.maxPlayers || 4;
   const canStart = isHost;
   const isFull = playerCount >= maxCapacity;
-
   const calculatedQuestionCount =
     playerCount <= 2 ? 10 : playerCount === 3 ? 12 : 15;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fadeIn">
-      {/* Top Banner / Room Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Badge variant="arena">
-              <Radio className="w-3 h-3 text-red-500 animate-pulse" />
-              Live Matchmaking Lobby
-            </Badge>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {currentCategory?.name} • {currentTopic?.name}
-            </span>
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 space-y-6 animate-fadeIn">
+
+      {/* ── Room Header Banner ── */}
+      <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#EBDAC3] dark:bg-[#1E1D1D]">
+        <div className="p-6 sm:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            {/* Status pill */}
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                <span className="w-2 h-2 rounded-full bg-[#B9843E] inline-block" />
+                Matchmaking Lobby
+              </span>
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                {currentCategory?.name} · {currentTopic?.name}
+              </span>
+            </div>
+
+            <h1 className="font-nunito font-black text-[30px] sm:text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
+              Battle Room
+            </h1>
+            <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
+              Waiting for combatants to assemble before starting the match.
+            </p>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white">
-            Battle Room
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Waiting for combatants to assemble before beginning the match.
-          </p>
-        </div>
-
-        {/* Room Code Card */}
-        <div className="flex items-center gap-4 bg-slate-50 dark:bg-slate-800/80 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-              Room Code
-            </span>
-            <span className="font-mono text-2xl sm:text-3xl font-black tracking-widest text-slate-900 dark:text-white">
-              {room.code}
-            </span>
+          {/* Room Code */}
+          <div className="flex items-center gap-3 bg-[#FFFDF4] dark:bg-[#100F0F] border border-[#CECCC5] dark:border-[#363535] px-5 py-3">
+            <div>
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize block">
+                Room Code
+              </span>
+              <span className="font-mono font-black text-[28px] sm:text-[36px] text-[#000000] dark:text-[#FEFEFD] tracking-[4px]">
+                {room.code}
+              </span>
+            </div>
+            <button
+              onClick={handleCopyCode}
+              className="flex items-center gap-1.5 px-3 py-2 border border-[#CECCC5] dark:border-[#363535] hover:border-[#000000] dark:hover:border-[#FEFEFD] font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize transition-colors"
+            >
+              {copied ? <Check className="w-4 h-4 text-[#4CA471]" /> : <Copy className="w-4 h-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCopyCode}
-            className="h-10 px-3 bg-white dark:bg-slate-900"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-500" />
-                <span className="text-emerald-600 dark:text-emerald-400">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-4 h-4" />
-                <span>Copy</span>
-              </>
-            )}
-          </Button>
         </div>
       </div>
 
-      {/* Main Grid: Left Players + Right Settings & Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left: Players List (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
+      {/* ── Main Grid ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Left: Players (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-red-600 dark:text-red-400" />
-              <h2 className="text-lg font-bold font-display text-slate-900 dark:text-white">
-                Combatants ({playerCount} / {maxCapacity})
+              <Users className="w-5 h-5 text-[#000000] dark:text-[#FEFEFD]" />
+              <h2 className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
+                Combatants ({playerCount}/{maxCapacity})
               </h2>
             </div>
-
             {isFull ? (
-              <Badge variant="warning">Room Full ({playerCount}/{maxCapacity})</Badge>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
+                Room Full
+              </span>
             ) : playerCount === 1 ? (
-              <Badge variant="info">Solo Ready • Add Rivals Below</Badge>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
+                Add Rivals
+              </span>
             ) : (
-              <Badge variant="success">{playerCount} Combatants Ready</Badge>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#4CA471] tracking-[0.38px] capitalize">
+                {playerCount} Ready
+              </span>
             )}
           </div>
 
-          {/* Player Cards */}
-          <div className="space-y-3">
+          {/* Player rows — sharp bordered */}
+          <div className="border border-[#CECCC5] dark:border-[#363535] divide-y divide-[#CECCC5] dark:divide-[#363535]">
             {room.players.map((player) => {
               const isCurrent = player.id === currentPlayer.id;
               return (
                 <div
                   key={player.id}
-                  className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                  className={`flex items-center justify-between p-4 transition-colors ${
                     isCurrent
-                      ? 'border-red-500/50 bg-red-50/40 dark:bg-red-950/20 ring-1 ring-red-500/30'
-                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900'
+                      ? 'bg-[#EBDAC3]/50 dark:bg-[#1E1D1D]'
+                      : 'bg-[#FFFDF4] dark:bg-[#100F0F]'
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
-                    {/* Avatar */}
-                    <div className="relative w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
+                    {/* Avatar — sharp */}
+                    <div className="relative w-11 h-11 bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] overflow-hidden">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={player.avatarUrl}
                         alt={player.displayName}
                         className="w-full h-full object-cover"
                       />
-                      {/* Online dot */}
-                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white dark:border-slate-900 rounded-full" />
+                      {/* Online indicator */}
+                      <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-[#4CA471] border-2 border-[#FFFDF4] dark:border-[#100F0F]" />
                     </div>
 
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-base font-bold text-slate-900 dark:text-white">
+                        <span className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
                           {player.displayName}
                         </span>
                         {player.isHost && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                            <Crown className="w-3 h-3 fill-current" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                            <Crown className="w-3 h-3" />
                             Host
                           </span>
                         )}
                         {isCurrent && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                             You
                           </span>
                         )}
                       </div>
-
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          Status:
-                        </span>
-                        <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#4CA471]" />
+                        <span className="font-nunito font-extrabold text-[12.8px] text-[#4CA471] tracking-[0.38px] capitalize">
                           Ready
                         </span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Actions / Remove (for host) */}
                   {isHost && !player.isHost && (
                     <button
                       onClick={() => removePlayer(player.id)}
-                      className="text-xs font-medium text-slate-400 hover:text-rose-500 px-2.5 py-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                      className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] hover:text-[#FF94AB] tracking-[0.38px] capitalize px-3 py-1 hover:bg-[#FF94AB]/10 transition-colors"
                     >
                       Kick
                     </button>
@@ -208,119 +194,116 @@ export function LobbyScreen() {
               );
             })}
 
-            {/* Empty slots placeholders */}
+            {/* Empty slots */}
             {Array.from({ length: Math.max(0, maxCapacity - playerCount) }).map((_, idx) => (
               <div
                 key={`empty-${idx}`}
-                className="flex items-center justify-center p-4 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/20 text-xs text-slate-400 dark:text-slate-500"
+                className="flex items-center gap-3 p-4 bg-[#FFFDF4] dark:bg-[#100F0F]"
               >
-                <div className="flex items-center gap-2">
-                  <UserPlus className="w-4 h-4 opacity-60" />
-                  <span>Waiting for combatant #{playerCount + idx + 1}...</span>
+                <div className="w-11 h-11 bg-[#F7F5ED] dark:bg-[#1E1D1D] border border-dashed border-[#CECCC5] dark:border-[#363535] flex items-center justify-center">
+                  <UserPlus className="w-4 h-4 text-[#CECCC5] dark:text-[#363535]" />
                 </div>
+                <span className="font-nunito font-extrabold text-[14px] text-[#CECCC5] dark:text-[#363535] tracking-[0.42px] capitalize">
+                  Waiting for combatant #{playerCount + idx + 1}…
+                </span>
               </div>
             ))}
           </div>
 
-          {/* Quick Simulation testing tools */}
-          <div className="p-4 rounded-2xl bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-xs text-slate-600 dark:text-slate-400">
-              <span className="font-bold text-slate-900 dark:text-white block">Multiplayer Testing</span>
-              Simulate opponent rivals to test 2–4 player matches immediately.
+          {/* Bot testing tool */}
+          <div className="flex items-center justify-between p-4 bg-[#F7F5ED] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535]">
+            <div>
+              <span className="font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize block">
+                Multiplayer Testing
+              </span>
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                Simulate rivals to test 2–4 player matches immediately.
+              </span>
             </div>
             <Button
               variant="outline"
               size="sm"
               disabled={isFull}
               onClick={addMockBotPlayer}
-              className="shrink-0"
             >
               <UserPlus className="w-3.5 h-3.5" />
-              Add Rival Bot
+              Add Bot
             </Button>
           </div>
         </div>
 
-        {/* Right: Match Settings & Activity Log (5 Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Game Settings Card */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-sm font-bold font-display uppercase tracking-wider text-slate-900 dark:text-white">
-                Game Settings
+        {/* Right: Settings + Logs + Actions (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          {/* Match Settings */}
+          <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#CECCC5] dark:border-[#363535]">
+              <h3 className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
+                Match Settings
               </h3>
-              <Badge variant="arena">Authoritative</Badge>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                Authoritative
+              </span>
             </div>
 
-            <div className="space-y-3 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400">Category</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {currentCategory?.name}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400">Topic</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {currentTopic?.name}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400">Difficulty</span>
-                <span className="font-bold text-red-600 dark:text-red-400">
-                  Level {room.difficultyLevel.toString().padStart(2, '0')}
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center py-1 border-b border-slate-100 dark:border-slate-800/60">
-                <span className="text-slate-500 dark:text-slate-400">Questions (Dynamic)</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {calculatedQuestionCount} Questions ({playerCount}p match)
-                </span>
-              </div>
-
-              <div className="flex justify-between items-center py-1">
-                <span className="text-slate-500 dark:text-slate-400">Time per Question</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {room.timePerQuestion} Seconds
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Activity Log */}
-          <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md space-y-3">
-            <h3 className="text-xs font-bold font-display uppercase tracking-wider text-slate-900 dark:text-white">
-              Room Activity
-            </h3>
-            <div className="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs">
-              {activityLogs.map((log) => (
-                <div key={log.id} className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span className="truncate pr-2">{log.text}</span>
-                  <span className="text-[10px] font-mono shrink-0">{log.timestamp}</span>
+            <div className="divide-y divide-[#CECCC5] dark:divide-[#363535]">
+              {[
+                { label: 'Category', value: currentCategory?.name },
+                { label: 'Topic', value: currentTopic?.name },
+                { label: 'Difficulty', value: `Level ${room.difficultyLevel.toString().padStart(2, '0')}` },
+                { label: `Questions (${playerCount}p)`, value: `${calculatedQuestionCount} Questions` },
+                { label: 'Time Per Question', value: `${room.timePerQuestion}s` },
+              ].map(({ label, value }) => (
+                <div key={label} className="flex justify-between items-center px-5 py-3">
+                  <span className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
+                    {label}
+                  </span>
+                  <span className="font-nunito font-black text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px]">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Host Controls / Action Buttons */}
-          <div className="space-y-3 pt-2">
+          {/* Activity Log */}
+          <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
+            <div className="px-5 py-4 border-b border-[#CECCC5] dark:border-[#363535]">
+              <h3 className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
+                Room Activity
+              </h3>
+            </div>
+            <div className="p-5 space-y-2 max-h-36 overflow-y-auto">
+              {activityLogs.map((log) => (
+                <div key={log.id} className="flex items-center justify-between">
+                  <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize truncate pr-2">
+                    {log.text}
+                  </span>
+                  <span className="font-roboto font-extrabold text-[12px] text-[#CECCC5] dark:text-[#363535] tracking-[0.36px] shrink-0">
+                    {log.timestamp}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="space-y-3">
             {isHost ? (
               <Button
                 variant="arena"
                 size="xl"
                 disabled={!canStart}
                 onClick={startGame}
-                className="w-full shadow-2xl"
+                className="w-full"
               >
                 <Play className="w-5 h-5 fill-current" />
-                {playerCount === 1 ? 'Start Match (Solo Mode)' : 'Start Match'}
+                {playerCount === 1 ? 'Start Match (Solo)' : 'Start Match'}
               </Button>
             ) : (
-              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center text-xs font-semibold text-amber-700 dark:text-amber-400">
-                Waiting for host to commence the match...
+              <div className="p-4 border border-[#CECCC5] dark:border-[#363535] bg-[#F7F5ED] dark:bg-[#1E1D1D] text-center">
+                <span className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
+                  Waiting for host to start the match…
+                </span>
               </div>
             )}
 
@@ -328,7 +311,7 @@ export function LobbyScreen() {
               variant="outline"
               size="md"
               onClick={leaveRoom}
-              className="w-full text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 border-rose-200 dark:border-rose-900/30"
+              className="w-full text-[#FF94AB] border-[#FF94AB]/40 hover:bg-[#FF94AB]/10"
             >
               <LogOut className="w-4 h-4" />
               Leave Room

@@ -4,14 +4,7 @@ import React, { useMemo } from 'react';
 import { useGame } from '@/context/GameContext';
 import { TOPICS } from '@/data/topics';
 import { DIFFICULTY_LEVELS } from '@/data/categories';
-import {
-  ArrowLeft,
-  Flame,
-  ShieldAlert,
-  Layers,
-  ArrowRight,
-  Zap,
-} from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function DifficultyScreen() {
@@ -39,130 +32,117 @@ export function DifficultyScreen() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8 animate-fadeIn">
-      {/* Back button */}
+    <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 space-y-6 animate-fadeIn">
+      {/* Back */}
       <button
         onClick={() => setCurrentView('topics')}
-        className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+        className="inline-flex items-center gap-2 font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] hover:text-[#000000] dark:hover:text-[#FEFEFD] tracking-[0.42px] capitalize transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Topics
       </button>
 
-      {/* Topic Hero Card */}
-      <div className="relative rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl">
-        <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-slate-950">
+      {/* Topic Hero — sharp image container */}
+      <div className="relative border border-[#CECCC5] dark:border-[#363535] overflow-hidden">
+        <div className="relative h-48 sm:h-64 w-full overflow-hidden bg-[#E5E3DB] dark:bg-[#1E1D1D]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={currentTopic.imageUrl}
             alt={currentTopic.name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#000000]/70 to-transparent" />
 
-          <div className="absolute bottom-6 left-6 right-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-            <div className="space-y-1">
-              <span className="text-xs font-bold text-red-500 uppercase tracking-widest">
+          <div className="absolute bottom-5 left-5 right-5 flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+            <div>
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#EBDAC3] tracking-[0.38px] capitalize block mb-1">
                 Selected Franchise
               </span>
-              <h1 className="text-3xl sm:text-5xl font-black font-display text-white">
+              <h1 className="font-nunito font-black text-[30px] text-white leading-[1.4] tracking-[0.6px]">
                 {currentTopic.name}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+              <p className="font-nunito font-extrabold text-[12.8px] text-[#CECCC5] tracking-[0.38px] capitalize max-w-xl mt-1">
                 {currentTopic.description}
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
-              <div className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md border border-white/10 text-white text-xs font-semibold">
-                10 Levels Available
-              </div>
-              <div className="px-3 py-1.5 rounded-xl bg-red-600 text-white text-xs font-bold tracking-wide">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                10 Levels
+              </span>
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
                 {currentTopic.questionCount} Questions
-              </div>
+              </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Difficulty Selection Section */}
-      <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 sm:p-8 space-y-6 shadow-md">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-4">
+      {/* Difficulty Selection */}
+      <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-5 sm:px-8 py-4 border-b border-[#CECCC5] dark:border-[#363535]">
           <div>
-            <h2 className="text-xl font-bold font-display text-slate-900 dark:text-white flex items-center gap-2">
-              <Flame className="w-5 h-5 text-red-600" />
+            <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-[1.4]">
               Select Difficulty Level
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Questions progressively increase in depth, precision, and challenge.
+            <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
+              Questions progressively increase in depth and challenge.
             </p>
           </div>
-
-          <div className="text-xs font-bold px-3 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize whitespace-nowrap">
             Level {selectedDifficultyLevel.toString().padStart(2, '0')} — {activeLevelInfo.name}
-          </div>
+          </span>
         </div>
 
-        {/* 10 Level Grid Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          {DIFFICULTY_LEVELS.map((level) => {
-            const isSelected = selectedDifficultyLevel === level.levelNumber;
-            return (
-              <button
-                key={level.levelNumber}
-                onClick={() => setSelectedDifficultyLevel(level.levelNumber)}
-                className={`relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border transition-all text-center ${
-                  isSelected
-                    ? 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 shadow-md ring-2 ring-red-500/30'
-                    : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700'
-                }`}
-              >
-                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-0.5">
-                  LEVEL
-                </span>
-                <span className="text-xl sm:text-2xl font-black font-display tracking-tight">
-                  {level.levelNumber.toString().padStart(2, '0')}
-                </span>
-                <span className="text-[11px] font-bold mt-1 tracking-wide">
-                  {level.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Active Level Description Box */}
-        <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-800 flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-red-500/10 text-red-600 dark:text-red-400 mt-0.5">
-            <ShieldAlert className="w-5 h-5" />
+        {/* Level Grid */}
+        <div className="p-5 sm:p-8 space-y-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-0 border border-[#CECCC5] dark:border-[#363535]">
+            {DIFFICULTY_LEVELS.map((level) => {
+              const isSelected = selectedDifficultyLevel === level.levelNumber;
+              return (
+                <button
+                  key={level.levelNumber}
+                  onClick={() => setSelectedDifficultyLevel(level.levelNumber)}
+                  className={`flex flex-col items-center justify-center p-3 sm:p-4 border-b border-r border-[#CECCC5] dark:border-[#363535] text-center transition-colors ${
+                    isSelected
+                      ? 'bg-[#EBDAC3] border-[#CECCC5]'
+                      : 'bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
+                  }`}
+                >
+                  <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                    Level
+                  </span>
+                  <span className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.6px] leading-[1.4]">
+                    {level.levelNumber.toString().padStart(2, '0')}
+                  </span>
+                  <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                    {level.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
-          <div className="space-y-1">
-            <div className="text-sm font-bold text-slate-900 dark:text-white">
+
+          {/* Active Level Info */}
+          <div className="p-4 bg-[#F7F5ED] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535]">
+            <div className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] mb-1">
               Level {selectedDifficultyLevel}: {activeLevelInfo.name} Challenge
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+            <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
               {activeLevelInfo.description}
             </p>
           </div>
-        </div>
 
-        {/* Continue Button */}
-        <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-red-500" />
-            <span>Server calculates match length dynamically (2p: 10q, 3p: 12q, 4p: 15q)</span>
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-[#CECCC5] dark:border-[#363535]">
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize text-center sm:text-left">
+              Match length: 2p = 10q · 3p = 12q · 4p = 15q
+            </span>
+            <Button variant="arena" size="lg" onClick={handleContinue} className="w-full sm:w-auto">
+              Proceed to Arena Setup
+              <ArrowRight className="w-4 h-4" />
+            </Button>
           </div>
-
-          <Button
-            variant="arena"
-            size="lg"
-            onClick={handleContinue}
-            className="w-full sm:w-auto shadow-xl"
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            Proceed to Arena Setup
-            <ArrowRight className="w-4 h-4" />
-          </Button>
         </div>
       </div>
     </div>

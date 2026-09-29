@@ -2,14 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import {
-  User,
-  Lock,
-  Zap,
-  ShieldCheck,
-  AlertCircle,
-  RefreshCw,
-} from 'lucide-react';
+import { User, Lock, ShieldCheck, AlertCircle, RefreshCw, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function AuthModal() {
@@ -21,13 +14,8 @@ export function AuthModal() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Don't render until we know whether the user is logged in — prevents login flash on refresh
   if (isAuthLoading) return null;
-
-  // Hide only when authenticated AND modal is explicitly closed
   if (isAuthenticated && !isAuthModalOpen) return null;
-  // If not authenticated, always force-show regardless of isAuthModalOpen flag
-  // (AuthContext will set isAuthModalOpen=true on load, but this is a belt-and-suspenders guard)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,15 +25,11 @@ export function AuthModal() {
     try {
       if (tab === 'login') {
         const res = await login(username, password);
-        if (!res.success) {
-          setErrorMsg(res.error || 'Login failed.');
-        }
+        if (!res.success) setErrorMsg(res.error || 'Login failed.');
       } else {
         const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
         const res = await register(username, password, avatarUrl);
-        if (!res.success) {
-          setErrorMsg(res.error || 'Registration failed.');
-        }
+        if (!res.success) setErrorMsg(res.error || 'Registration failed.');
       }
     } finally {
       setIsSubmitting(false);
@@ -59,140 +43,133 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-[#12141C] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-bold border border-red-500/20">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span>Combatant Authentication</span>
-          </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/60 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-2xl">
 
-          <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white">
-            {tab === 'login' ? 'Enter Quiz Arena' : 'Create Arena Profile'}
+        {/* Header band */}
+        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5">
+          <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
+            {tab === 'login' ? 'Sign In to Quiz Arena' : 'Create Your Account'}
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
             {tab === 'login'
-              ? 'Sign in with your username and password to access the battlegrounds.'
-              : 'Choose a combatant username and password. No email required.'}
+              ? 'Welcome back! Enter your credentials to continue.'
+              : 'No email required. Seamless instant access.'}
           </p>
         </div>
 
-        {/* Tab switch */}
-        <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => {
-              setTab('login');
-              setErrorMsg('');
-            }}
-            className={`py-2 rounded-xl transition-all ${
-              tab === 'login'
-                ? 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTab('register');
-              setErrorMsg('');
-            }}
-            className={`py-2 rounded-xl transition-all ${
-              tab === 'register'
-                ? 'bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
-
-        {/* Error notification */}
-        {errorMsg && (
-          <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{errorMsg}</span>
+        <div className="p-6 space-y-5">
+          {/* Tab switch */}
+          <div className="grid grid-cols-2 border border-[#CECCC5] dark:border-[#363535]">
+            {(['login', 'register'] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => { setTab(t); setErrorMsg(''); }}
+                className={`py-2.5 font-nunito font-extrabold text-[14px] tracking-[0.42px] capitalize transition-colors ${
+                  tab === t
+                    ? 'bg-[#EBDAC3] text-[#000000]'
+                    : 'bg-[#FFFDF4] dark:bg-[#100F0F] text-[#595955] dark:text-[#A4A3A3] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
+                }`}
+              >
+                {t === 'login' ? 'Sign In' : 'Create Account'}
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {tab === 'register' && (
-            <div className="flex flex-col items-center justify-center space-y-2 pb-2">
-              <div className="relative group">
-                <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border-2 border-red-500 overflow-hidden shadow-md">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`}
-                    alt="Avatar Preview"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={randomizeAvatar}
-                  className="absolute -bottom-1 -right-1 p-1.5 rounded-lg bg-red-600 text-white shadow hover:bg-red-700 transition-colors"
-                  title="Randomize Avatar"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <span className="text-[11px] text-slate-400 font-medium">Click icon to randomize avatar</span>
+          {/* Error */}
+          {errorMsg && (
+            <div className="p-3 bg-[#FF94AB]/10 border border-[#FF94AB]/40 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-[#FF94AB] shrink-0" />
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#FF94AB] tracking-[0.38px] capitalize">
+                {errorMsg}
+              </span>
             </div>
           )}
 
-          {/* Username */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" />
-              Username
-            </label>
-            <input
-              type="text"
-              required
-              minLength={3}
-              maxLength={20}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. Captain_Roger"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Avatar picker for register */}
+            {tab === 'register' && (
+              <div className="flex flex-col items-center gap-2 py-2">
+                <div className="relative">
+                  <div className="w-16 h-16 bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-[#CECCC5] dark:border-[#363535] overflow-hidden">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`}
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={randomizeAvatar}
+                    className="absolute -bottom-1 -right-1 p-1.5 bg-[#EBDAC3] border border-[#CECCC5] hover:bg-[#E5E3DB] transition-colors"
+                    title="Randomize Avatar"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-[#000000]" />
+                  </button>
+                </div>
+                <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                  Click icon to randomize avatar
+                </span>
+              </div>
+            )}
 
-          {/* Password */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" />
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              minLength={4}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your arena password..."
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
-          </div>
+            {/* Username */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
+                <User className="w-3.5 h-3.5" />
+                Username
+              </label>
+              <input
+                type="text"
+                required
+                minLength={3}
+                maxLength={20}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. Captain_Roger"
+                className="w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none"
+              />
+            </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
-            <span>Zero email verification needed. Seamless instant access.</span>
-          </div>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
+                <Lock className="w-3.5 h-3.5" />
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                minLength={4}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Your arena password…"
+                className="w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none"
+              />
+            </div>
 
-          <Button type="submit" variant="arena" size="lg" className="w-full shadow-xl" disabled={isSubmitting}>
-            <Zap className="w-4 h-4 fill-current" />
-            {isSubmitting
-              ? 'Connecting to Arena...'
-              : tab === 'login'
-              ? 'Sign In & Enter Arena'
-              : 'Create Account & Play'}
-          </Button>
-        </form>
+            {/* Shield notice */}
+            <div className="flex items-center gap-2 p-3 bg-[#F7F5ED] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
+              <ShieldCheck className="w-4 h-4 text-[#4CA471] shrink-0" />
+              <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
+                Zero email verification. Seamless instant access.
+              </span>
+            </div>
+
+            <Button
+              type="submit"
+              variant="arena"
+              size="lg"
+              className="w-full"
+              disabled={isSubmitting}
+              isLoading={isSubmitting}
+            >
+              {tab === 'login' ? 'Sign In & Enter Arena' : 'Create Account & Play'}
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   );

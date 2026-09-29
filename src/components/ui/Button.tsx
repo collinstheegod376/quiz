@@ -30,28 +30,28 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98]';
+      'inline-flex items-center justify-center font-black transition-all duration-200 focus:outline-none disabled:opacity-30 disabled:cursor-not-allowed select-none active:scale-[0.98] tracking-wide cursor-pointer';
 
     const variants = {
       primary:
-        'bg-red-600 hover:bg-red-700 text-white shadow-lg shadow-red-600/25 focus:ring-red-500 rounded-xl',
+        'bg-[#EBDAC3] hover:bg-[#E5E3DB] text-[#000000] border border-[#000000]/20 dark:border-[#EBDAC3]/30 shadow-sm rounded-full font-black',
       arena:
-        'bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white shadow-xl shadow-red-600/30 border border-red-500/30 focus:ring-red-500 rounded-xl font-semibold tracking-wide',
+        'bg-[#EBDAC3] hover:bg-[#dfcdb5] text-[#000000] border border-[#000000]/30 shadow-md rounded-full font-black',
       secondary:
-        'bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 focus:ring-slate-400 rounded-xl border border-slate-200 dark:border-slate-700',
+        'bg-[#E5E3DB] hover:bg-[#d8d6cd] text-[#000000] dark:bg-[#2A2929] dark:hover:bg-[#363535] dark:text-[#FEFEFD] rounded-full border border-[#CECCC5] dark:border-[#363535]',
       outline:
-        'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 focus:ring-slate-400 rounded-xl',
+        'bg-transparent hover:bg-[#E5E3DB]/50 dark:hover:bg-[#1E1D1D] text-[#000000] dark:text-[#FEFEFD] border border-[#CECCC5] dark:border-[#363535] rounded-full',
       ghost:
-        'bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 focus:ring-slate-400 rounded-xl',
+        'bg-transparent hover:bg-[#E5E3DB]/40 dark:hover:bg-[#2A2929]/50 text-[#595955] dark:text-[#A4A3A3] hover:text-[#000000] dark:hover:text-[#FEFEFD] rounded-full',
       danger:
-        'bg-rose-500 hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 focus:ring-rose-500 rounded-xl',
+        'bg-[#FF94AB] hover:bg-[#ff7a97] text-[#000000] shadow-sm rounded-full font-black border border-[#000000]/20',
     };
 
     const sizes = {
-      sm: 'text-xs px-3 py-1.5 gap-1.5',
-      md: 'text-sm px-4 py-2.5 gap-2',
-      lg: 'text-base px-6 py-3 gap-2.5 font-medium',
-      xl: 'text-lg px-8 py-4 gap-3 font-semibold rounded-2xl',
+      sm: 'text-xs px-3.5 py-1.5 gap-1.5 rounded-full',
+      md: 'text-sm px-5 py-2.5 gap-2 rounded-full',
+      lg: 'text-base px-7 py-3 gap-2.5 font-black rounded-full',
+      xl: 'text-lg px-8 py-3.5 gap-3 font-black rounded-full',
     };
 
     return (

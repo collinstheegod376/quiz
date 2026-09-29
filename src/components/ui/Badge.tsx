@@ -13,19 +13,19 @@ export function Badge({
 }: BadgeProps) {
   const variants = {
     default:
-      'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700',
+      'bg-[#E5E3DB] dark:bg-[#2A2929] text-[#000000] dark:text-[#FEFEFD] border-[#CECCC5] dark:border-[#363535] font-extrabold',
     arena:
-      'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 font-semibold tracking-wider',
+      'bg-[#EBDAC3] text-[#000000] border-[#000000]/20 font-black tracking-wider shadow-sm',
     success:
-      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-medium',
+      'bg-[#4CA471]/15 text-[#23616A] dark:text-[#4CA471] border-[#4CA471]/30 font-extrabold',
     warning:
-      'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-medium',
+      'bg-[#B9843E]/15 text-[#B9843E] border-[#B9843E]/30 font-extrabold',
     danger:
-      'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 font-medium',
+      'bg-[#FF94AB]/25 text-[#000000] dark:text-[#FF94AB] border-[#FF94AB]/40 font-extrabold',
     info:
-      'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20 font-medium',
+      'bg-[#23616A]/15 text-[#23616A] dark:text-[#00AFC6] border-[#23616A]/30 font-extrabold',
     outline:
-      'bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700',
+      'bg-transparent text-[#000000] dark:text-[#FEFEFD] border-[#CECCC5] dark:border-[#363535] font-extrabold',
   };
 
   return (
