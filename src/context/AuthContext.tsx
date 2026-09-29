@@ -31,6 +31,9 @@ interface AuthContextType {
   incrementStat: (statKey: 'roomsCreated' | 'matchesPlayed' | 'wins' | 'totalScore' | 'correctAnswers' | 'totalAnswers', amount?: number) => Promise<void>;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
+  authModalTab: 'login' | 'register';
+  setAuthModalTab: (tab: 'login' | 'register') => void;
+  openAuthModal: (tab?: 'login' | 'register') => void;
   isSettingsModalOpen: boolean;
   setIsSettingsModalOpen: (open: boolean) => void;
   globalStats: {
@@ -67,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [globalStats, setGlobalStats] = useState({
     totalRoomsCreated: 0,
@@ -74,6 +78,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     totalPlayersCount: 0,
     overallAccuracy: 0,
   });
+
+  const openAuthModal = useCallback((tab: 'login' | 'register' = 'login') => {
+    setAuthModalTab(tab);
+    setIsAuthModalOpen(true);
+  }, []);
 
   // ─── Refresh Global Stats from Supabase ──────────────────────────────────────
   const refreshGlobalStats = useCallback(async () => {
@@ -117,14 +126,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const savedSession = localStorage.getItem(SESSION_KEY);
         if (!savedSession) {
-          setIsAuthModalOpen(true);
+          // Do not force open auth modal on public visit
           await refreshGlobalStats();
           return;
         }
 
         if (!isSupabaseConfigured) {
           console.error('[Auth] Supabase credentials not found in env!');
-          setIsAuthModalOpen(true);
           return;
         }
 
@@ -136,7 +144,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
           console.error('[Auth] Supabase fetch session failed:', error.message);
-          setIsAuthModalOpen(true);
           return;
         }
 
@@ -146,7 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Username in session not found in Supabase
           localStorage.removeItem(SESSION_KEY);
-          setIsAuthModalOpen(true);
         }
 
         await refreshGlobalStats();
@@ -431,6 +437,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         incrementStat,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        authModalTab,
+        setAuthModalTab,
+        openAuthModal,
         isSettingsModalOpen,
         setIsSettingsModalOpen,
         globalStats,

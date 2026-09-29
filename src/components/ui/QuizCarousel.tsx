@@ -41,10 +41,6 @@ export function QuizCarousel({
   };
 
   const handleCardClick = (quiz: QuizCardData) => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     setSelectedTopicId(quiz.topicId);
     setCurrentView('difficulty');
   };
@@ -84,67 +80,70 @@ export function QuizCarousel({
           ref={scrollRef}
           className="flex flex-row items-start gap-3 sm:gap-4 overflow-x-auto scrollbar-none scroll-smooth snap-x snap-mandatory px-1 py-1"
         >
-          {quizzes.map((quiz) => (
-            <div
-              key={quiz.id}
-              onClick={() => handleCardClick(quiz)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') handleCardClick(quiz);
-              }}
-              className="flex flex-col shrink-0 w-[140px] sm:w-[160px] md:w-[180px] snap-start group/card cursor-pointer focus:outline-none select-none"
-            >
-              {/* Thumbnail 4:3 */}
-              <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-black/10 shadow-sm border border-black/5 dark:border-white/10">
-                <SafeImage
-                  src={quiz.imageUrl}
-                  alt={quiz.title}
-                  className="w-full h-full object-cover group-hover/card:scale-105 transition-transform duration-300"
-                />
+          {quizzes.map((quiz) => {
+            const cleanTitle = quiz.title.split(':')[0].trim();
+            return (
+              <div
+                key={quiz.id}
+                onClick={() => handleCardClick(quiz)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleCardClick(quiz);
+                }}
+                className="flex flex-col shrink-0 w-[140px] sm:w-[160px] md:w-[180px] snap-start group/card cursor-pointer focus:outline-none select-none"
+              >
+                {/* Thumbnail 4:3 */}
+                <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-[#E5E3DB] shadow-sm border border-black/5 dark:border-white/10">
+                  <SafeImage
+                    src={quiz.imageUrl}
+                    alt={cleanTitle}
+                    className="group-hover/card:scale-105 transition-transform duration-300"
+                  />
 
-                {/* Difficulty / AI Badge */}
-                {quiz.difficulty && (
-                  <span
-                    className={`absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
-                      quiz.difficulty === 'AI'
-                        ? 'bg-[#6FEEFF] text-black'
-                        : quiz.difficulty === 'HARD'
-                        ? 'bg-[#FF94AB] text-black'
-                        : quiz.difficulty === 'EASY'
-                        ? 'bg-[#4CA471] text-white'
-                        : 'bg-[#B9843E] text-white'
-                    }`}
-                  >
-                    {quiz.difficulty}
-                  </span>
-                )}
+                  {/* Difficulty / AI Badge */}
+                  {quiz.difficulty && (
+                    <span
+                      className={`absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                        quiz.difficulty === 'AI'
+                          ? 'bg-[#6FEEFF] text-black'
+                          : quiz.difficulty === 'HARD'
+                          ? 'bg-[#FF94AB] text-black'
+                          : quiz.difficulty === 'EASY'
+                          ? 'bg-[#4CA471] text-white'
+                          : 'bg-[#B9843E] text-white'
+                      }`}
+                    >
+                      {quiz.difficulty}
+                    </span>
+                  )}
 
-                {/* Play Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center">
-                  <div className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-md transform scale-90 group-hover/card:scale-100 transition-transform">
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  {/* Play Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center shadow-md transform scale-90 group-hover/card:scale-100 transition-transform">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Title & Metadata */}
+                <div className="pt-1.5 space-y-0.5">
+                  <h3 className="font-nunito font-extrabold text-xs sm:text-sm text-black dark:text-white leading-snug line-clamp-1 group-hover/card:underline">
+                    {cleanTitle}
+                  </h3>
+                  <div className="flex items-center gap-2 font-roboto text-[11px] sm:text-xs">
+                    <div className="flex items-center gap-0.5 font-bold text-[#B9843E]">
+                      <span>{quiz.rating.toFixed(1)}</span>
+                      <Star className="w-3 h-3 fill-current" />
+                    </div>
+                    <span className="text-black/50 dark:text-white/50 truncate">
+                      {quiz.author}
+                    </span>
                   </div>
                 </div>
               </div>
-
-              {/* Title & Metadata */}
-              <div className="pt-1.5 space-y-0.5">
-                <h3 className="font-nunito font-extrabold text-xs sm:text-sm text-black dark:text-white leading-snug line-clamp-2 group-hover/card:underline">
-                  {quiz.title}
-                </h3>
-                <div className="flex items-center gap-2 font-roboto text-[11px] sm:text-xs">
-                  <div className="flex items-center gap-0.5 font-bold text-[#B9843E]">
-                    <span>{quiz.rating.toFixed(1)}</span>
-                    <Star className="w-3 h-3 fill-current" />
-                  </div>
-                  <span className="text-black/50 dark:text-white/50 truncate">
-                    {quiz.author}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Right Arrow Button */}

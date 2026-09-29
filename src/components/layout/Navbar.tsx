@@ -6,7 +6,6 @@ import { useAuth } from '@/context/AuthContext';
 import {
   Search,
   Menu,
-  User,
   X,
   Trophy,
   Plus,
@@ -28,7 +27,12 @@ export function Navbar() {
     setIsCreateModalOpen,
     setSelectedCategoryId,
   } = useGame();
-  const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
+  const {
+    currentUser,
+    setIsSettingsModalOpen,
+    openAuthModal,
+    logout,
+  } = useAuth();
 
   const [desktopPin, setDesktopPin] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,12 +41,9 @@ export function Navbar() {
   const handleDesktopJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!desktopPin.trim()) return;
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     const cleanPin = desktopPin.replace(/\s+/g, '').toUpperCase();
-    joinRoom(cleanPin, currentUser.username);
+    const username = currentUser?.username || 'PlayerOne';
+    joinRoom(cleanPin, username);
   };
 
   const handleDesktopPinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,10 +99,7 @@ export function Navbar() {
                 maxLength={7}
                 value={desktopPin}
                 onChange={handleDesktopPinChange}
-                onClick={() => {
-                  if (!currentUser) setIsAuthModalOpen(true);
-                  else setIsJoinModalOpen(true);
-                }}
+                onClick={() => setIsJoinModalOpen(true)}
                 className="w-28 text-center font-nunito font-extrabold text-sm rounded-full py-1 px-2 bg-white text-black border-2 border-black focus:outline-none shadow-inner tracking-wider"
               />
             </form>
@@ -124,10 +122,7 @@ export function Navbar() {
             {/* Search — desktop only */}
             <button
               type="button"
-              onClick={() => {
-                if (!currentUser) setIsAuthModalOpen(true);
-                else setCurrentView('categories');
-              }}
+              onClick={() => setCurrentView('categories')}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
               title="Search quizzes"
             >
@@ -137,37 +132,48 @@ export function Navbar() {
             {/* Rankings — desktop only */}
             <button
               type="button"
-              onClick={() => {
-                if (!currentUser) setIsAuthModalOpen(true);
-                else setIsGlobalLeaderboardOpen(true);
-              }}
+              onClick={() => setIsGlobalLeaderboardOpen(true)}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
               title="Rankings"
             >
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
 
-            {/* Avatar */}
+            {/* User Profile or Clear Log In / Sign Up buttons */}
             {currentUser ? (
               <button
                 onClick={() => setIsSettingsModalOpen(true)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-black shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
+                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#E5E3DB] hover:bg-black/10 border border-[#CECCC5] cursor-pointer transition-colors"
                 title={`${currentUser.username} (Settings)`}
               >
-                <img
-                  src={currentUser.avatarUrl}
-                  alt={currentUser.username}
-                  className="w-full h-full object-cover"
-                />
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-black/30">
+                  <img
+                    src={currentUser.avatarUrl}
+                    alt={currentUser.username}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-nunito font-extrabold text-xs text-black max-w-[80px] sm:max-w-[100px] truncate">
+                  {currentUser.username}
+                </span>
               </button>
             ) : (
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black text-white flex items-center justify-center shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
-                title="Sign In"
-              >
-                <User className="w-4 h-4 sm:w-5 sm:h-5" />
-              </button>
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('login')}
+                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer"
+                >
+                  Log In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAuthModal('register')}
+                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-black text-xs sm:text-sm bg-black hover:bg-black/80 text-white shadow-sm transition-all cursor-pointer"
+                >
+                  Sign Up
+                </button>
+              </div>
             )}
 
             {/* Mobile Hamburger — opens side drawer */}
@@ -226,10 +232,58 @@ export function Navbar() {
           </div>
 
           {/* Drawer Body — scrollable */}
-          <div className="flex-1 overflow-y-auto px-4 py-5">
+          <div className="flex-1 overflow-y-auto px-4 py-4">
+
+            {/* Mobile Auth Status Card */}
+            <div className="p-3 mb-4 rounded-xl bg-[#E5E3DB] border border-[#CECCC5]">
+              {currentUser ? (
+                <div className="flex items-center justify-between">
+                  <div
+                    className="flex items-center gap-2.5 cursor-pointer"
+                    onClick={() => { setIsSettingsModalOpen(true); closeMobileMenu(); }}
+                  >
+                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black">
+                      <img src={currentUser.avatarUrl} alt={currentUser.username} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <p className="font-nunito font-extrabold text-sm text-black">{currentUser.username}</p>
+                      <p className="text-[11px] text-[#595955]">Account Settings</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { logout(); closeMobileMenu(); }}
+                    className="text-xs font-nunito font-bold text-red-600 hover:underline px-2 py-1"
+                  >
+                    Log out
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="font-nunito font-extrabold text-xs text-[#595955] text-center">
+                    Sign in to track scores & compete
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { openAuthModal('login'); closeMobileMenu(); }}
+                      className="w-full py-2 rounded-lg bg-white border border-black/20 text-black font-nunito font-bold text-xs text-center hover:bg-black/5"
+                    >
+                      Log In
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { openAuthModal('register'); closeMobileMenu(); }}
+                      className="w-full py-2 rounded-lg bg-black text-white font-nunito font-black text-xs text-center hover:bg-black/80"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Categories Section */}
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-2">
               Categories
             </p>
             <div className="space-y-1">
@@ -238,7 +292,7 @@ export function Navbar() {
                   key={item.id}
                   type="button"
                   onClick={() => handleMobileCategoryClick(item)}
-                  className={`flex items-center gap-3 w-full px-3 py-3 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm ${
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm ${
                     activeCategory === item.id
                       ? 'bg-black text-white'
                       : 'text-black hover:bg-[#E5E3DB]'
@@ -253,17 +307,17 @@ export function Navbar() {
             </div>
 
             {/* Divider */}
-            <div className="h-px bg-[#CECCC5] my-5" />
+            <div className="h-px bg-[#CECCC5] my-4" />
 
             {/* Navigation Section */}
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[#595955] px-2 pb-2">
               Navigation
             </p>
             <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}
-                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Home className="w-5 h-5 shrink-0" />
                 <span>Home</span>
@@ -272,7 +326,7 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => { setCurrentView('entertainment'); closeMobileMenu(); }}
-                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Film className="w-5 h-5 shrink-0" />
                 <span>Entertainment</span>
@@ -281,11 +335,10 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!currentUser) setIsAuthModalOpen(true);
-                  else setCurrentView('categories');
+                  setCurrentView('categories');
                   closeMobileMenu();
                 }}
-                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Compass className="w-5 h-5 shrink-0" />
                 <span>All Categories</span>
@@ -294,11 +347,10 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!currentUser) setIsAuthModalOpen(true);
-                  else setIsGlobalLeaderboardOpen(true);
+                  setIsGlobalLeaderboardOpen(true);
                   closeMobileMenu();
                 }}
-                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Trophy className="w-5 h-5 shrink-0" />
                 <span>Rankings</span>
@@ -307,11 +359,10 @@ export function Navbar() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!currentUser) setIsAuthModalOpen(true);
-                  else setCurrentView('categories');
+                  setCurrentView('categories');
                   closeMobileMenu();
                 }}
-                className="flex items-center gap-3 w-full px-3 py-3 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Search className="w-5 h-5 shrink-0" />
                 <span>Search Quizzes</span>
@@ -324,8 +375,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => {
-                if (!currentUser) setIsAuthModalOpen(true);
-                else setIsCreateModalOpen(true);
+                setIsCreateModalOpen(true);
                 closeMobileMenu();
               }}
               className="w-full h-11 bg-black text-white font-nunito font-black text-sm rounded-full flex items-center justify-center gap-2 hover:bg-black/80 active:scale-95 transition-all cursor-pointer"

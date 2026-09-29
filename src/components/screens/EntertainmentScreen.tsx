@@ -5,7 +5,6 @@ import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { MobileJoinBar } from '@/components/layout/MobileJoinBar';
 import { QuizButton } from '@/components/ui/QuizButton';
-import { TOPICS } from '@/data/topics';
 import { Star, FileText, Users, Play, Sparkles, Plus, Check } from 'lucide-react';
 import { SafeImage } from '../ui/SafeImage';
 
@@ -29,187 +28,224 @@ export function EntertainmentScreen() {
     createRoom,
     setIsCreateModalOpen,
   } = useGame();
-  const { currentUser, setIsAuthModalOpen } = useAuth();
+  const { currentUser } = useAuth();
 
   const [activeTag, setActiveTag] = useState<string>('All');
   const [sortOption, setSortOption] = useState<string>('best');
   const [playedQuizIds, setPlayedQuizIds] = useState<Set<string>>(new Set(['one-piece']));
 
-  // Curate comprehensive entertainment quizzes from topic database
+  // Curate comprehensive entertainment quizzes with local images and clean names
   const entertainmentQuizzes: QuizItem[] = useMemo(() => {
     return [
       {
         id: 'one-piece-grand-line',
         topicId: 'one-piece',
-        title: 'One Piece: The Grand Line & Pirate King Lore',
+        title: 'One Piece',
         category: 'anime',
         tags: ['Anime', 'Shonen', 'Pirates', 'Luffy'],
         questionCount: 150,
         rating: 4.9,
         difficulty: 'Hard',
-        imageUrl: 'https://m.media-amazon.com/images/M/MV5BMTNjNGU4NTUtYmVjMy00YjRiLTkxMWUtNzZkMDNiYjZhNmViXkEyXkFqcGc@._V1_.jpg',
+        imageUrl: '/images/topics/one-piece.jpg',
         creator: 'Eiichiro Lore',
       },
       {
         id: 'gojo-sukuna-shinjuku',
         topicId: 'gojo-vs-sukuna',
-        title: 'Gojo vs. Sukuna: Shinjuku Showdown of the Strongest',
+        title: 'Gojo vs. Sukuna',
         category: 'anime',
         tags: ['Anime', 'Jujutsu Kaisen', 'Gojo', 'Sukuna'],
         questionCount: 120,
         rating: 5.0,
         difficulty: 'Nightmare',
-        imageUrl: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227',
+        imageUrl: '/images/topics/gojo-vs-sukuna.jpg',
         creator: 'Jujutsu High',
       },
       {
         id: 'breaking-bad-empire',
         topicId: 'breaking-bad',
-        title: 'Breaking Bad: Heisenberg & The Albuquerque Chemistry',
+        title: 'Breaking Bad',
         category: 'series',
         tags: ['TV Series', 'Drama', 'Crime', 'Heisenberg'],
         questionCount: 150,
         rating: 4.9,
         difficulty: 'Hard',
-        imageUrl: 'https://assets.aboutslots.com/uploads/assets/O9e_MD_Nw_Tlect_Link_slot_banner_3b718b315f.jpg',
+        imageUrl: '/images/topics/breaking-bad.jpg',
         creator: 'Walter White',
       },
       {
         id: 'the-boys-vought',
         topicId: 'the-boys',
-        title: 'The Boys: Vought International & Compound V',
+        title: 'The Boys',
         category: 'series',
         tags: ['TV Series', 'Superheroes', 'Homelander', 'Action'],
         questionCount: 150,
         rating: 4.8,
         difficulty: 'Hard',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/mY7SeH4YFFxW12l5L9AC3V3Gg3C.jpg',
+        imageUrl: '/images/topics/the-boys.jpg',
         creator: 'Billy Butcher',
       },
       {
         id: 'attack-on-titan-rumbling',
         topicId: 'attack-on-titan',
-        title: 'Attack on Titan: The Nine Titans & The Rumbling',
+        title: 'Attack on Titan',
         category: 'anime',
         tags: ['Anime', 'Dark Fantasy', 'Eren', 'Titans'],
         questionCount: 150,
         rating: 4.8,
         difficulty: 'Hard',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg',
+        imageUrl: '/images/topics/attack-on-titan.jpg',
         creator: 'Scout Regiment',
       },
       {
         id: 'stranger-things-upside-down',
         topicId: 'stranger-things',
-        title: 'Stranger Things: The Upside Down, Hawkins & Vecna',
+        title: 'Stranger Things',
         category: 'series',
         tags: ['TV Series', 'Sci-Fi', '80s', 'Hawkins'],
         questionCount: 150,
         rating: 4.7,
         difficulty: 'Medium',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/49WJfeN0moxb9IPfGn8AIqMGskD.jpg',
+        imageUrl: '/images/topics/stranger-things.jpg',
         creator: 'Hellfire Club',
       },
       {
         id: 'demon-slayer-kizuki',
         topicId: 'demon-slayer',
-        title: 'Demon Slayer: Nichirin Blades, Hashira & Twelve Kizuki',
+        title: 'Demon Slayer',
         category: 'anime',
         tags: ['Anime', 'Swords', 'Hashira', 'Tanjiro'],
         questionCount: 150,
         rating: 4.9,
         difficulty: 'Easy',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH6SzQEJGP6tjBuYj.jpg',
+        imageUrl: '/images/topics/demon-slayer.jpg',
         creator: 'Demon Corps',
       },
       {
         id: 'game-of-thrones-westeros',
         topicId: 'game-of-thrones',
-        title: 'Game of Thrones: The Iron Throne & Great Houses',
+        title: 'Game of Thrones',
         category: 'series',
         tags: ['TV Series', 'Fantasy', 'Westeros', 'Dragons'],
         questionCount: 150,
         rating: 4.8,
         difficulty: 'Hard',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/1XS1oqL89opfnbLl8WnZY1O1uJx.jpg',
+        imageUrl: '/images/topics/game-of-thrones.jpg',
         creator: 'Citadel Maester',
       },
       {
         id: 'bleach-tybw',
         topicId: 'bleach',
-        title: 'Bleach: Soul Society, Zanpakuto & Thousand-Year Blood War',
+        title: 'Bleach',
         category: 'anime',
         tags: ['Anime', 'Soul Reaper', 'Ichigo', 'Bankai'],
         questionCount: 150,
         rating: 4.8,
         difficulty: 'Hard',
-        imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHgv812hd8ZACsQrISDtQjzxMEDcv78Vf7yBRGZ9iVCPA2UHIKbpYeW5Fk&s=10',
+        imageUrl: '/images/topics/bleach.jpg',
         creator: 'Gotei 13',
       },
       {
         id: 'naruto-shippuden-lore',
         topicId: 'naruto',
-        title: 'Naruto Shippuden: Akatsuki, Shinobi War & Kekkei Genkai',
+        title: 'Naruto',
         category: 'anime',
         tags: ['Anime', 'Ninja', 'Naruto', 'Sasuke'],
         questionCount: 110,
         rating: 4.8,
         difficulty: 'Medium',
-        imageUrl: 'https://m.media-amazon.com/images/M/MV5BNTk3MDA1ZjAtNTRhYS00YzNiLTgwOGEtYWRmYTQ3NjA0NTAwXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg',
+        imageUrl: '/images/topics/naruto.jpg',
         creator: 'Hidden Leaf',
       },
       {
         id: 'dark-knight-cinematic',
-        topicId: 'popular-movies',
-        title: 'The Dark Knight Trilogy: Christopher Nolan Gotham Lore',
+        topicId: 'the-dark-knight',
+        title: 'The Dark Knight',
         category: 'movies',
-        tags: ['Movies', 'Batman', 'DC', 'Christopher Nolan'],
+        tags: ['Movies', 'Batman', 'DC', 'Joker'],
         questionCount: 80,
         rating: 4.9,
         difficulty: 'Medium',
-        imageUrl: 'https://image.tmdb.org/t/p/w780/qJ2tW6WMUDux911r6m7haRef0WH.jpg',
-        creator: 'Wayne Enterprises',
+        imageUrl: '/images/topics/dark-knight.jpg',
+        creator: 'Gotham Knight',
       },
       {
-        id: 'dragon-ball-z-super',
-        topicId: 'dragon-ball-z',
-        title: 'Dragon Ball Z: Super Saiyan Evolutions & Planet Namek',
+        id: 'inception-totem',
+        topicId: 'inception',
+        title: 'Inception',
+        category: 'movies',
+        tags: ['Movies', 'Sci-Fi', 'Nolan', 'Dreams'],
+        questionCount: 100,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/inception.jpg',
+        creator: 'Architect Cobb',
+      },
+      {
+        id: 'star-wars-saga',
+        topicId: 'star-wars',
+        title: 'Star Wars',
+        category: 'movies',
+        tags: ['Movies', 'Sci-Fi', 'Jedi', 'Skywalker'],
+        questionCount: 150,
+        rating: 4.8,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/star-wars.jpg',
+        creator: 'Jedi Council',
+      },
+      {
+        id: 'mcu-avengers-endgame',
+        topicId: 'mcu',
+        title: 'Marvel Universe',
+        category: 'movies',
+        tags: ['Movies', 'Marvel', 'Avengers', 'Iron Man'],
+        questionCount: 150,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/mcu-avengers.jpg',
+        creator: 'S.H.I.E.L.D.',
+      },
+      {
+        id: 'dragon-ball-saiyan',
+        topicId: 'dragon-ball',
+        title: 'Dragon Ball Z',
         category: 'anime',
-        tags: ['Anime', 'Saiyan', 'Goku', 'Vegeta'],
+        tags: ['Anime', 'Shonen', 'Goku', 'Saiyan'],
         questionCount: 120,
         rating: 4.8,
         difficulty: 'Easy',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/d5iIlFn5s0ImszYzBPb8JPIfbXD.jpg',
-        creator: 'Capsule Corp',
+        imageUrl: '/images/topics/dragon-ball.jpg',
+        creator: 'Kame House',
       },
       {
-        id: 'hunter-x-hunter-chimera',
+        id: 'hunter-x-hunter-nen',
         topicId: 'hunter-x-hunter',
-        title: 'Hunter x Hunter: Nen Principles & Chimera Ant Arc',
+        title: 'Hunter x Hunter',
         category: 'anime',
-        tags: ['Anime', 'Nen', 'Gon', 'Killua'],
+        tags: ['Anime', 'Gon', 'Killua', 'Nen'],
         questionCount: 130,
         rating: 4.9,
-        difficulty: 'Nightmare',
-        imageUrl: 'https://image.tmdb.org/t/p/w500/ucmpFdWzFpWzL7z9pBfPzD3lS7Y.jpg',
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/hunter-x-hunter.jpg',
         creator: 'Hunter Assoc',
       },
     ];
   }, []);
 
-  const tagsList = ['All', 'Anime', 'TV Series', 'Movies', 'Gaming'];
-
-  // Filter quizzes by active tag
+  // Filter & Sort
   const filteredQuizzes = useMemo(() => {
-    let list = entertainmentQuizzes;
+    let result = entertainmentQuizzes;
+
+    // Filter by tag
     if (activeTag !== 'All') {
-      list = list.filter((q) =>
-        q.tags.some((t) => t.toLowerCase() === activeTag.toLowerCase())
+      result = result.filter((q) =>
+        q.tags.some((t) => t.toLowerCase() === activeTag.toLowerCase()) ||
+        q.category.toLowerCase() === activeTag.toLowerCase()
       );
     }
 
     // Sort
-    return [...list].sort((a, b) => {
+    return [...result].sort((a, b) => {
       if (sortOption === 'name-asc') return a.title.localeCompare(b.title);
       if (sortOption === 'name-desc') return b.title.localeCompare(a.title);
       if (sortOption === 'rating-desc') return b.rating - a.rating;
@@ -220,10 +256,6 @@ export function EntertainmentScreen() {
 
   // Handle instant play / topic start
   const handlePlayQuiz = (quiz: QuizItem) => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     setPlayedQuizIds((prev) => new Set([...prev, quiz.id]));
     setSelectedTopicId(quiz.topicId);
     setCurrentView('difficulty');
@@ -231,11 +263,8 @@ export function EntertainmentScreen() {
 
   // Handle host multiplayer room
   const handleHostRoom = (quiz: QuizItem) => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    createRoom(currentUser.username, quiz.topicId, 5, 15, 2);
+    const username = currentUser?.username || 'PlayerOne';
+    createRoom(username, quiz.topicId, 5, 15, 2);
   };
 
   return (
@@ -246,7 +275,7 @@ export function EntertainmentScreen() {
       {/* Main Container */}
       <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-4 md:pt-6 space-y-6">
 
-        {/* ── Promotional Banners: Create Quiz & A.I. Generator ── */}
+        {/* ── Promotional Banners: Create Quiz & Categories ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Banner 1: Create a quiz */}
           <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
@@ -261,10 +290,7 @@ export function EntertainmentScreen() {
                 <QuizButton
                   color="green"
                   size="md"
-                  onClick={() => {
-                    if (!currentUser) { setIsAuthModalOpen(true); return; }
-                    setIsCreateModalOpen(true);
-                  }}
+                  onClick={() => setIsCreateModalOpen(true)}
                 >
                   Quiz editor
                 </QuizButton>
@@ -278,26 +304,22 @@ export function EntertainmentScreen() {
             </div>
           </div>
 
-          {/* Banner 2: A.I. Generator */}
+          {/* Banner 2: Categories */}
           <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
             <div className="flex flex-col items-start justify-center space-y-2 z-1">
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-black leading-tight">
-                A.I. Generator
+                Categories
               </h2>
               <p className="font-roboto text-xs md:text-sm font-bold opacity-90 leading-tight">
-                Generate a live quiz from any anime, movie, or prompt
+                Explore anime, series, movies, and more
               </p>
               <div className="pt-2">
                 <QuizButton
                   color="cyan"
                   size="md"
-                  onClick={() => {
-                    if (!currentUser) { setIsAuthModalOpen(true); return; }
-                    setSelectedTopicId('gojo-vs-sukuna');
-                    setCurrentView('difficulty');
-                  }}
+                  onClick={() => setCurrentView('categories')}
                 >
-                  Quiz generator
+                  View category
                 </QuizButton>
               </div>
             </div>
@@ -310,42 +332,53 @@ export function EntertainmentScreen() {
           </div>
         </div>
 
-        {/* ── Category Title Header ── */}
-        <div className="pt-2">
-          <h1 className="text-3xl md:text-4xl font-black tracking-normal text-black dark:text-white">
-            Entertainment
-          </h1>
-          <p className="font-roboto text-sm md:text-base font-bold text-black/60 dark:text-white/60 mt-1">
-            Dive into movies, anime, TV series, gaming, and pop culture quizzes. Challenge your friends or conquer solo tiers.
-          </p>
-        </div>
-
-        {/* ── Filter Tags & Sort Control Bar ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-[#CECCC5] dark:border-[#363535]">
-          {/* Tag Pills */}
-          <div className="flex flex-wrap items-center gap-2 overflow-x-auto scrollbar-none py-1">
-            {tagsList.map((tag) => {
-              const isSelected = activeTag === tag;
-              return (
-                <button
-                  key={tag}
-                  type="button"
-                  onClick={() => setActiveTag(tag)}
-                  className={`px-4 py-1.5 rounded-full font-nunito font-extrabold text-sm transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-black text-white dark:bg-white dark:text-black shadow-sm'
-                      : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white hover:bg-black/10 dark:hover:bg-white/10'
-                  }`}
-                >
-                  #{tag}
-                </button>
-              );
-            })}
+        {/* ── Category Header & Controls Bar ── */}
+        <div className="space-y-4 pt-2">
+          {/* Title & Stats */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h1 className="font-nunito font-black text-2xl sm:text-3xl text-black dark:text-white tracking-tight">
+                Entertainment
+              </h1>
+              <p className="font-roboto text-xs sm:text-sm font-bold text-black/60 dark:text-white/60">
+                From anime to Hollywood blockbusters · {entertainmentQuizzes.length} Quizzes Available
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsCreateModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-black/80 text-white font-nunito font-black text-xs sm:text-sm rounded-full transition-all cursor-pointer shadow-sm"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Create in Entertainment</span>
+              </button>
+            </div>
           </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-            <span className="font-roboto text-xs font-bold opacity-60">Sort:</span>
+          {/* Tags Pills Row */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+            {['All', 'Anime', 'TV Series', 'Movies', 'Gaming'].map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setActiveTag(tag)}
+                className={`px-3.5 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm whitespace-nowrap transition-colors cursor-pointer border ${
+                  activeTag === tag
+                    ? 'bg-black text-white border-black'
+                    : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white border-[#CECCC5] dark:border-[#363535] hover:bg-black/10'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+
+          {/* Sort Selector Bar */}
+          <div className="flex items-center justify-between text-xs sm:text-sm border-b border-black/10 dark:border-white/10 pb-3">
+            <span className="font-roboto font-bold text-black/60 dark:text-white/60">
+              Showing {filteredQuizzes.length} results
+            </span>
             <select
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value)}
@@ -364,6 +397,7 @@ export function EntertainmentScreen() {
         <div className="divide-y divide-black/10 dark:divide-white/10 border-b border-black/10 dark:border-white/10">
           {filteredQuizzes.map((quiz) => {
             const isPlayed = playedQuizIds.has(quiz.id);
+            const cleanTitle = quiz.title.split(':')[0].trim();
 
             return (
               <div
@@ -379,8 +413,8 @@ export function EntertainmentScreen() {
                   >
                     <SafeImage
                       src={quiz.imageUrl}
-                      alt={quiz.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      alt={cleanTitle}
+                      className="group-hover:scale-105 transition-transform duration-300"
                     />
 
                     {/* Played checkmark badge */}
@@ -412,9 +446,9 @@ export function EntertainmentScreen() {
                   <div className="flex flex-col justify-center min-w-0 space-y-1">
                     <h3
                       onClick={() => handlePlayQuiz(quiz)}
-                      className="font-nunito font-black text-base md:text-lg text-black dark:text-white hover:underline cursor-pointer leading-snug line-clamp-2"
+                      className="font-nunito font-black text-base md:text-lg text-black dark:text-white hover:underline cursor-pointer leading-snug line-clamp-1"
                     >
-                      {quiz.title}
+                      {cleanTitle}
                     </h3>
 
                     {/* Author line */}
@@ -459,14 +493,14 @@ export function EntertainmentScreen() {
                     <Users className="w-3.5 h-3.5" />
                     <span>Host Room</span>
                   </button>
-
-                  <QuizButton
-                    color="green"
-                    size="sm"
+                  <button
+                    type="button"
                     onClick={() => handlePlayQuiz(quiz)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-black/80 text-white font-nunito font-bold text-xs rounded-full transition-colors cursor-pointer shadow-sm"
                   >
-                    Play
-                  </QuizButton>
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Play Solo</span>
+                  </button>
                 </div>
               </div>
             );

@@ -13,17 +13,16 @@ export function LandingScreen() {
     setCurrentView,
     setIsCreateModalOpen,
     setSelectedCategoryId,
-    setSelectedTopicId,
     createRoom,
   } = useGame();
   const { currentUser, setIsAuthModalOpen } = useAuth();
 
-  // Curated sets of quizzes matching Quiz.com sections
+  // Curated sets of quizzes with clean franchise names (no words after colon)
   const recentlyPublishedQuizzes: QuizCardData[] = useMemo(() => [
     {
       id: 'gojo-vs-sukuna-recent',
       topicId: 'gojo-vs-sukuna',
-      title: 'Gojo vs. Sukuna: Clash of the Strongest',
+      title: 'Gojo vs. Sukuna',
       imageUrl: '/images/topics/gojo-vs-sukuna.jpg',
       rating: 5.0,
       author: 'JujutsuHigh',
@@ -33,7 +32,7 @@ export function LandingScreen() {
     {
       id: 'one-piece-recent',
       topicId: 'one-piece',
-      title: 'One Piece: Wano Arc & Gear 5 Awakenings',
+      title: 'One Piece',
       imageUrl: '/images/topics/one-piece.jpg',
       rating: 4.9,
       author: 'LuffyCaptain',
@@ -43,7 +42,7 @@ export function LandingScreen() {
     {
       id: 'the-boys-recent',
       topicId: 'the-boys',
-      title: 'The Boys: Vought International & Compound V',
+      title: 'The Boys',
       imageUrl: '/images/topics/the-boys.jpg',
       rating: 4.8,
       author: 'BillyButcher',
@@ -53,7 +52,7 @@ export function LandingScreen() {
     {
       id: 'breaking-bad-recent',
       topicId: 'breaking-bad',
-      title: 'Breaking Bad: The Heisenberg Chemistry Quiz',
+      title: 'Breaking Bad',
       imageUrl: '/images/topics/breaking-bad.jpg',
       rating: 4.9,
       author: 'WalterWhite',
@@ -63,7 +62,7 @@ export function LandingScreen() {
     {
       id: 'attack-on-titan-recent',
       topicId: 'attack-on-titan',
-      title: 'Attack on Titan: The Nine Titans & The Rumbling',
+      title: 'Attack on Titan',
       imageUrl: '/images/topics/attack-on-titan.jpg',
       rating: 4.8,
       author: 'ScoutRegiment',
@@ -73,7 +72,7 @@ export function LandingScreen() {
     {
       id: 'stranger-things-recent',
       topicId: 'stranger-things',
-      title: 'Stranger Things: The Upside Down & Vecna',
+      title: 'Stranger Things',
       imageUrl: '/images/topics/stranger-things.jpg',
       rating: 4.7,
       author: 'HellfireClub',
@@ -86,7 +85,7 @@ export function LandingScreen() {
     {
       id: 'quantum-physics-ai',
       topicId: 'physics',
-      title: 'Quantum Physics: Wave-Particle Duality & Relativity',
+      title: 'Quantum Physics',
       imageUrl: '/images/topics/science-space.jpg',
       rating: 4.9,
       author: 'AI Generator',
@@ -96,7 +95,7 @@ export function LandingScreen() {
     {
       id: 'organic-chemistry-ai',
       topicId: 'chemistry',
-      title: 'Chemical Reactions & Thermodynamics Masterclass',
+      title: 'Chemical Reactions',
       imageUrl: '/images/topics/science-lab.jpg',
       rating: 4.8,
       author: 'AI Generator',
@@ -106,7 +105,7 @@ export function LandingScreen() {
     {
       id: 'bleach-tybw-ai',
       topicId: 'bleach',
-      title: 'Bleach: Thousand-Year Blood War & Bankai Lore',
+      title: 'Bleach',
       imageUrl: '/images/topics/bleach.jpg',
       rating: 4.8,
       author: 'AI Generator',
@@ -116,7 +115,7 @@ export function LandingScreen() {
     {
       id: 'demon-slayer-ai',
       topicId: 'demon-slayer',
-      title: 'Demon Slayer: Infinity Castle Arc Battle Trivia',
+      title: 'Demon Slayer',
       imageUrl: '/images/topics/demon-slayer.jpg',
       rating: 4.9,
       author: 'AI Generator',
@@ -126,7 +125,7 @@ export function LandingScreen() {
     {
       id: 'got-westeros-ai',
       topicId: 'game-of-thrones',
-      title: 'Game of Thrones: Valyrian Steel & Great Dynasties',
+      title: 'Game of Thrones',
       imageUrl: '/images/topics/game-of-thrones.jpg',
       rating: 4.8,
       author: 'AI Generator',
@@ -139,7 +138,7 @@ export function LandingScreen() {
     {
       id: 'one-piece-best',
       topicId: 'one-piece',
-      title: 'One Piece: Ultimate Pirate King Trivia',
+      title: 'One Piece',
       imageUrl: '/images/topics/one-piece.jpg',
       rating: 5.0,
       author: 'mora_queen',
@@ -149,7 +148,7 @@ export function LandingScreen() {
     {
       id: 'naruto-shippuden-best',
       topicId: 'naruto',
-      title: 'Naruto Shippuden: Shinobi War & Akatsuki',
+      title: 'Naruto',
       imageUrl: '/images/topics/naruto.jpg',
       rating: 4.9,
       author: 'CandyQueen',
@@ -159,7 +158,7 @@ export function LandingScreen() {
     {
       id: 'dark-knight-best',
       topicId: 'the-dark-knight',
-      title: 'The Dark Knight: Christopher Nolan Masterpiece',
+      title: 'The Dark Knight',
       imageUrl: '/images/topics/dark-knight.jpg',
       rating: 4.9,
       author: 'GothamKnight',
@@ -169,7 +168,7 @@ export function LandingScreen() {
     {
       id: 'hxh-best',
       topicId: 'hunter-x-hunter',
-      title: 'Hunter x Hunter: Nen Principles & Chimera Ants',
+      title: 'Hunter x Hunter',
       imageUrl: '/images/topics/hunter-x-hunter.jpg',
       rating: 4.9,
       author: 'Kurapika99',
@@ -179,12 +178,42 @@ export function LandingScreen() {
     {
       id: 'fma-best',
       topicId: 'fullmetal-alchemist',
-      title: 'Fullmetal Alchemist: Equivalent Exchange Lore',
+      title: 'Fullmetal Alchemist',
       imageUrl: '/images/topics/fullmetal.jpg',
       rating: 4.9,
-      author: 'EdwardElric',
+      author: 'StateAlchemist',
       difficulty: 'HARD',
-      questionCount: 120,
+      questionCount: 150,
+    },
+    {
+      id: 'star-wars-best',
+      topicId: 'star-wars',
+      title: 'Star Wars',
+      imageUrl: '/images/topics/star-wars.jpg',
+      rating: 4.8,
+      author: 'Skywalker',
+      difficulty: 'HARD',
+      questionCount: 150,
+    },
+    {
+      id: 'inception-best',
+      topicId: 'inception',
+      title: 'Inception',
+      imageUrl: '/images/topics/inception.jpg',
+      rating: 4.9,
+      author: 'DreamMaster',
+      difficulty: 'HARD',
+      questionCount: 100,
+    },
+    {
+      id: 'mcu-best',
+      topicId: 'mcu',
+      title: 'Marvel Universe',
+      imageUrl: '/images/topics/mcu-avengers.jpg',
+      rating: 4.9,
+      author: 'StanLeeFan',
+      difficulty: 'HARD',
+      questionCount: 150,
     },
   ], []);
 
@@ -192,7 +221,7 @@ export function LandingScreen() {
     {
       id: 'gojo-popular',
       topicId: 'gojo-vs-sukuna',
-      title: 'Gojo vs. Sukuna: Hollow Purple & Malevolent Shrine',
+      title: 'Gojo vs. Sukuna',
       imageUrl: '/images/topics/gojo-vs-sukuna.jpg',
       rating: 5.0,
       author: 'ImLucifer',
@@ -202,7 +231,7 @@ export function LandingScreen() {
     {
       id: 'dbz-popular',
       topicId: 'dragon-ball',
-      title: 'Dragon Ball Z: Super Saiyans & Cell Games',
+      title: 'Dragon Ball Z',
       imageUrl: '/images/topics/dragon-ball.jpg',
       rating: 4.8,
       author: 'GokuSaiyan',
@@ -212,7 +241,7 @@ export function LandingScreen() {
     {
       id: 'breaking-bad-popular',
       topicId: 'breaking-bad',
-      title: 'Breaking Bad: Los Pollos Hermanos & Gus Fring',
+      title: 'Breaking Bad',
       imageUrl: '/images/topics/breaking-bad.jpg',
       rating: 4.9,
       author: 'brittanyk',
@@ -222,7 +251,7 @@ export function LandingScreen() {
     {
       id: 'the-boys-popular',
       topicId: 'the-boys',
-      title: 'The Boys: Homelander vs Butcher Feud',
+      title: 'The Boys',
       imageUrl: '/images/topics/the-boys.jpg',
       rating: 4.8,
       author: 'Christy',
@@ -235,7 +264,7 @@ export function LandingScreen() {
     {
       id: 'anime-op',
       topicId: 'one-piece',
-      title: 'One Piece: Grand Line & Devil Fruits',
+      title: 'One Piece',
       imageUrl: '/images/topics/one-piece.jpg',
       rating: 4.9,
       author: 'OdaFan',
@@ -245,7 +274,7 @@ export function LandingScreen() {
     {
       id: 'anime-jjk',
       topicId: 'gojo-vs-sukuna',
-      title: 'Jujutsu Kaisen: Cursed Techniques & Special Grades',
+      title: 'Jujutsu Kaisen',
       imageUrl: '/images/topics/jujutsu-kaisen.jpg',
       rating: 5.0,
       author: 'Sorcerer',
@@ -255,7 +284,7 @@ export function LandingScreen() {
     {
       id: 'anime-naruto',
       topicId: 'naruto',
-      title: 'Naruto: Hidden Leaf Hokages & Chunin Exams',
+      title: 'Naruto',
       imageUrl: '/images/topics/naruto.jpg',
       rating: 4.8,
       author: 'KonohaGenin',
@@ -265,7 +294,7 @@ export function LandingScreen() {
     {
       id: 'anime-bleach',
       topicId: 'bleach',
-      title: 'Bleach: Soul Society & Espada Numbers',
+      title: 'Bleach',
       imageUrl: '/images/topics/bleach.jpg',
       rating: 4.8,
       author: 'Shinikami',
@@ -275,11 +304,8 @@ export function LandingScreen() {
   ], []);
 
   const handleVoteMode = () => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    createRoom(currentUser.username, 'one-piece', 5, 15, 4);
+    const username = currentUser?.username || 'PlayerOne';
+    createRoom(username, 'one-piece', 5, 15, 4);
   };
 
   return (
@@ -305,10 +331,7 @@ export function LandingScreen() {
                 <QuizButton
                   color="green"
                   size="md"
-                  onClick={() => {
-                    if (!currentUser) { setIsAuthModalOpen(true); return; }
-                    setIsCreateModalOpen(true);
-                  }}
+                  onClick={() => setIsCreateModalOpen(true)}
                 >
                   Quiz editor
                 </QuizButton>
@@ -322,26 +345,22 @@ export function LandingScreen() {
             </div>
           </div>
 
-          {/* Card 2: A.I. */}
+          {/* Card 2: Categories (View Category) */}
           <div className="bg-[#19444A] rounded-xl p-5 md:p-8 flex flex-row items-center justify-between gap-4 text-white relative overflow-hidden shadow-sm">
             <div className="flex flex-col items-center md:items-start text-center md:text-left justify-center space-y-2 z-1 w-full md:w-auto">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
-                A.I.
+                Categories
               </h2>
               <p className="font-roboto text-xs sm:text-sm font-bold opacity-90 leading-tight">
-                Generate a quiz from any subject or pdf
+                Explore anime, series, movies, and more
               </p>
               <div className="pt-2">
                 <QuizButton
                   color="cyan"
                   size="md"
-                  onClick={() => {
-                    if (!currentUser) { setIsAuthModalOpen(true); return; }
-                    setSelectedTopicId('gojo-vs-sukuna');
-                    setCurrentView('difficulty');
-                  }}
+                  onClick={() => setCurrentView('categories')}
                 >
-                  Quiz generator
+                  View category
                 </QuizButton>
               </div>
             </div>
@@ -354,19 +373,19 @@ export function LandingScreen() {
           </div>
         </div>
 
-        {/* ── Carousel 1: Recently published (Image 1 & 3) ── */}
+        {/* ── Carousel 1: Recently published ── */}
         <QuizCarousel
           title="Recently published"
           quizzes={recentlyPublishedQuizzes}
         />
 
-        {/* ── Carousel 2: Popular quizzes created by AI (Image 1 & 3) ── */}
+        {/* ── Carousel 2: Popular quizzes created by AI ── */}
         <QuizCarousel
           title="Popular quizzes created by AI"
           quizzes={aiQuizzes}
         />
 
-        {/* ── Vote Mode Banner (from Image 3) ── */}
+        {/* ── Vote Mode Banner ── */}
         <div className="w-full bg-[#19444A] rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-sm">
           <div className="flex items-center gap-3 text-center sm:text-left">
             <div className="w-10 h-10 rounded-full bg-white/10 hidden sm:flex items-center justify-center">
@@ -390,19 +409,19 @@ export function LandingScreen() {
           </QuizButton>
         </div>
 
-        {/* ── Carousel 3: Best rating right now (Image 2 & 3) ── */}
+        {/* ── Carousel 3: Best rating right now ── */}
         <QuizCarousel
           title="Best rating right now"
           quizzes={bestRatedQuizzes}
         />
 
-        {/* ── Carousel 4: Popular right now (Image 2 & 3) ── */}
+        {/* ── Carousel 4: Popular right now ── */}
         <QuizCarousel
           title="Popular right now"
           quizzes={popularQuizzes}
         />
 
-        {/* ── Carousel 5: Anime Category Section (Image 2 & 3) ── */}
+        {/* ── Carousel 5: Anime Category Section ── */}
         <QuizCarousel
           title="Anime"
           seeAllCount={15}

@@ -6,16 +6,25 @@ import { User, Lock, ShieldCheck, AlertCircle, RefreshCw, X } from 'lucide-react
 import { Button } from '../ui/Button';
 
 export function AuthModal() {
-  const { isAuthModalOpen, isAuthLoading, login, register, isAuthenticated } = useAuth();
-  const [tab, setTab] = useState<'login' | 'register'>('register');
+  const {
+    isAuthModalOpen,
+    setIsAuthModalOpen,
+    isAuthLoading,
+    login,
+    register,
+    authModalTab,
+    setAuthModalTab,
+  } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('Ace');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (isAuthLoading) return null;
-  if (isAuthenticated && !isAuthModalOpen) return null;
+  if (isAuthLoading || !isAuthModalOpen) return null;
+
+  const tab = authModalTab;
+  const setTab = setAuthModalTab;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,19 +52,34 @@ export function AuthModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/60 backdrop-blur-sm animate-fadeIn">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/60 backdrop-blur-sm animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) setIsAuthModalOpen(false);
+      }}
+    >
       <div className="relative w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-2xl">
 
-        {/* Header band */}
-        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5">
-          <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
-            {tab === 'login' ? 'Sign In to Quiz Arena' : 'Create Your Account'}
-          </h2>
-          <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
-            {tab === 'login'
-              ? 'Welcome back! Enter your credentials to continue.'
-              : 'No email required. Seamless instant access.'}
-          </p>
+        {/* Header band with Close Button */}
+        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5 flex items-start justify-between">
+          <div>
+            <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
+              {tab === 'login' ? 'Sign In to Anizuki' : 'Create Your Account'}
+            </h2>
+            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
+              {tab === 'login'
+                ? 'Welcome back! Enter your credentials to continue.'
+                : 'No email required. Instant access.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAuthModalOpen(false)}
+            className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-black transition-colors cursor-pointer shrink-0 ml-2"
+            aria-label="Close modal"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="p-6 space-y-5">
