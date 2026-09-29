@@ -100,7 +100,7 @@ export function TopicScreen() {
                     className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
                   />
                   {/* Rank badge */}
-                  <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+                  <span className="absolute top-3 left-3 inline-flex items-center px-2.5 py-0.5 rounded-full bg-[#E5E3DB] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                     #{topic.popularityRank}
                   </span>
                 </div>

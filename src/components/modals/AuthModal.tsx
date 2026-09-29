@@ -61,12 +61,12 @@ export function AuthModal() {
       <div className="relative w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-2xl">
 
         {/* Header band with Close Button */}
-        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5 flex items-start justify-between">
+        <div className="bg-[#EBDAC3] dark:bg-[#2A2929] border-b border-[#CECCC5] dark:border-[#363535] px-6 py-5 flex items-start justify-between">
           <div>
-            <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
+            <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
               {tab === 'login' ? 'Sign In to Anizuki' : 'Create Your Account'}
             </h2>
-            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
+            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize mt-1">
               {tab === 'login'
                 ? 'Welcome back! Enter your credentials to continue.'
                 : 'No email required. Instant access.'}
@@ -75,7 +75,7 @@ export function AuthModal() {
           <button
             type="button"
             onClick={() => setIsAuthModalOpen(false)}
-            className="w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 flex items-center justify-center text-black transition-colors cursor-pointer shrink-0 ml-2"
+            className="w-8 h-8 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 flex items-center justify-center text-black dark:text-[#FEFEFD] transition-colors cursor-pointer shrink-0 ml-2"
             aria-label="Close modal"
           >
             <X className="w-4 h-4" />

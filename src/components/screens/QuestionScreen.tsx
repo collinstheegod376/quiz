@@ -149,7 +149,7 @@ export function QuestionScreen() {
             }
           } else if (isUserPick) {
             containerStyle =
-              'bg-[#EBDAC3] border-2 border-[#000000] dark:border-[#FEFEFD] cursor-default';
+              'bg-[#EBDAC3] dark:bg-[#2A2929] border-2 border-[#000000] dark:border-[#FEFEFD] cursor-default';
             badgeStyle =
               'bg-[#000000] dark:bg-[#FEFEFD] text-[#FEFEFD] dark:text-[#000000] border-[#000000] dark:border-[#FEFEFD] font-black';
             textStyle = 'text-[#000000] dark:text-[#FEFEFD] font-bold';
@@ -240,9 +240,9 @@ export function QuestionScreen() {
             </div>
           )
         ) : isAnswerSubmitted ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5]">
-            <Lock className="w-3.5 h-3.5 text-[#000000]" />
-            <span className="font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
+            <Lock className="w-3.5 h-3.5 text-[#000000] dark:text-[#FEFEFD]" />
+            <span className="font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
               Option {selectedOption} Locked — Awaiting rivals
             </span>
           </div>

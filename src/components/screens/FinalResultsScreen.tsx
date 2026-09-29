@@ -91,7 +91,7 @@ export function FinalResultsScreen() {
 
       {/* ── Header ── */}
       <div className="text-center space-y-2 pb-6 border-b border-[#CECCC5] dark:border-[#363535]">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
           <Trophy className="w-3.5 h-3.5" />
           Match Concluded
         </span>
@@ -195,7 +195,7 @@ export function FinalResultsScreen() {
             <div className="font-nunito font-black text-[30px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
               {value}
             </div>
-            <div className="font-roboto font-extrabold text-[12px] text-[#CECCC5] dark:text-[#363535] tracking-[0.36px] mt-1">
+            <div className="font-roboto font-extrabold text-[12px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.36px] mt-1">
               {sub}
             </div>
           </div>

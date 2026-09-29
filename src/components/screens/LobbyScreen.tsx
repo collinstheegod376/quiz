@@ -65,7 +65,7 @@ export function LobbyScreen() {
           <div className="space-y-2">
             {/* Status pill */}
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                 <span className="w-2 h-2 rounded-full bg-[#B9843E] inline-block" />
                 Matchmaking Lobby
               </span>

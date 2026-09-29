@@ -46,20 +46,20 @@ export function JoinRoomModal() {
     >
       <div className="relative w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] shadow-2xl">
         {/* Header Band */}
-        <div className="bg-[#EBDAC3] border-b border-[#CECCC5] px-6 py-5 flex items-start justify-between">
+        <div className="bg-[#EBDAC3] dark:bg-[#2A2929] border-b border-[#CECCC5] dark:border-[#363535] px-6 py-5 flex items-start justify-between">
           <div>
-            <h2 className="font-nunito font-black text-[20px] text-[#000000] leading-[1.4] tracking-[0.6px]">
+            <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
               Join a Room
             </h2>
-            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] tracking-[0.38px] capitalize mt-1">
+            <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize mt-1">
               Enter the 6-character code from your match host.
             </p>
           </div>
           <button
             onClick={() => setIsJoinModalOpen(false)}
-            className="w-8 h-8 flex items-center justify-center bg-[#E5E3DB] border border-[#CECCC5] hover:bg-[#CECCC5] transition-colors"
+            className="w-8 h-8 flex items-center justify-center bg-[#E5E3DB] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] hover:bg-[#CECCC5] dark:hover:bg-[#363535] text-[#000000] dark:text-[#FEFEFD] transition-colors"
           >
-            <X className="w-4 h-4 text-[#000000]" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 

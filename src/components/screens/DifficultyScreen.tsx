@@ -67,10 +67,10 @@ export function DifficultyScreen() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                 10 Levels
               </span>
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                 {currentTopic.questionCount} Questions
               </span>
             </div>
@@ -89,7 +89,7 @@ export function DifficultyScreen() {
               Questions progressively increase in depth and challenge.
             </p>
           </div>
-          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize whitespace-nowrap">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize whitespace-nowrap">
             Level {selectedDifficultyLevel.toString().padStart(2, '0')} — {activeLevelInfo.name}
           </span>
         </div>
@@ -105,7 +105,7 @@ export function DifficultyScreen() {
                   onClick={() => setSelectedDifficultyLevel(level.levelNumber)}
                   className={`flex flex-col items-center justify-center p-3 sm:p-4 border-b border-r border-[#CECCC5] dark:border-[#363535] text-center transition-colors ${
                     isSelected
-                      ? 'bg-[#EBDAC3] border-[#CECCC5]'
+                      ? 'bg-[#EBDAC3] dark:bg-[#B9843E] dark:text-[#FEFEFD] border-[#CECCC5] dark:border-[#363535]'
                       : 'bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
                   }`}
                 >

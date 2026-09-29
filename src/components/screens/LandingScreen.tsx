@@ -233,7 +233,7 @@ export function LandingScreen() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#FFFDF4] text-black pb-8 font-sans">
+    <div className="w-full min-h-screen bg-[#FFFDF4] dark:bg-[#100F0F] text-black dark:text-[#FEFEFD] pb-8 font-sans transition-colors duration-200">
       {/* ── Mobile Join PIN Band (below navbar on mobile) ── */}
       <MobileJoinBar />
 
