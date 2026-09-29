@@ -12,6 +12,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
     ],
   },
+  allowedDevOrigins: ['172.20.10.2', 'localhost'],
 };
 
 export default nextConfig;

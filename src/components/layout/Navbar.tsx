@@ -12,8 +12,6 @@ import {
   Home,
   User,
   Settings,
-  AlertTriangle,
-  Cloud,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 
@@ -27,18 +25,10 @@ export function Navbar() {
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
   } = useGame();
-  const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen, isSupabaseConnected } = useAuth();
+  const { currentUser, setIsSettingsModalOpen, setIsAuthModalOpen } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 w-full backdrop-blur-xl bg-white/80 dark:bg-[#0B0C10]/80 border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
-      {!isSupabaseConnected && (
-        <div className="bg-amber-500/15 border-b border-amber-500/30 px-3 py-1.5 text-center text-[11px] sm:text-xs text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1.5 font-medium">
-          <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-500" />
-          <span>
-            <strong>Local Storage Fallback:</strong> Realtime rooms and profiles are saved locally because Supabase credentials in <code className="px-1 py-0.5 rounded bg-black/10 dark:bg-black/40 font-mono">.env.local</code> are still placeholders. Update them to enable cross-device phone sync.
-          </span>
-        </div>
-      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand */}
         <button
