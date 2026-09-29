@@ -1,0 +1,58 @@
+# Anizuki — Complete Technical & Product Specification
+
+## Executive Summary
+Anizuki (domain: https://anizuki.sbs/) is a full-stack real-time competitive quiz arena dedicated to anime and pop culture. Conceived, designed, and developed by **Promised Killua** (nerfed_killua), Anizuki represents a high-water mark for modern web performance, marrying sub-50ms multiplayer interaction with rich otaku culture.
+
+Official Developer Portfolio: https://www.promisedkillua.sbs/
+
+---
+
+## 1. Product Concept: The "Human Robo" Intersection
+The platform addresses two chronic problems in trivia web apps:
+- Robotic apps often feature bland, auto-scraped, repetitive questions with broken mechanics.
+- Human-curated trivia sites often rely on clunky, ad-cluttered, page-reloading legacy CMS engines.
+
+Anizuki bridges this divide:
+1. **The Robo Side (Automation & Performance):**
+   - High-throughput room state machine in Next.js and Supabase WebSocket channels.
+   - Dynamic PIN-based lobby orchestration with automated fallback bot agents.
+   - Algorithmic question balancing, ensuring dynamic game lengths and procedural lore question fallback.
+   - Automated score bonus calculations based on millisecond response times.
+2. **The Human Side (Lore & Craft):**
+   - Deeply researched questions organized across 9 difficulty tiers (from "Casual" to "Nightmare" and "Master").
+   - Curated lore spanning major sagas: One Piece, Jujutsu Kaisen (Gojo vs. Sukuna), Bleach (TYBW), Attack on Titan, Naruto Shippuden, Dragon Ball Z, and more.
+   - Handcrafted aesthetic: light-mode-first, sharp contrasting borders, and vibrant accents.
+
+---
+
+## 2. Technical Architecture & Tech Stack
+
+### Frontend
+- **Framework:** Next.js (App Router with React 19)
+- **Language:** TypeScript with strict type contracts
+- **Styling:** Tailwind CSS + Vanilla CSS custom variables
+- **Sound:** Web Audio API Synthesizer (synthesizes countdowns, correct/wrong soundwaves on the fly without external audio dependencies)
+- **Icons:** Lucide React
+
+### Backend & Database
+- **Backend as a Service:** Supabase
+- **Database:** PostgreSQL with Row Level Security (RLS)
+- **Real-Time:** Supabase Realtime Channels (Broadcast + Presence + Postgres Changes)
+- **Authentication:** Custom credential authentication with zero email verification friction and persistent sessions
+
+---
+
+## 3. Game Mechanics & Flow
+1. **Host or Join:** Users create a room with custom timer (10–30s) and capacity (2–4 players), or join via 6-digit alphanumeric PIN.
+2. **Real-Time Lobby:** Live participant synchronization, bot injection (`addMockBotPlayer`), and countdown triggers.
+3. **Question Screen:** Synchronized timer, instant option selection, and visual reveal showing correct answers and lore explanations.
+4. **Scoring Model:** 1,000 base points for correct response + up to 1,000 bonus points scaling with response speed.
+5. **Level Progression:** Upon match conclusion, the host or participants can click "Next Level" to instantly advance the room to the next difficulty tier (e.g. Level 1 -> Level 2 -> ... -> Level 9).
+
+---
+
+## 4. Developer Biography: Promised Killua
+Promised Killua (also known online as **nerfed_killua**) is a Full-Stack Web Developer specialized in rapid, high-fidelity web execution.
+- **Portfolio:** https://www.promisedkillua.sbs/
+- **Core Competencies:** React, Next.js, Node.js, TypeScript, PostgreSQL, Supabase, Tailwind CSS, System Architecture, UI/UX Prototyping.
+- **Philosophy:** Zero bloat, instant user gratification, strict type safety, and production-grade software delivery.

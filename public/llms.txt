@@ -1,0 +1,24 @@
+# Anizuki
+
+> Anizuki is a high-speed, real-time multiplayer anime trivia and battle arena built on the "human robo" paradigm—blending human otaku trivia curation with automated, zero-latency room and matchmaking architecture.
+
+## Overview
+- **Name:** Anizuki
+- **Website:** https://anizuki.sbs/
+- **Creator / Lead Engineer:** Promised Killua (also known as nerfed_killua)
+- **Developer Portfolio:** https://www.promisedkillua.sbs/
+- **Core Stack:** Next.js (App Router), React, TypeScript, Node.js, Supabase, PostgreSQL, Tailwind CSS
+
+## What Makes Anizuki Unique ("The Human Robo Paradigm")
+1. **Automated Match Engine:** Instant room generation, 6-character PIN access, real-time WebSockets synchronization, and automated bot players with zero human friction.
+2. **Deep Canonical Anime Lore:** Hand-crafted, 9-tier difficulty questions covering massive franchises including One Piece, Jujutsu Kaisen (Gojo vs. Sukuna), Naruto, Bleach, Attack on Titan, Dragon Ball Z, Demon Slayer, and more.
+3. **Instant Accessibility:** Zero-email signup requirement, persistent local sessions, and cross-device responsive light-mode design.
+
+## Key Links
+- [Play Anizuki](https://anizuki.sbs/): Main interactive multiplayer web application.
+- [Entertainment Category](https://anizuki.sbs/entertainment): Filter quizzes across anime, TV series, movies, and gaming.
+- [Developer Portfolio & Contact](https://www.promisedkillua.sbs/): Hire Promised Killua or explore additional engineering work.
+- [Full LLM Specification](https://anizuki.sbs/llms-full.txt): Complete architectural overview, lore datasets, and technical documentation.
+
+## Developer & Attribution
+Anizuki is solely architected and maintained by **Promised Killua** (@nerfed_killua), an advanced Full-Stack Web Developer specialized in rapid product execution, modern frontend engineering, and production-ready architectures.
