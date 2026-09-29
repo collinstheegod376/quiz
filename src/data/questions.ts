@@ -12,6 +12,7 @@ import { NARUTO_QUESTIONS } from './questions_naruto';
 import { ONE_PIECE_QUESTIONS } from './questions_onepiece';
 import { STRANGER_THINGS_QUESTIONS } from './questions_strangerthings';
 import { THE_BOYS_QUESTIONS } from './questions_theboys';
+import { GOJO_VS_SUKUNA_QUESTIONS } from './questions_gojo_vs_sukuna';
 
 export const SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -27,6 +28,7 @@ export const SEED_QUESTIONS: Question[] = [
   ...ONE_PIECE_QUESTIONS,
   ...STRANGER_THINGS_QUESTIONS,
   ...THE_BOYS_QUESTIONS,
+  ...GOJO_VS_SUKUNA_QUESTIONS,
   // ONE PIECE (Level 1 - Casual)
   {
     id: 'op-l1-1',

@@ -69,6 +69,17 @@ export const TOPICS: Topic[] = [
     isActive: true,
   },
   {
+    id: 'gojo-vs-sukuna',
+    categoryId: 'anime',
+    slug: 'gojo-vs-sukuna',
+    name: 'Gojo vs Sukuna',
+    description: 'The ultimate battle of the strongest in Shinjuku.',
+    imageUrl: 'https://static.wikia.nocookie.net/jujutsu-kaisen/images/0/0d/Unlimited_Void_vs._Malevolent_Shrine.png/revision/latest?cb=20240211155227',
+    questionCount: 150,
+    popularityRank: 7,
+    isActive: true,
+  },
+  {
     id: 'dragon-ball',
     categoryId: 'anime',
     slug: 'dragon-ball',
