@@ -23,6 +23,7 @@ export function QuestionScreen() {
     isAnswerSubmitted,
     submitAnswer,
     timerSeconds,
+    lastRevealResult,
   } = useGame();
 
   const currentTopic = useMemo(() => {
@@ -114,30 +115,45 @@ export function QuestionScreen() {
         </div>
       </div>
 
-      {/* Answer Options Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {options.map((opt) => {
           const isSelected = selectedOption === opt.key;
+          const isReveal = room.status === 'REVEAL';
+          const isCorrectOption = isReveal && lastRevealResult?.correctOption === opt.key;
+          const isWrongSelectedOption = isReveal && isSelected && !isCorrectOption;
+
+          let buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md active:scale-[0.99] cursor-pointer';
+          let badgeStyle = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-slate-700';
+
+          if (isReveal) {
+            if (isCorrectOption) {
+              buttonStyle = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-100 ring-2 ring-emerald-500/40 shadow-lg scale-[1.02]';
+              badgeStyle = 'bg-emerald-500 text-white';
+            } else if (isWrongSelectedOption) {
+              buttonStyle = 'border-red-500 bg-red-50 dark:bg-red-900/30 text-red-900 dark:text-red-100 ring-2 ring-red-500/40 opacity-70';
+              badgeStyle = 'bg-red-500 text-white';
+            } else {
+              buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 opacity-40 cursor-not-allowed';
+            }
+          } else {
+            if (isSelected) {
+              buttonStyle = 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100 ring-2 ring-red-500/40 shadow-lg';
+              badgeStyle = 'bg-red-600 text-white';
+            } else if (isAnswerSubmitted) {
+              buttonStyle = 'border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 opacity-60 cursor-not-allowed';
+            }
+          }
+
           return (
             <button
               key={opt.key}
-              disabled={isAnswerSubmitted}
+              disabled={isAnswerSubmitted || isReveal}
               onClick={() => submitAnswer(opt.key)}
-              className={`group relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 ${
-                isSelected
-                  ? 'border-red-600 bg-red-50 dark:bg-red-950/30 text-red-900 dark:text-red-100 ring-2 ring-red-500/40 shadow-lg'
-                  : isAnswerSubmitted
-                  ? 'border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 opacity-60 cursor-not-allowed'
-                  : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-md active:scale-[0.99] cursor-pointer'
-              }`}
+              className={`group relative flex items-center gap-4 p-4 sm:p-5 rounded-2xl border text-left transition-all duration-300 ${buttonStyle}`}
             >
               {/* Option Letter Badge */}
               <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-black text-sm shrink-0 transition-colors ${
-                  isSelected
-                    ? 'bg-red-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 group-hover:bg-slate-200 dark:group-hover:bg-slate-700'
-                }`}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center font-display font-black text-sm shrink-0 transition-colors ${badgeStyle}`}
               >
                 {opt.key}
               </div>
@@ -148,11 +164,15 @@ export function QuestionScreen() {
               </span>
 
               {/* Selected indicator checkmark */}
-              {isSelected && (
+              {isReveal && isCorrectOption ? (
+                <div className="shrink-0 text-emerald-600 dark:text-emerald-400">
+                  <CheckCircle2 className="w-5 h-5 fill-current/20" />
+                </div>
+              ) : isSelected && !isReveal ? (
                 <div className="shrink-0 text-red-600 dark:text-red-400">
                   <CheckCircle2 className="w-5 h-5 fill-current/20" />
                 </div>
-              )}
+              ) : null}
             </button>
           );
         })}

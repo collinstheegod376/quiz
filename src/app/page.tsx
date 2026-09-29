@@ -34,9 +34,8 @@ export default function HomePage() {
   if (currentView === 'game' && room) {
     switch (room.status) {
       case 'QUESTION':
-        return <QuestionScreen />;
       case 'REVEAL':
-        return <AnswerRevealScreen />;
+        return <QuestionScreen />;
       case 'FINAL_RESULTS':
       case 'FINISHED':
         return <FinalResultsScreen />;

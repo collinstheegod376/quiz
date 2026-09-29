@@ -622,22 +622,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           selectedOption: chosenOption || undefined,
         };
       }
-      // Bot simulation
-      const botCorrect = Math.random() > 0.35;
-      const botResponseSec = 3 + Math.floor(Math.random() * 8);
-      const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
-      const botPoints = botCorrect ? basePoints + botBonus : 0;
-      const botOpt = botCorrect
-        ? correctOpt
-        : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
 
+      // Bot simulation
+      if (p.id.startsWith('bot_')) {
+        const botCorrect = Math.random() > 0.35;
+        const botResponseSec = 3 + Math.floor(Math.random() * 8);
+        const botBonus = botCorrect ? Math.max(0, Math.floor(500 - botResponseSec * 20)) : 0;
+        const botPoints = botCorrect ? basePoints + botBonus : 0;
+        const botOpt = botCorrect
+          ? correctOpt
+          : (['A', 'B', 'C', 'D'].filter((x) => x !== correctOpt)[0] as 'A' | 'B' | 'C' | 'D');
+
+        return {
+          ...p,
+          score: p.score + botPoints,
+          correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
+          totalResponseTimeMs: p.totalResponseTimeMs + botResponseSec * 1000,
+          hasAnswered: true,
+          selectedOption: botOpt,
+        };
+      }
+
+      // Human players (mark as answered if timer ran out without selecting)
       return {
         ...p,
-        score: p.score + botPoints,
-        correctAnswers: p.correctAnswers + (botCorrect ? 1 : 0),
-        totalResponseTimeMs: p.totalResponseTimeMs + botResponseSec * 1000,
         hasAnswered: true,
-        selectedOption: botOpt,
       };
     });
 
@@ -703,6 +712,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     return () => clearInterval(timer);
   }, [room?.status, room?.currentQuestionIndex, room?.players, timerSeconds, handleQuestionEnd]);
+
+  // ─── Auto-advance from REVEAL to NEXT QUESTION ─────────────────────────────
+  useEffect(() => {
+    // Only the host should trigger the auto-advance to prevent multiple Supabase updates
+    if (room?.status === 'REVEAL' && currentPlayer?.isHost) {
+      const timer = setTimeout(() => {
+        advanceToNextState();
+      }, 3000); // 3 second reveal
+      return () => clearTimeout(timer);
+    }
+  }, [room?.status, currentPlayer?.isHost, advanceToNextState]);
 
   // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
   const advanceToNextState = useCallback(async () => {
