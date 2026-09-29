@@ -71,4 +71,8 @@
 - Created `QuizButton` implementing Quiz.com's 3D pill button with dark undercut and tactile click bounce.
 - Built `EntertainmentScreen` and `/entertainment` route with dual promotional cards ("Create a quiz" and "A.I. Generator"), filter tag pills (`#All`, `#Anime`, `#TV Series`, `#Movies`, etc.), sort dropdown, and rich quiz feed.
 - Optimized responsive layouts for both PC (`custom-container`) and mobile (no clipped elements or double bars).
-- Tested type safety with `npx tsc --noEmit` (clean build) and pushed to GitHub branch `redesign-quiz-com`.
+- Replaced subnav categories with the app's actual categories (`Start`, `Anime`, `Series`, `Movies`, `Science`), removing unused categories from Quiz.com.
+- Redesigned Navbar with bubbly `QuizLogo`, desktop inline salmon PIN join band, search, menu, and avatar circle (matching Images 1 & 3).
+- Implemented `QuizCarousel` with smooth snap-scrolling, left/right arrow navigation, 4:3 rounded cards, ratings, difficulty pills, and play hover overlays.
+- Rebuilt `LandingScreen` to match mobile (Images 1 & 2) and PC (Image 3) layouts with dual promo cards ("Create a quiz" and "A.I."), "Can't decide? Let players vote" banner, and 5 distinct quiz carousels.
+- Validated with `npx tsc --noEmit` (clean build) and pushed to GitHub branch `redesign-quiz-com`.
