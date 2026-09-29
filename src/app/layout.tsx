@@ -65,6 +65,9 @@ export const metadata: Metadata = {
     creator: '@nerfed_killua',
     images: ['/images/topics/gojo-vs-sukuna.jpg'],
   },
+  verification: {
+    google: '_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk',
+  },
 };
 
 export const viewport = {
