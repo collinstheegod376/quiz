@@ -13,8 +13,11 @@ import {
   LogOut,
   UserPlus,
   CheckCircle2,
+  Mic,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { VoiceControlsBar } from '../ui/VoiceControlsBar';
+import { useVoice } from '@/context/VoiceContext';
 
 export function LobbyScreen() {
   const {
@@ -27,6 +30,8 @@ export function LobbyScreen() {
     addMockBotPlayer,
     removePlayer,
   } = useGame();
+
+  const { isPlayerSpeaking, isPlayerInVoice } = useVoice();
 
   const [copied, setCopied] = useState(false);
 
@@ -106,8 +111,11 @@ export function LobbyScreen() {
       {/* ── Main Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        {/* Left: Players (7 cols) */}
+        {/* Left: Players & Voice Pod (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
+          {/* Real-time Voice Chat Pod */}
+          <VoiceControlsBar />
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-[#000000] dark:text-[#FEFEFD]" />
@@ -134,6 +142,9 @@ export function LobbyScreen() {
           <div className="border border-[#CECCC5] dark:border-[#363535] divide-y divide-[#CECCC5] dark:divide-[#363535]">
             {room.players.map((player) => {
               const isCurrent = player.id === currentPlayer.id;
+              const isSpeaking = isPlayerSpeaking(player.id);
+              const inVoice = isPlayerInVoice(player.id);
+
               return (
                 <div
                   key={player.id}
@@ -144,8 +155,14 @@ export function LobbyScreen() {
                   }`}
                 >
                   <div className="flex items-center gap-3.5">
-                    {/* Avatar — sharp */}
-                    <div className="relative w-11 h-11 bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] overflow-hidden">
+                    {/* Avatar with speaking pulse ring */}
+                    <div
+                      className={`relative w-11 h-11 bg-[#E5E3DB] dark:bg-[#2A2929] overflow-hidden transition-all duration-150 ${
+                        isSpeaking
+                          ? 'border-2 border-[#4CA471] ring-2 ring-[#4CA471] ring-offset-2 ring-offset-[#FFFDF4] dark:ring-offset-[#100F0F] scale-105'
+                          : 'border border-[#CECCC5] dark:border-[#363535]'
+                      }`}
+                    >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={player.avatarUrl}
@@ -170,6 +187,19 @@ export function LobbyScreen() {
                         {isCurrent && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                             You
+                          </span>
+                        )}
+                        {inVoice && (
+                          <span
+                            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-nunito font-black transition-colors ${
+                              isSpeaking
+                                ? 'bg-[#4CA471] text-white animate-pulse'
+                                : 'bg-[#4CA471]/15 text-[#4CA471]'
+                            }`}
+                            title={isSpeaking ? 'Speaking Now' : 'Voice Connected'}
+                          >
+                            <Mic className="w-2.5 h-2.5" />
+                            <span>{isSpeaking ? 'Speaking' : 'Voice'}</span>
                           </span>
                         )}
                       </div>

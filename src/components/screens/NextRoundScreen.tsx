@@ -17,8 +17,11 @@ import {
   ArrowRight,
   Zap,
   Sparkles,
+  Mic,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
+import { VoiceControlsBar } from '../ui/VoiceControlsBar';
+import { useVoice } from '@/context/VoiceContext';
 
 export function NextRoundScreen() {
   const {
@@ -29,6 +32,8 @@ export function NextRoundScreen() {
     startNextRound,
     leaveRoom,
   } = useGame();
+
+  const { isPlayerSpeaking, isPlayerInVoice } = useVoice();
 
   const [copied, setCopied] = useState(false);
 
@@ -112,6 +117,9 @@ export function NextRoundScreen() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Combatants Readiness & Standings (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
+          {/* Voice Chat Pod */}
+          <VoiceControlsBar />
+
           {/* Readiness Section */}
           <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#CECCC5] dark:border-[#363535]">
@@ -139,6 +147,8 @@ export function NextRoundScreen() {
               {room.players.map((player) => {
                 const isCurrent = player.id === currentPlayer.id;
                 const isReady = player.isReady || player.isHost || player.id.startsWith('bot_');
+                const isSpeaking = isPlayerSpeaking(player.id);
+                const inVoice = isPlayerInVoice(player.id);
 
                 return (
                   <div
@@ -150,8 +160,14 @@ export function NextRoundScreen() {
                     }`}
                   >
                     <div className="flex items-center gap-4">
-                      {/* Avatar */}
-                      <div className="relative w-12 h-12 bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] overflow-hidden">
+                      {/* Avatar with speaking pulse ring */}
+                      <div
+                        className={`relative w-12 h-12 bg-[#E5E3DB] dark:bg-[#2A2929] overflow-hidden transition-all duration-150 ${
+                          isSpeaking
+                            ? 'border-2 border-[#4CA471] ring-2 ring-[#4CA471] ring-offset-2 ring-offset-[#FFFDF4] dark:ring-offset-[#100F0F] scale-105'
+                            : 'border border-[#CECCC5] dark:border-[#363535]'
+                        }`}
+                      >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={player.avatarUrl}
@@ -176,6 +192,19 @@ export function NextRoundScreen() {
                           {isCurrent && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-[#23616A]/10 border border-[#23616A]/30 font-nunito font-extrabold text-[12px] text-[#23616A] dark:text-[#6FEEFF] tracking-[0.38px] capitalize">
                               You
+                            </span>
+                          )}
+                          {inVoice && (
+                            <span
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-nunito font-black transition-colors ${
+                                isSpeaking
+                                  ? 'bg-[#4CA471] text-white animate-pulse'
+                                  : 'bg-[#4CA471]/15 text-[#4CA471]'
+                              }`}
+                              title={isSpeaking ? 'Speaking Now' : 'Voice Connected'}
+                            >
+                              <Mic className="w-2.5 h-2.5" />
+                              <span>{isSpeaking ? 'Speaking' : 'Voice'}</span>
                             </span>
                           )}
                         </div>

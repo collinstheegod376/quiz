@@ -80,6 +80,7 @@ export const viewport = {
 
 import { AchievementProvider } from '@/context/AchievementContext';
 import { AchievementToast } from '@/components/ui/AchievementToast';
+import { VoiceProvider } from '@/context/VoiceContext';
 
 export default function RootLayout({
   children,
@@ -109,11 +110,13 @@ export default function RootLayout({
           <ThemeProvider>
             <AchievementProvider>
               <GameProvider>
-                <Navbar />
-                <main className="flex-1 w-full">{children}</main>
-                <MobileNav />
-                <ModalsContainer />
-                <AchievementToast />
+                <VoiceProvider>
+                  <Navbar />
+                  <main className="flex-1 w-full">{children}</main>
+                  <MobileNav />
+                  <ModalsContainer />
+                  <AchievementToast />
+                </VoiceProvider>
               </GameProvider>
             </AchievementProvider>
           </ThemeProvider>
