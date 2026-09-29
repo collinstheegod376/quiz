@@ -13,25 +13,25 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('dark'); // Dark mode by default as requested!
+  const [theme, setThemeState] = useState<Theme>('light');
 
   useEffect(() => {
-    const saved = localStorage.getItem('quiz_arena_theme') as Theme | null;
-    if (saved === 'dark' || saved === 'light') {
-      setThemeState(saved);
-      document.documentElement.classList.toggle('dark', saved === 'dark');
-    } else {
-      // Default to dark mode
-      setThemeState('dark');
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('quiz_arena_theme', 'dark');
-    }
+    // Strictly enforce light mode only for AniZuki
+    setThemeState('light');
+    document.documentElement.classList.remove('dark');
+    localStorage.setItem('quiz_arena_theme', 'light');
   }, []);
 
   const setTheme = (newTheme: Theme) => {
+    // Keep light mode
     setThemeState(newTheme);
-    localStorage.setItem('quiz_arena_theme', newTheme);
-    document.documentElement.classList.toggle('dark', newTheme === 'dark');
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('quiz_arena_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('quiz_arena_theme', 'light');
+    }
   };
 
   const toggleTheme = () => {

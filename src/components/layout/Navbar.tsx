@@ -77,12 +77,13 @@ export function Navbar() {
         <div className="max-w-[1248px] mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <button
+          <Link
+            href="/"
             onClick={() => setCurrentView('landing')}
             className="focus:outline-none shrink-0 cursor-pointer"
           >
             <QuizLogo />
-          </button>
+          </Link>
 
           {/* Desktop: Salmon PIN Join Band */}
           <div className="hidden lg:flex items-center">
@@ -219,7 +220,9 @@ export function Navbar() {
         >
           {/* Drawer Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-[#CECCC5] shrink-0">
-            <QuizLogo />
+            <Link href="/" onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}>
+              <QuizLogo />
+            </Link>
             <button
               type="button"
               onClick={closeMobileMenu}
@@ -313,14 +316,14 @@ export function Navbar() {
               Navigation
             </p>
             <div className="space-y-1">
-              <button
-                type="button"
+              <Link
+                href="/"
                 onClick={() => { setCurrentView('landing'); closeMobileMenu(); }}
                 className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer font-nunito font-bold text-sm"
               >
                 <Home className="w-5 h-5 shrink-0" />
                 <span>Home</span>
-              </button>
+              </Link>
 
               <button
                 type="button"

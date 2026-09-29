@@ -12,19 +12,12 @@ export function MobileJoinBar() {
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pin.trim()) return;
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     const cleanPin = pin.replace(/\s+/g, '').toUpperCase();
-    joinRoom(cleanPin, currentUser.username);
+    const username = currentUser?.username || 'Challenger';
+    joinRoom(cleanPin, username);
   };
 
   const handleInputClick = () => {
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
     setIsJoinModalOpen(true);
   };
 

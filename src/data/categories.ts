@@ -7,7 +7,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Otaku Championship',
     description: 'From classics to hidden gems. Test your knowledge on legendary arcs, power scales, and iconic moments.',
     topicCount: 15,
-    bannerImage: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR5v8aImTlIh60FlNLO18G7LEclN2vkaKhR4pfu5vjkGcQ4s05Mc27gjYfi&s=10', // Official One Piece Anime
+    bannerImage: '/images/topics/one-piece.jpg',
     accentColor: '#DC2626', // Red
   },
   {
@@ -16,7 +16,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Binge-Worthy TV',
     description: 'Test your knowledge on the most iconic TV series of all time, from gripping dramas to sci-fi thrillers.',
     topicCount: 12,
-    bannerImage: 'https://assets.aboutslots.com/uploads/assets/O9e_MD_Nw_Tlect_Link_slot_banner_3b718b315f.jpg', // Official Breaking Bad
+    bannerImage: '/images/topics/breaking-bad.jpg',
     accentColor: '#D97706', // Amber
   },
   {
@@ -25,7 +25,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Cinematic Universe',
     description: 'From Hollywood blockbusters to cult classics. How many directors, characters, and plot twists can you name?',
     topicCount: 12,
-    bannerImage: 'https://image.tmdb.org/t/p/w780/qJ2tW6WMUDux911r6m7haRef0WH.jpg', // Official The Dark Knight
+    bannerImage: '/images/topics/dark-knight.jpg',
     accentColor: '#7C3AED', // Purple
   },
   {
@@ -34,7 +34,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Molecular Intellect',
     description: 'Elements, reactions, stoichiometry, thermodynamics, and molecular bonding.',
     topicCount: 8,
-    bannerImage: 'https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=1200&q=80',
+    bannerImage: '/images/topics/science-lab.jpg',
     accentColor: '#059669', // Emerald
   },
   {
@@ -43,7 +43,7 @@ export const CATEGORIES: Category[] = [
     tagline: 'Cosmic Laws',
     description: 'Mechanics, quantum phenomena, thermodynamics, optics, and astrophysics.',
     topicCount: 8,
-    bannerImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=80',
+    bannerImage: '/images/topics/science-space.jpg',
     accentColor: '#2563EB', // Blue
   },
 ];

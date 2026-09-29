@@ -31,6 +31,8 @@ export function JoinRoomModal() {
     setIsJoining(false);
     if (!result.success) {
       setErrorMsg(result.error || 'Room not found. Verify the 6-character room code.');
+    } else {
+      setIsJoinModalOpen(false);
     }
   };
 

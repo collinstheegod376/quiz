@@ -12,9 +12,12 @@ import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
 import { EntertainmentScreen } from '@/components/screens/EntertainmentScreen';
 
 export default function HomePage() {
-  const { currentView, room, isMatchFinished } = useGame();
+  const { currentView, room, currentPlayer, isMatchFinished } = useGame();
 
-  if (currentView === 'game' && room) {
+  if (currentView === 'game') {
+    if (!room || !currentPlayer) {
+      return <LandingScreen />;
+    }
     if (isMatchFinished || room.status === 'FINAL_RESULTS' || room.status === 'FINISHED') {
       return <FinalResultsScreen />;
     }
@@ -31,6 +34,9 @@ export default function HomePage() {
     case 'difficulty':
       return <DifficultyScreen />;
     case 'lobby':
+      if (!room || !currentPlayer) {
+        return <LandingScreen />;
+      }
       return <LobbyScreen />;
     case 'landing':
     default:

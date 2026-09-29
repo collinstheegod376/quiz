@@ -38,6 +38,7 @@ export function CreateRoomModal() {
     setIsCreating(true);
     try {
       await createRoom(displayName, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
+      setIsCreateModalOpen(false);
     } finally {
       setIsCreating(false);
     }
