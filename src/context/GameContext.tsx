@@ -89,11 +89,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const currentPlayerRef = useRef<Player | null>(null);
+  const roomRef = useRef<Room | null>(null);
+  const currentQuestionRef = useRef<Question | null>(null);
+  const selectedOptionRef = useRef<'A' | 'B' | 'C' | 'D' | null>(null);
+  const answerTimeStartRef = useRef<number>(0);
+  const isTransitioningRef = useRef<boolean>(false);
 
-  // Keep ref in sync so realtime callback always has fresh player
+  // Keep refs in sync so callbacks always have fresh state without re-creating functions
   useEffect(() => {
     currentPlayerRef.current = currentPlayer;
   }, [currentPlayer]);
+
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
+
+  useEffect(() => {
+    selectedOptionRef.current = selectedOption;
+  }, [selectedOption]);
+
+  useEffect(() => {
+    answerTimeStartRef.current = answerTimeStart;
+  }, [answerTimeStart]);
 
   // ─── Supabase Realtime subscription ───────────────────────────────────────
   const subscribeToRoom = useCallback((roomCode: string) => {
@@ -535,35 +552,45 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // ─── Submit Answer ─────────────────────────────────────────────────────────
   const submitAnswer = useCallback(
     async (option: 'A' | 'B' | 'C' | 'D') => {
-      if (!room || !currentPlayer || isAnswerSubmitted || !currentQuestion) return;
+      const currentRoom = roomRef.current;
+      const player = currentPlayerRef.current;
+      const q = currentQuestionRef.current;
+      if (!currentRoom || !player || isAnswerSubmitted || !q) return;
       sound.playClick();
 
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
 
-      const updatedPlayers = room.players.map((p) =>
-        p.id === currentPlayer.id
+      const updatedPlayers = currentRoom.players.map((p) =>
+        p.id === player.id
           ? { ...p, hasAnswered: true, selectedOption: option }
           : p
       );
-      const nextRoom = { ...room, players: updatedPlayers };
-      await saveRoomToSupabase(nextRoom);
+      const nextRoom = { ...currentRoom, players: updatedPlayers };
       setRoom(nextRoom);
-      logActivity(`${currentPlayer.displayName} submitted an answer`, 'answer');
+      saveRoomToSupabase(nextRoom);
+      logActivity(`${player.displayName} submitted an answer`, 'answer');
     },
-    [room, currentPlayer, isAnswerSubmitted, currentQuestion]
+    [isAnswerSubmitted]
   );
 
   // ─── Transition QUESTION → REVEAL ─────────────────────────────────────────
   const handleQuestionEnd = useCallback(async () => {
-    if (!room || !currentQuestion || !currentPlayer) return;
+    const currentRoom = roomRef.current;
+    const player = currentPlayerRef.current;
+    const q = currentQuestionRef.current;
+    const chosenOption = selectedOptionRef.current;
 
-    const chosenOption = selectedOption;
-    const correctOpt = currentQuestion.correctOption || 'A';
+    if (!currentRoom || currentRoom.status !== 'QUESTION' || !q || !player || isTransitioningRef.current) {
+      return;
+    }
+    isTransitioningRef.current = true;
+
+    const correctOpt = q.correctOption || 'A';
     const isCorrect = chosenOption === correctOpt;
 
-    const responseTimeMs = Date.now() - answerTimeStart;
-    const responseSeconds = Math.min(room.timePerQuestion, Math.max(1, responseTimeMs / 1000));
+    const responseTimeMs = Date.now() - answerTimeStartRef.current;
+    const responseSeconds = Math.min(currentRoom.timePerQuestion, Math.max(1, responseTimeMs / 1000));
 
     let pointsAwarded = 0;
     let timeBonus = 0;
@@ -581,11 +608,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     incrementStat('totalAnswers');
     incrementStat('totalScore', pointsAwarded);
 
-    const sortedBefore = [...room.players].sort((a, b) => b.score - a.score);
-    const prevRank = sortedBefore.findIndex((p) => p.id === currentPlayer.id) + 1;
+    const sortedBefore = [...currentRoom.players].sort((a, b) => b.score - a.score);
+    const prevRank = sortedBefore.findIndex((p) => p.id === player.id) + 1;
 
-    const updatedPlayers = room.players.map((p) => {
-      if (p.id === currentPlayer.id) {
+    const updatedPlayers = currentRoom.players.map((p) => {
+      if (p.id === player.id) {
         return {
           ...p,
           score: p.score + pointsAwarded,
@@ -615,7 +642,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
 
     const sortedAfter = [...updatedPlayers].sort((a, b) => b.score - a.score);
-    const newRank = sortedAfter.findIndex((p) => p.id === currentPlayer.id) + 1;
+    const newRank = sortedAfter.findIndex((p) => p.id === player.id) + 1;
 
     const revealResult: AnswerSubmissionResult = {
       isCorrect,
@@ -624,21 +651,26 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       basePoints: isCorrect ? basePoints : 0,
       timeBonus,
       responseTimeMs,
-      explanation: currentQuestion.explanation || 'Accurate recall of official source canon.',
-      newScore: (currentPlayer.score || 0) + pointsAwarded,
+      explanation: q.explanation || 'Accurate recall of official source canon.',
+      newScore: (player.score || 0) + pointsAwarded,
       rank: newRank,
       previousRank: prevRank,
     };
 
     setLastRevealResult(revealResult);
     const updatedRoom: Room = {
-      ...room,
+      ...currentRoom,
       status: 'REVEAL',
       players: updatedPlayers,
     };
-    await saveRoomToSupabase(updatedRoom);
     setRoom(updatedRoom);
-  }, [room, currentQuestion, currentPlayer, selectedOption, answerTimeStart, incrementStat]);
+    saveRoomToSupabase(updatedRoom);
+  }, [incrementStat]);
+
+  // Keep currentQuestionRef synchronized
+  useEffect(() => {
+    currentQuestionRef.current = currentQuestion;
+  }, [currentQuestion]);
 
   // ─── Countdown timer ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -660,49 +692,56 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (prev <= 4 && prev > 1) {
           sound.playTick();
         }
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleQuestionEnd();
+          return 0;
+        }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [room, timerSeconds, handleQuestionEnd]);
+  }, [room?.status, room?.currentQuestionIndex, room?.players, timerSeconds, handleQuestionEnd]);
 
   // ─── State machine: REVEAL → QUESTION / FINAL_RESULTS ─────────────────────
   const advanceToNextState = useCallback(async () => {
-    if (!room) return;
+    const currentRoom = roomRef.current;
+    if (!currentRoom) return;
     sound.playClick();
+    isTransitioningRef.current = false;
 
-    const nextIndex = room.currentQuestionIndex + 1;
-    if (nextIndex >= room.calculatedQuestionCount) {
-      const finalRoom: Room = { ...room, status: 'FINAL_RESULTS' };
-      await saveRoomToSupabase(finalRoom);
+    const nextIndex = currentRoom.currentQuestionIndex + 1;
+    if (nextIndex >= currentRoom.calculatedQuestionCount) {
+      const finalRoom: Room = { ...currentRoom, status: 'FINAL_RESULTS' };
       setRoom(finalRoom);
+      saveRoomToSupabase(finalRoom);
 
       incrementStat('matchesPlayed');
-      const sorted = [...room.players].sort((a, b) => b.score - a.score);
-      if (sorted[0]?.id === currentPlayer?.id) {
+      const sorted = [...currentRoom.players].sort((a, b) => b.score - a.score);
+      if (sorted[0]?.id === currentPlayerRef.current?.id) {
         incrementStat('wins');
       }
     } else {
       const nextQRoom: Room = {
-        ...room,
+        ...currentRoom,
         status: 'QUESTION',
         currentQuestionIndex: nextIndex,
         questionStartedAt: Date.now(),
-        players: room.players.map((p) => ({
+        players: currentRoom.players.map((p) => ({
           ...p,
           hasAnswered: false,
           selectedOption: undefined,
         })),
       };
-      await saveRoomToSupabase(nextQRoom);
       setRoom(nextQRoom);
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
-      setTimerSeconds(room.timePerQuestion || 15);
+      setTimerSeconds(currentRoom.timePerQuestion || 15);
       setAnswerTimeStart(Date.now());
+      saveRoomToSupabase(nextQRoom);
     }
-  }, [room, currentPlayer, incrementStat]);
+  }, [incrementStat]);
 
   const playAgain = async () => {
     if (!room) return;
