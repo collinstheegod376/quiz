@@ -56,3 +56,12 @@
 - Updated `GlobalLeaderboardModal.tsx` to stream live XP rankings and match wins directly from Supabase with Realtime updates.
 - Added loading indicators and async state protection in `AuthModal.tsx`, `SettingsModal.tsx`, `CreateRoomModal.tsx`, and `JoinRoomModal.tsx`.
 - Validated production build with `npx tsc --noEmit` and `npm run build` (all static routes passed without error).
+- Added 150 canonical "Gojo vs Sukuna" questions (`questions_gojo_vs_sukuna.ts`) spanning 10 difficulty tiers with official Jujutsu Kaisen Unlimited Void vs. Malevolent Shrine artwork.
+- Registered "Gojo vs Sukuna" in `topics.ts` under Anime category with 150 question count.
+- Re-architected `GameContext.tsx` to support client-independent, zero-delay question progression eliminating network latency between rounds.
+- Implemented optimistic local answer submissions with instant UI feedback and asynchronous background Supabase score synchronization.
+- Eliminated phantom auto-selection and touch-bleed with a 350ms input protection grace period and automatic focus de-selection (`blur()`) on question transitions.
+- Upgraded `QuestionScreen.tsx` with distinct visual styles for player picks vs. answer reveals (emerald solid for correct pick, red solid for wrong pick, emerald outline for correct answer on timeout).
+- Fixed desktop/PC modal layout in `CreateRoomModal.tsx` and `JoinRoomModal.tsx` with responsive viewport scroll bounds (`max-h-[92vh] overflow-y-auto`) and backdrop dismiss.
+- Added `playWin()` audio synthesizer melody in `sound.ts` for final match conclusions.
+- Verified zero TypeScript and Lint errors across all Next.js App Router routes and pushed to GitHub `main`.
