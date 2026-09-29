@@ -44,6 +44,7 @@ interface GameContextType {
   currentQuestion: Question | null;
   localQuestionIndex: number;
   isLocalReveal: boolean;
+  isMatchFinished: boolean;
   selectedOption: 'A' | 'B' | 'C' | 'D' | null;
   isAnswerSubmitted: boolean;
   submitAnswer: (option: 'A' | 'B' | 'C' | 'D') => void;
@@ -523,11 +524,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setRoom(null);
     setCurrentPlayer(null);
     setGameQuestions([]);
+    setIsMatchFinished(false);
     setCurrentView('landing');
   };
 
   const [localQuestionIndex, setLocalQuestionIndex] = useState<number>(0);
   const [isLocalReveal, setIsLocalReveal] = useState<boolean>(false);
+  const [isMatchFinished, setIsMatchFinished] = useState<boolean>(false);
   const localQuestionIndexRef = useRef<number>(0);
 
   useEffect(() => {
@@ -565,6 +568,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     setLocalQuestionIndex(0);
     setIsLocalReveal(false);
+    setIsMatchFinished(false);
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
     setTimerSeconds(room.timePerQuestion || 15);
@@ -599,14 +603,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     if (nextIdx >= totalCount) {
       // Completed all questions!
+      setIsMatchFinished(true);
       incrementStat('matchesPlayed');
-      setRoom((prev) => (prev ? { ...prev, status: 'FINAL_RESULTS' } : prev));
       sound.playWin();
 
-      // Check if winner
-      const sorted = [...(currentRoom?.players || [])].sort((a, b) => b.score - a.score);
-      if (sorted[0]?.id === currentPlayerRef.current?.id) {
-        incrementStat('wins');
+      if (currentRoom) {
+        const finishedRoom: Room = {
+          ...currentRoom,
+          status: 'FINAL_RESULTS',
+        };
+        setRoom(finishedRoom);
+        saveRoomToSupabase(finishedRoom);
+
+        const sorted = [...currentRoom.players].sort((a, b) => b.score - a.score);
+        if (sorted[0]?.id === currentPlayerRef.current?.id) {
+          incrementStat('wins');
+        }
       }
     } else {
       setLocalQuestionIndex(nextIdx);
@@ -776,7 +788,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
     await saveRoomToSupabase(resetRoom);
     setRoom(resetRoom);
-    setCurrentView('lobby');
+    setIsMatchFinished(false);
     setLastRevealResult(null);
     setSelectedOption(null);
     setIsAnswerSubmitted(false);
@@ -806,6 +818,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         currentQuestion,
         localQuestionIndex,
         isLocalReveal,
+        isMatchFinished,
         selectedOption,
         isAnswerSubmitted,
         submitAnswer,

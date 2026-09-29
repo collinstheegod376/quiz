@@ -15,7 +15,7 @@ import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
 const PROTECTED_VIEWS = ['categories', 'topics', 'difficulty', 'lobby', 'game'];
 
 export default function HomePage() {
-  const { currentView, setCurrentView, room } = useGame();
+  const { currentView, setCurrentView, room, isMatchFinished } = useGame();
   const { isAuthenticated, setIsAuthModalOpen } = useAuth();
 
   // Hard route guard: bounce unauthenticated users back to landing
@@ -32,16 +32,10 @@ export default function HomePage() {
   }
 
   if (currentView === 'game' && room) {
-    switch (room.status) {
-      case 'QUESTION':
-      case 'REVEAL':
-        return <QuestionScreen />;
-      case 'FINAL_RESULTS':
-      case 'FINISHED':
-        return <FinalResultsScreen />;
-      default:
-        return <LobbyScreen />;
+    if (isMatchFinished || room.status === 'FINAL_RESULTS' || room.status === 'FINISHED') {
+      return <FinalResultsScreen />;
     }
+    return <QuestionScreen />;
   }
 
   switch (currentView) {
