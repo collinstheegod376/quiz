@@ -168,7 +168,7 @@ export function NextRoundScreen() {
                             {player.displayName}
                           </span>
                           {player.isHost && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12px] text-[#000000] tracking-[0.38px] capitalize">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                               <Crown className="w-3 h-3 text-[#B9843E]" />
                               Host
                             </span>
@@ -255,7 +255,7 @@ export function NextRoundScreen() {
               <h3 className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
                 Upcoming Round Details
               </h3>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12px] text-[#000000]">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12px] text-[#000000] dark:text-[#FEFEFD]">
                 <Sparkles className="w-3 h-3 text-[#B9843E]" />
                 Level {room.difficultyLevel}
               </span>

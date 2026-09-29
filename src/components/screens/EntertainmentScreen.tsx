@@ -420,7 +420,7 @@ export function EntertainmentScreen() {
               <button
                 type="button"
                 onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-black/80 text-white font-nunito font-black text-xs sm:text-sm rounded-full transition-all cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white hover:bg-black/80 dark:hover:bg-white/90 text-white dark:text-black font-nunito font-black text-xs sm:text-sm rounded-full transition-all cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 <span>Create in Entertainment</span>
@@ -436,8 +436,8 @@ export function EntertainmentScreen() {
                 type="button"
                 onClick={() => setActiveTag(tag)}
                 className={`px-3.5 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm whitespace-nowrap transition-colors cursor-pointer border ${activeTag === tag
-                  ? 'bg-black text-white border-black'
-                  : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white border-[#CECCC5] dark:border-[#363535] hover:bg-black/10'
+                  ? 'bg-black dark:bg-white text-white dark:text-black border-black dark:border-white shadow-sm'
+                  : 'bg-[#E5E3DB] dark:bg-[#2A2929] text-black dark:text-white border-[#CECCC5] dark:border-[#363535] hover:bg-black/10 dark:hover:bg-white/10'
                   }`}
               >
                 {tag}
@@ -566,7 +566,7 @@ export function EntertainmentScreen() {
                   <button
                     type="button"
                     onClick={() => handlePlayQuiz(quiz)}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-black hover:bg-black/80 text-white font-nunito font-bold text-xs rounded-full transition-colors cursor-pointer shadow-sm"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white hover:bg-black/80 dark:hover:bg-white/90 text-white dark:text-black font-nunito font-bold text-xs rounded-full transition-colors cursor-pointer shadow-sm"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
                     <span>Play Solo</span>

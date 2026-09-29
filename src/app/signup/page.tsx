@@ -82,7 +82,7 @@ export default function SignUpPage() {
             {/* Avatar Selector */}
             <div className="flex flex-col items-center gap-2 py-1">
               <div className="relative">
-                <div className="w-16 h-16 rounded-full bg-[#E5E3DB] border-2 border-black overflow-hidden shadow-sm">
+                <div className="w-16 h-16 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-black dark:border-[#363535] overflow-hidden shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`}
@@ -93,19 +93,19 @@ export default function SignUpPage() {
                 <button
                   type="button"
                   onClick={randomizeAvatar}
-                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-black text-white hover:bg-black/80 transition-colors shadow"
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black hover:bg-black/80 dark:hover:bg-white/90 transition-colors shadow"
                   title="Randomize Avatar"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <span className="font-roboto text-[11px] font-bold text-[#595955]">
+              <span className="font-roboto text-[11px] font-bold text-[#595955] dark:text-[#A4A3A3]">
                 Tap icon to shuffle avatar
               </span>
             </div>
 
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black dark:text-white">
                 <User className="w-3.5 h-3.5" />
                 Username
               </label>
@@ -117,12 +117,12 @@ export default function SignUpPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Choose a username (min 3 chars)"
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-black bg-white font-nunito font-bold text-sm text-black placeholder-black/30 focus:outline-none shadow-sm"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-black dark:border-[#363535] bg-white dark:bg-[#100F0F] font-nunito font-bold text-sm text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none shadow-sm"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black dark:text-white">
                 <Lock className="w-3.5 h-3.5" />
                 Password
               </label>
@@ -133,11 +133,11 @@ export default function SignUpPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Choose a password (min 4 chars)"
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-black bg-white font-nunito font-bold text-sm text-black placeholder-black/30 focus:outline-none shadow-sm"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-black dark:border-[#363535] bg-white dark:bg-[#100F0F] font-nunito font-bold text-sm text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none shadow-sm"
               />
             </div>
 
-            <div className="flex items-center gap-2 p-2.5 bg-[#F7F5ED] border border-[#CECCC5] rounded-xl text-[#595955]">
+            <div className="flex items-center gap-2 p-2.5 bg-[#F7F5ED] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] rounded-xl text-[#595955] dark:text-[#A4A3A3]">
               <ShieldCheck className="w-4 h-4 text-[#4CA471] shrink-0" />
               <span className="font-roboto text-xs font-bold">
                 Play on all devices with your username & password.
@@ -157,12 +157,12 @@ export default function SignUpPage() {
           </form>
 
           {/* Footer link */}
-          <div className="text-center pt-2 border-t border-[#CECCC5]">
-            <p className="font-roboto text-xs text-[#595955]">
+          <div className="text-center pt-2 border-t border-[#CECCC5] dark:border-[#363535]">
+            <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3]">
               Already have an account?{' '}
               <Link
                 href="/login"
-                className="font-nunito font-black text-black hover:underline"
+                className="font-nunito font-black text-black dark:text-white hover:underline"
               >
                 Log In here
               </Link>

@@ -72,7 +72,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black dark:text-white">
                 <User className="w-3.5 h-3.5" />
                 Username
               </label>
@@ -82,12 +82,12 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter your username"
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-black bg-white font-nunito font-bold text-sm text-black placeholder-black/30 focus:outline-none shadow-sm"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-black dark:border-[#363535] bg-white dark:bg-[#100F0F] font-nunito font-bold text-sm text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none shadow-sm"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black">
+              <label className="flex items-center gap-1.5 font-nunito font-extrabold text-sm text-black dark:text-white">
                 <Lock className="w-3.5 h-3.5" />
                 Password
               </label>
@@ -97,7 +97,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                className="w-full px-4 py-2.5 rounded-xl border-2 border-black bg-white font-nunito font-bold text-sm text-black placeholder-black/30 focus:outline-none shadow-sm"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-black dark:border-[#363535] bg-white dark:bg-[#100F0F] font-nunito font-bold text-sm text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none shadow-sm"
               />
             </div>
 
@@ -114,12 +114,12 @@ export default function LoginPage() {
           </form>
 
           {/* Footer link */}
-          <div className="text-center pt-2 border-t border-[#CECCC5]">
-            <p className="font-roboto text-xs text-[#595955]">
+          <div className="text-center pt-2 border-t border-[#CECCC5] dark:border-[#363535]">
+            <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3]">
               Don&apos;t have an account?{' '}
               <Link
                 href="/signup"
-                className="font-nunito font-black text-black hover:underline"
+                className="font-nunito font-black text-black dark:text-white hover:underline"
               >
                 Sign Up here
               </Link>

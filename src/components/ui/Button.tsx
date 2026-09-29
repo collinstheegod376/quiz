@@ -34,9 +34,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variants = {
       primary:
-        'bg-[#EBDAC3] hover:bg-[#E5E3DB] text-[#000000] border border-[#000000]/20 dark:border-[#EBDAC3]/30 shadow-sm rounded-full font-black',
+        'bg-[#EBDAC3] hover:bg-[#E5E3DB] text-[#000000] dark:bg-[#B9843E] dark:hover:bg-[#a67433] dark:text-[#FEFEFD] border border-[#000000]/20 dark:border-[#B9843E]/50 shadow-sm rounded-full font-black',
       arena:
-        'bg-[#EBDAC3] hover:bg-[#dfcdb5] text-[#000000] border border-[#000000]/30 shadow-md rounded-full font-black',
+        'bg-[#EBDAC3] hover:bg-[#dfcdb5] text-[#000000] dark:bg-[#B9843E] dark:hover:bg-[#a67433] dark:text-[#FEFEFD] border border-[#000000]/30 dark:border-[#B9843E]/50 shadow-md rounded-full font-black',
       secondary:
         'bg-[#E5E3DB] hover:bg-[#d8d6cd] text-[#000000] dark:bg-[#2A2929] dark:hover:bg-[#363535] dark:text-[#FEFEFD] rounded-full border border-[#CECCC5] dark:border-[#363535]',
       outline:
@@ -44,7 +44,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ghost:
         'bg-transparent hover:bg-[#E5E3DB]/40 dark:hover:bg-[#2A2929]/50 text-[#595955] dark:text-[#A4A3A3] hover:text-[#000000] dark:hover:text-[#FEFEFD] rounded-full',
       danger:
-        'bg-[#FF94AB] hover:bg-[#ff7a97] text-[#000000] shadow-sm rounded-full font-black border border-[#000000]/20',
+        'bg-[#FF94AB] hover:bg-[#ff7a97] text-[#000000] dark:bg-[#E05270] dark:hover:bg-[#d44362] dark:text-[#FEFEFD] shadow-sm rounded-full font-black border border-[#000000]/20 dark:border-[#E05270]/40',
     };
 
     const sizes = {

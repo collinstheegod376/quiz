@@ -118,7 +118,7 @@ export function Navbar() {
             {room && currentPlayer && (
               <button
                 onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-                className="flex items-center gap-1.5 px-3 py-1 bg-black text-white text-xs font-nunito font-bold rounded-full cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1 bg-black dark:bg-[#2A2929] text-white text-xs font-nunito font-bold rounded-full cursor-pointer border border-transparent dark:border-[#363535]"
               >
                 <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
                 <span>{room.code}</span>
@@ -129,7 +129,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setCurrentView('categories')}
-              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] hover:bg-black/10 items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Search quizzes"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -173,17 +173,17 @@ export function Navbar() {
             {currentUser ? (
               <button
                 onClick={() => setIsSettingsModalOpen(true)}
-                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#E5E3DB] hover:bg-black/10 border border-[#CECCC5] cursor-pointer transition-colors"
+                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 border border-[#CECCC5] dark:border-[#363535] cursor-pointer transition-colors"
                 title={`${currentUser.username} (Settings)`}
               >
-                <div className="w-7 h-7 rounded-full overflow-hidden border border-black/30">
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-black/30 dark:border-white/30">
                   <img
                     src={currentUser.avatarUrl}
                     alt={currentUser.username}
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <span className="font-nunito font-extrabold text-xs text-black max-w-[80px] sm:max-w-[100px] truncate">
+                <span className="font-nunito font-extrabold text-xs text-black dark:text-white max-w-[80px] sm:max-w-[100px] truncate">
                   {currentUser.username}
                 </span>
               </button>
@@ -191,13 +191,13 @@ export function Navbar() {
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/login"
-                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm text-black hover:bg-[#E5E3DB] transition-colors cursor-pointer"
+                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-bold text-xs sm:text-sm text-black dark:text-white hover:bg-[#E5E3DB] dark:hover:bg-[#2A2929] transition-colors cursor-pointer"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/signup"
-                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-black text-xs sm:text-sm bg-black hover:bg-black/80 text-white shadow-sm transition-all cursor-pointer"
+                  className="px-3 sm:px-4 py-1.5 rounded-full font-nunito font-black text-xs sm:text-sm bg-black dark:bg-white hover:bg-black/80 dark:hover:bg-white/90 text-white dark:text-black shadow-sm transition-all cursor-pointer"
                 >
                   Sign Up
                 </Link>
@@ -208,7 +208,7 @@ export function Navbar() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden w-9 h-9 rounded-full bg-[#E5E3DB] hover:bg-black/10 flex items-center justify-center text-black transition-colors cursor-pointer border border-[#CECCC5]"
+              className="md:hidden w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 flex items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
@@ -289,21 +289,21 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
-                  <p className="font-nunito font-extrabold text-xs text-[#595955] text-center">
+                  <p className="font-nunito font-extrabold text-xs text-[#595955] dark:text-[#A4A3A3] text-center">
                     Sign in to track scores & compete
                   </p>
                   <div className="grid grid-cols-2 gap-2">
                     <Link
                       href="/login"
                       onClick={closeMobileMenu}
-                      className="w-full py-2 rounded-lg bg-white border border-black/20 text-black font-nunito font-bold text-xs text-center hover:bg-black/5"
+                      className="w-full py-2 rounded-lg bg-white dark:bg-[#1E1D1D] border border-black/20 dark:border-[#363535] text-black dark:text-white font-nunito font-bold text-xs text-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                     >
                       Log In
                     </Link>
                     <Link
                       href="/signup"
                       onClick={closeMobileMenu}
-                      className="w-full py-2 rounded-lg bg-black text-white font-nunito font-black text-xs text-center hover:bg-black/80"
+                      className="w-full py-2 rounded-lg bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs text-center hover:bg-black/80 dark:hover:bg-white/80 transition-colors"
                     >
                       Sign Up
                     </Link>

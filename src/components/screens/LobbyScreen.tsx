@@ -162,8 +162,8 @@ export function LobbyScreen() {
                           {player.displayName}
                         </span>
                         {player.isHost && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
-                            <Crown className="w-3 h-3" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
+                            <Crown className="w-3 h-3 text-[#B9843E]" />
                             Host
                           </span>
                         )}
@@ -240,7 +240,7 @@ export function LobbyScreen() {
               <h3 className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
                 Match Settings
               </h3>
-              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] border border-[#CECCC5] font-nunito font-extrabold text-[12.8px] text-[#000000] tracking-[0.38px] capitalize">
+              <span className="inline-flex items-center px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
                 Authoritative
               </span>
             </div>
