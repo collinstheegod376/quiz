@@ -82,6 +82,7 @@ export interface Room {
   questionStartedAt: number | null; // timestamp ms
   players: Player[];
   questions?: Question[];
+  seenQuestionIds?: string[];
 }
 
 export interface AnswerSubmissionResult {

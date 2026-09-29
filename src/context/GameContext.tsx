@@ -100,6 +100,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const selectedOptionRef = useRef<'A' | 'B' | 'C' | 'D' | null>(null);
   const answerTimeStartRef = useRef<number>(0);
   const isTransitioningRef = useRef<boolean>(false);
+  const sessionSeenQuestionsRef = useRef<Record<string, string[]>>({});
+
+  // Initialize session history from sessionStorage if available
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('quiz_session_seen_questions');
+      if (stored) {
+        sessionSeenQuestionsRef.current = JSON.parse(stored);
+      }
+    } catch {
+      // sessionStorage unavailable
+    }
+  }, []);
+
+  const recordSeenQuestions = useCallback((topicId: string, questionIds: string[]) => {
+    const current = sessionSeenQuestionsRef.current[topicId] || [];
+    const merged = Array.from(new Set([...current, ...questionIds]));
+    sessionSeenQuestionsRef.current[topicId] = merged;
+    try {
+      sessionStorage.setItem('quiz_session_seen_questions', JSON.stringify(sessionSeenQuestionsRef.current));
+    } catch {
+      // ignore
+    }
+    return merged;
+  }, []);
 
   // Keep refs in sync so callbacks always have fresh state without re-creating functions
   useEffect(() => {
@@ -145,6 +170,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           // Sync questions if present
           if (incomingRoom.questions && incomingRoom.questions.length > 0) {
             setGameQuestions(incomingRoom.questions);
+            if (incomingRoom.topicId) {
+              recordSeenQuestions(incomingRoom.topicId, incomingRoom.questions.map((q) => q.id));
+            }
+          }
+          if (incomingRoom.seenQuestionIds && incomingRoom.seenQuestionIds.length > 0 && incomingRoom.topicId) {
+            recordSeenQuestions(incomingRoom.topicId, incomingRoom.seenQuestionIds);
           }
 
           // Auto-switch view when game starts or moves to next round
@@ -372,6 +403,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       currentQuestionIndex: 0,
       questionStartedAt: null,
       players: [hostPlayer],
+      questions: [],
+      seenQuestionIds: sessionSeenQuestionsRef.current[topicId] || [],
     };
 
     setCurrentPlayer(hostPlayer);
@@ -577,8 +610,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const confirmedPlayerCount = room.players.length;
     const calculatedCount = calculateGameLength(confirmedPlayerCount);
 
-    const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount);
+    const sessionSeen = sessionSeenQuestionsRef.current[room.topicId] || [];
+    const roomSeen = room.seenQuestionIds || [];
+    const allExcluded = Array.from(new Set([...sessionSeen, ...roomSeen]));
+
+    const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount, allExcluded);
     setGameQuestions(questions);
+
+    const updatedSeen = recordSeenQuestions(room.topicId, questions.map((q) => q.id));
 
     const updatedRoom: Room = {
       ...room,
@@ -588,6 +627,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       currentQuestionIndex: 0,
       questionStartedAt: Date.now(),
       questions: questions,
+      seenQuestionIds: updatedSeen,
       players: room.players.map((p) => ({
         ...p,
         score: 0,
@@ -874,8 +914,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     const confirmedPlayerCount = room.players.length;
     const calculatedCount = calculateGameLength(confirmedPlayerCount);
-    const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount);
+
+    const sessionSeen = sessionSeenQuestionsRef.current[room.topicId] || [];
+    const roomSeen = room.seenQuestionIds || [];
+    const allExcluded = Array.from(new Set([...sessionSeen, ...roomSeen]));
+
+    const questions = getQuestionsForMatch(room.topicId, room.difficultyLevel, calculatedCount, allExcluded);
     setGameQuestions(questions);
+
+    const updatedSeen = recordSeenQuestions(room.topicId, questions.map((q) => q.id));
 
     const updatedRoom: Room = {
       ...room,
@@ -885,6 +932,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       currentQuestionIndex: 0,
       questionStartedAt: Date.now(),
       questions: questions,
+      seenQuestionIds: updatedSeen,
       players: room.players.map((p) => ({
         ...p,
         hasAnswered: false,
