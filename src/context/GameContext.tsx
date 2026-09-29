@@ -188,6 +188,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setTimerSeconds(room?.timePerQuestion || 15);
       setAnswerTimeStart(Date.now());
       isTransitioningRef.current = false;
+      // Blur any active element to prevent phantom keypress or tap triggers
+      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
     }
   }, [roomStatus, currentQuestionIdx, room?.timePerQuestion]);
 
@@ -708,6 +712,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const player = currentPlayerRef.current;
       const q = currentQuestionRef.current;
       if (!currentRoom || !player || isAnswerSubmitted || !q || currentRoom.status !== 'QUESTION') return;
+
+      // Prevent accidental touch/click bleed from previous screen or rapid taps within first 350ms
+      const elapsedSinceStart = Date.now() - answerTimeStartRef.current;
+      if (elapsedSinceStart < 350) {
+        console.warn('[SubmitAnswer] Ignored tap during initial 350ms grace period to prevent touch bleed.');
+        return;
+      }
 
       sound.playClick();
 
