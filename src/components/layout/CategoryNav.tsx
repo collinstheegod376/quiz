@@ -93,6 +93,16 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     name: 'Achievements',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="8" r="6" />
+        <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+      </svg>
+    ),
+  },
+  {
+    id: 'leaderboard',
+    name: 'Leaderboard',
+    iconSvg: (
+      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
         <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
         <path d="M4 22h16" />
@@ -126,6 +136,8 @@ export function CategoryNav({
       setCurrentView('landing');
     } else if (item.id === 'achievements') {
       setCurrentView('achievements');
+    } else if (item.id === 'leaderboard') {
+      setCurrentView('leaderboard');
     } else if (item.categoryId) {
       setSelectedCategoryId(item.categoryId);
       setCurrentView('topics');
@@ -134,7 +146,7 @@ export function CategoryNav({
 
   return (
     <div className={`w-full overflow-x-auto scrollbar-none py-2 ${className}`}>
-      <div className="flex flex-row items-center justify-center max-w-[800px] mx-auto gap-4 sm:gap-8 md:gap-12 px-2">
+      <div className="flex flex-row items-center justify-center max-w-[900px] mx-auto gap-3 sm:gap-6 md:gap-9 px-2">
         {CATEGORY_NAV_ITEMS.map((item) => {
           const isActive = activeCategory === item.id;
           return (

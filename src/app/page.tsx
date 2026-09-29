@@ -12,6 +12,7 @@ import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
 import { NextRoundScreen } from '@/components/screens/NextRoundScreen';
 import { EntertainmentScreen } from '@/components/screens/EntertainmentScreen';
 import { AchievementsScreen } from '@/components/screens/AchievementsScreen';
+import { LeaderboardScreen } from '@/components/screens/LeaderboardScreen';
 
 export default function HomePage() {
   const { currentView, room, currentPlayer, isMatchFinished } = useGame();
@@ -30,6 +31,8 @@ export default function HomePage() {
   }
 
   switch (currentView) {
+    case 'leaderboard':
+      return <LeaderboardScreen />;
     case 'achievements':
       return <AchievementsScreen />;
     case 'entertainment':

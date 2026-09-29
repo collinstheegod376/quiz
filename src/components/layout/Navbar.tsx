@@ -65,6 +65,8 @@ export function Navbar() {
       setCurrentView('landing');
     } else if (item.id === 'achievements') {
       setCurrentView('achievements');
+    } else if (item.id === 'leaderboard') {
+      setCurrentView('leaderboard');
     } else if (item.categoryId) {
       setSelectedCategoryId(item.categoryId);
       setCurrentView('topics');
@@ -145,14 +147,14 @@ export function Navbar() {
               <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC679]" />
             </button>
 
-            {/* Rankings — desktop only */}
+            {/* Rankings / Leaderboard — desktop only */}
             <button
               type="button"
-              onClick={() => setIsGlobalLeaderboardOpen(true)}
+              onClick={() => setCurrentView('leaderboard')}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
-              title="Rankings"
+              title="Global Leaderboard"
             >
-              <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
+              <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#B9843E] dark:text-[#FFC679]" />
             </button>
 
             {/* Dark / Light Mode Toggle — desktop only */}
