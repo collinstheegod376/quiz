@@ -1,6 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // ─── Security Headers ─────────────────────────────────────────────────────
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          // Prevent the site from being embedded in iframes (clickjacking)
+          { key: 'X-Frame-Options', value: 'DENY' },
+          // Prevent MIME type sniffing
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Restrict referrer info to same-origin only
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Prevent XSS in older browsers
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+          // Restrict sensitive browser features
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), geolocation=(), payment=(), usb=()',
+          },
+        ],
+      },
+    ];
+  },
+
+  // ─── Image Optimization ───────────────────────────────────────────────────
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'm.media-amazon.com' },
@@ -12,7 +38,9 @@ const nextConfig = {
       { protocol: 'https', hostname: 'api.dicebear.com' },
     ],
   },
-  allowedDevOrigins: ['172.20.10.2', 'localhost', '127.0.0.1', 'anizuki.sbs', '*.anizuki.sbs'],
+
+  // ─── Dev Origins (BE-13: removed private network IP) ─────────────────────
+  allowedDevOrigins: ['localhost', '127.0.0.1', 'anizuki.sbs'],
 };
 
 export default nextConfig;

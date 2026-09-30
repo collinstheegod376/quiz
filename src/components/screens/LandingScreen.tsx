@@ -28,7 +28,7 @@ export function LandingScreen() {
         topicId: topic.id,
         title: topic.name,
         imageUrl: topic.imageUrl,
-        rating: 4.8 + Number(((topic.id.length % 3) * 0.1).toFixed(1)),
+        rating: 4.9,
         author: topic.categoryId === 'anime' ? 'OtakuVerse' : topic.categoryId === 'games' ? 'GamerZone' : 'CineVerse',
         difficulty: (topic.questionCount >= 150 ? 'HARD' : 'MEDIUM') as 'HARD' | 'MEDIUM' | 'EASY',
         questionCount: topic.questionCount,

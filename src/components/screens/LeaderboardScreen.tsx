@@ -1,10 +1,23 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import { useAuth, UserAccount } from '@/context/AuthContext';
 import { useAchievements } from '@/context/AchievementContext';
 import { useGame } from '@/context/GameContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
+interface LeaderboardDbRow {
+  username: string;
+  avatar_url?: string;
+  created_at?: string;
+  rooms_created?: number;
+  matches_played?: number;
+  wins?: number;
+  total_score?: number;
+  correct_answers?: number;
+  total_answers?: number;
+}
 import {
   Trophy,
   Crown,
@@ -38,7 +51,7 @@ export function LeaderboardScreen() {
       try {
         const { data, error } = await supabase
           .from('user_profiles')
-          .select('*')
+          .select('username, avatar_url, created_at, rooms_created, matches_played, wins, total_score, correct_answers, total_answers')
           .order('total_score', { ascending: false })
           .limit(100);
 
@@ -46,11 +59,10 @@ export function LeaderboardScreen() {
           console.error('[Leaderboard] Supabase query failed:', error.message);
           setLeaderboardEntries([]);
         } else if (data) {
-          const mapped: UserAccount[] = data.map((row) => ({
+          const mapped: UserAccount[] = (data as unknown as LeaderboardDbRow[]).map((row) => ({
             username: row.username,
-            passwordHash: row.password_hash,
-            avatarUrl: row.avatar_url,
-            createdAt: row.created_at,
+            avatarUrl: row.avatar_url || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${row.username}`,
+            createdAt: row.created_at || new Date().toISOString(),
             stats: {
               roomsCreated: row.rooms_created || 0,
               matchesPlayed: row.matches_played || 0,
@@ -179,10 +191,12 @@ export function LeaderboardScreen() {
         {currentUser && (
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#FFC679]/20 via-[#4CA471]/10 to-transparent dark:from-[#FFC679]/10 dark:via-[#4CA471]/5 border border-[#CECCC5] dark:border-[#363535] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-black dark:border-white shadow-sm shrink-0">
-                <img
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-black dark:border-white shadow-sm shrink-0 relative">
+                <Image
                   src={currentUser.avatarUrl}
                   alt={currentUser.username}
+                  width={48}
+                  height={48}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -243,8 +257,8 @@ export function LeaderboardScreen() {
               {top2 && (
                 <div className="flex flex-col items-center p-3 sm:p-5 rounded-2xl bg-[#E5E3DB]/80 dark:bg-[#1E1D1D] border-2 border-slate-300 dark:border-slate-700 shadow-md transform hover:-translate-y-1 transition-all">
                   <div className="relative mb-2 sm:mb-3">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-slate-400 dark:border-slate-500 shadow-inner">
-                      <img src={top2.avatarUrl} alt={top2.username} className="w-full h-full object-cover" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-slate-400 dark:border-slate-500 shadow-inner relative">
+                      <Image src={top2.avatarUrl} alt={top2.username} width={64} height={64} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-slate-300 dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-[10px] sm:text-xs font-black rounded-full border border-slate-400">
                       #2
@@ -267,8 +281,8 @@ export function LeaderboardScreen() {
                 <div className="flex flex-col items-center p-4 sm:p-6 rounded-2xl bg-gradient-to-b from-[#FFC679]/30 to-[#E5E3DB]/90 dark:from-[#FFC679]/20 dark:to-[#1E1D1D] border-2 border-[#FFC679] shadow-xl relative -mt-4 transform hover:-translate-y-1 transition-all">
                   <Crown className="w-6 h-6 sm:w-8 sm:h-8 text-[#B9843E] dark:text-[#FFC679] absolute -top-4 sm:-top-5 animate-bounce" />
                   <div className="relative mb-2 sm:mb-3 mt-1">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-4 border-[#FFC679] shadow-lg">
-                      <img src={top1.avatarUrl} alt={top1.username} className="w-full h-full object-cover" />
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border-4 border-[#FFC679] shadow-lg relative">
+                      <Image src={top1.avatarUrl} alt={top1.username} width={80} height={80} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 bg-[#FFC679] text-black text-[10px] sm:text-xs font-black rounded-full shadow-md">
                       #1
@@ -290,8 +304,8 @@ export function LeaderboardScreen() {
               {top3 && (
                 <div className="flex flex-col items-center p-3 sm:p-5 rounded-2xl bg-[#E5E3DB]/80 dark:bg-[#1E1D1D] border-2 border-amber-800/40 dark:border-amber-700/50 shadow-md transform hover:-translate-y-1 transition-all">
                   <div className="relative mb-2 sm:mb-3">
-                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-amber-700 dark:border-amber-600 shadow-inner">
-                      <img src={top3.avatarUrl} alt={top3.username} className="w-full h-full object-cover" />
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden border-2 border-amber-700 dark:border-amber-600 shadow-inner relative">
+                      <Image src={top3.avatarUrl} alt={top3.username} width={64} height={64} className="w-full h-full object-cover" />
                     </div>
                     <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-700 text-white text-[10px] sm:text-xs font-black rounded-full border border-amber-800">
                       #3
@@ -318,6 +332,7 @@ export function LeaderboardScreen() {
           <input
             type="text"
             placeholder="Search combatant by username..."
+            aria-label="Search combatant by username"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-full bg-[#E5E3DB] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] text-sm text-black dark:text-white placeholder-[#595955] dark:placeholder-[#A4A3A3] focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all font-nunito"
@@ -393,10 +408,12 @@ export function LeaderboardScreen() {
 
                     {/* Combatant Info */}
                     <div className="col-span-6 sm:col-span-5 flex items-center gap-2.5 sm:gap-3.5 min-w-0">
-                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-black/20 dark:border-white/20 shrink-0">
-                        <img
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-black/20 dark:border-white/20 shrink-0 relative">
+                        <Image
                           src={entry.avatarUrl}
                           alt={entry.username}
+                          width={36}
+                          height={36}
                           className="w-full h-full object-cover"
                         />
                       </div>

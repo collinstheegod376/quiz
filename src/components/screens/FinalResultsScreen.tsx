@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { useGame } from '@/context/GameContext';
 import confetti from 'canvas-confetti';
 import {
@@ -52,7 +53,7 @@ export function FinalResultsScreen() {
         difficultyLevel: room.difficultyLevel,
         totalQuestions: room.calculatedQuestionCount,
         correctAnswers: currentPlayer.correctAnswers,
-        maxStreak: currentPlayer.correctAnswers,
+        maxStreak: currentPlayer.maxStreak ?? (currentPlayer.correctAnswers === room.calculatedQuestionCount ? currentPlayer.correctAnswers : 0),
         fastestAnswerSec: Math.max(0.8, avgSec * 0.6),
         avgResponseSec: avgSec,
         playerRank: myRank > 0 ? myRank : 1,
@@ -110,9 +111,8 @@ export function FinalResultsScreen() {
           {second && (
             <div className="flex flex-col items-center flex-1 max-w-[140px] text-center space-y-2">
               <div className="relative">
-                <div className="w-14 h-14 bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-[#CECCC5] dark:border-[#363535] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={second.avatarUrl} alt={second.displayName} className="w-full h-full object-cover" />
+                <div className="w-14 h-14 bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-[#CECCC5] dark:border-[#363535] overflow-hidden relative">
+                  <Image src={second.avatarUrl} alt={second.displayName} width={56} height={56} className="w-full h-full object-cover" />
                 </div>
                 <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#CECCC5] text-[#000000] flex items-center justify-center font-nunito font-black text-[12px]">
                   2
@@ -135,9 +135,8 @@ export function FinalResultsScreen() {
             <div className="flex flex-col items-center flex-1 max-w-[160px] text-center space-y-2 -mt-6">
               <Crown className="w-8 h-8 text-[#B9843E] fill-[#B9843E] animate-bounce" />
               <div className="relative">
-                <div className="w-16 h-16 bg-[#EBDAC3] border-4 border-[#B9843E] overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={winner.avatarUrl} alt={winner.displayName} className="w-full h-full object-cover" />
+                <div className="w-16 h-16 bg-[#EBDAC3] border-4 border-[#B9843E] overflow-hidden relative">
+                  <Image src={winner.avatarUrl} alt={winner.displayName} width={64} height={64} className="w-full h-full object-cover" />
                 </div>
                 <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-[#B9843E] text-white flex items-center justify-center font-nunito font-black text-[12px]">
                   1
@@ -160,9 +159,8 @@ export function FinalResultsScreen() {
           {third && (
             <div className="flex flex-col items-center flex-1 max-w-[140px] text-center space-y-2">
               <div className="relative">
-                <div className="w-14 h-14 bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-[#B9843E]/50 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={third.avatarUrl} alt={third.displayName} className="w-full h-full object-cover" />
+                <div className="w-14 h-14 bg-[#E5E3DB] dark:bg-[#2A2929] border-2 border-[#B9843E]/50 overflow-hidden relative">
+                  <Image src={third.avatarUrl} alt={third.displayName} width={56} height={56} className="w-full h-full object-cover" />
                 </div>
                 <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#B9843E]/60 text-white flex items-center justify-center font-nunito font-black text-[12px]">
                   3

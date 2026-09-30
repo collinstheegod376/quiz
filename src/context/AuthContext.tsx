@@ -1,11 +1,30 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import bcrypt from 'bcryptjs';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
+// ─── Types ──────────────────────────────────────────────────────────────────
+
+/** Shape of a row returned from the user_profiles table */
+interface UserProfileRow {
+  id: string;
+  username: string;
+  password_hash: string;
+  avatar_url: string;
+  rooms_created: number;
+  matches_played: number;
+  wins: number;
+  total_score: number;
+  correct_answers: number;
+  total_answers: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Public user account — never contains password data */
 export interface UserAccount {
   username: string;
-  passwordHash: string;
   avatarUrl: string;
   createdAt: string;
   stats: {
@@ -45,14 +64,22 @@ interface AuthContextType {
   refreshGlobalStats: () => Promise<void>;
 }
 
+// ─── Constants ───────────────────────────────────────────────────────────────
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 const SESSION_KEY = 'quiz_arena_current_session';
+const BCRYPT_ROUNDS = 10;
+/** Rate limit: max attempts before lockout */
+const MAX_ATTEMPTS = 5;
+/** Lockout duration in milliseconds (60 seconds) */
+const LOCKOUT_MS = 60_000;
 
-function mapRowToAccount(row: any): UserAccount {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Maps a raw Supabase row to a safe UserAccount — never includes password data */
+function mapRowToAccount(row: UserProfileRow): UserAccount {
   return {
     username: row.username,
-    passwordHash: row.password_hash,
     avatarUrl: row.avatar_url || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${row.username}`,
     createdAt: row.created_at || new Date().toISOString(),
     stats: {
@@ -65,6 +92,28 @@ function mapRowToAccount(row: any): UserAccount {
     },
   };
 }
+
+/**
+ * Verify a password against a stored hash using rolling migration:
+ * - If the stored value is a bcrypt hash ($2b$...), use bcrypt.compare()
+ * - If it's a legacy plain-text value, compare directly
+ * Returns { valid, needsRehash } so callers can upgrade legacy passwords.
+ */
+async function verifyPassword(
+  plainPassword: string,
+  storedHash: string
+): Promise<{ valid: boolean; needsRehash: boolean }> {
+  const isBcrypt = storedHash.startsWith('$2b$') || storedHash.startsWith('$2a$');
+  if (isBcrypt) {
+    const valid = await bcrypt.compare(plainPassword, storedHash);
+    return { valid, needsRehash: false };
+  }
+  // Legacy plain-text comparison — flag for rehash
+  const valid = storedHash === plainPassword;
+  return { valid, needsRehash: valid };
+}
+
+// ─── Provider ────────────────────────────────────────────────────────────────
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
@@ -79,60 +128,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     overallAccuracy: 0,
   });
 
+  // ─── Rate limiter state (in-memory, per session) ─────────────────────────
+  const loginAttemptsRef = useRef<{ count: number; lockedUntil: number }>({ count: 0, lockedUntil: 0 });
+  const registerAttemptsRef = useRef<{ count: number; lockedUntil: number }>({ count: 0, lockedUntil: 0 });
+
   const openAuthModal = useCallback((tab: 'login' | 'register' = 'login') => {
     setAuthModalTab(tab);
     setIsAuthModalOpen(true);
   }, []);
 
-  // ─── Refresh Global Stats from Supabase ──────────────────────────────────────
+  // ─── Refresh Global Stats (BE-16: single aggregate query, no full scan) ──
   const refreshGlobalStats = useCallback(async () => {
-    if (!isSupabaseConfigured) {
-      console.warn('[GlobalStats] Supabase is not configured.');
-      return;
-    }
+    if (!isSupabaseConfigured) return;
 
     try {
+      // Use Supabase aggregate functions — returns a single row, not all rows
       const { data, error } = await supabase
         .from('user_profiles')
-        .select('rooms_created, matches_played, wins, total_score, correct_answers, total_answers');
+        .select(
+          `
+          total_players:id.count(),
+          total_rooms:rooms_created.sum(),
+          total_matches:matches_played.sum(),
+          total_correct:correct_answers.sum(),
+          total_answers:total_answers.sum()
+          `
+        )
+        .single();
 
-      if (error) {
-        console.error('[GlobalStats] Supabase query failed:', error.message);
-        return;
-      }
+      if (error || !data) return;
 
-      if (data && data.length > 0) {
-        const totalAnswers = data.reduce((acc, row) => acc + (row.total_answers || 0), 0);
-        const correctAnswers = data.reduce((acc, row) => acc + (row.correct_answers || 0), 0);
-        const computedAccuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
-        const totalMatches = data.reduce((acc, row) => acc + (row.matches_played || 0), 0);
-        const totalRooms = data.reduce((acc, row) => acc + (row.rooms_created || 0), 0);
+      const totalAnswers = (data as unknown as Record<string, number>).total_answers || 0;
+      const totalCorrect = (data as unknown as Record<string, number>).total_correct || 0;
+      const accuracy = totalAnswers > 0 ? Math.round((totalCorrect / totalAnswers) * 100) : 0;
 
-        setGlobalStats({
-          totalRoomsCreated: totalRooms,
-          totalMatchesPlayed: totalMatches,
-          totalPlayersCount: data.length,
-          overallAccuracy: computedAccuracy,
-        });
-      }
-    } catch (e) {
-      console.error('[GlobalStats] Unexpected error:', e);
+      setGlobalStats({
+        totalRoomsCreated: (data as unknown as Record<string, number>).total_rooms || 0,
+        totalMatchesPlayed: (data as unknown as Record<string, number>).total_matches || 0,
+        totalPlayersCount: (data as unknown as Record<string, number>).total_players || 0,
+        overallAccuracy: accuracy,
+      });
+    } catch {
+      // Silently ignore stat aggregation errors — non-critical
     }
   }, []);
 
-  // ─── Initial session load from Supabase ─────────────────────────────────────
+  // ─── Initial session restore ──────────────────────────────────────────────
   useEffect(() => {
     const initAuth = async () => {
       try {
         const savedSession = localStorage.getItem(SESSION_KEY);
-        if (!savedSession) {
-          // Do not force open auth modal on public visit
+        if (!savedSession || !isSupabaseConfigured) {
           await refreshGlobalStats();
-          return;
-        }
-
-        if (!isSupabaseConfigured) {
-          console.error('[Auth] Supabase credentials not found in env!');
           return;
         }
 
@@ -143,15 +190,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .maybeSingle();
 
         if (error) {
-          console.error('[Auth] Supabase fetch session failed:', error.message);
+          console.error('[Auth] Session restore failed:', error.message);
+          await refreshGlobalStats();
           return;
         }
 
         if (data) {
-          const account = mapRowToAccount(data);
-          setCurrentUser(account);
+          setCurrentUser(mapRowToAccount(data as UserProfileRow));
         } else {
-          // Username in session not found in Supabase
           localStorage.removeItem(SESSION_KEY);
         }
 
@@ -164,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [refreshGlobalStats]);
 
-  // ─── Login (Strict Supabase) ────────────────────────────────────────────────
+  // ─── Login (BE-01: rolling bcrypt migration, BE-08: rate limiting) ────────
   const login = async (
     username: string,
     password: string
@@ -178,6 +224,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Supabase is not configured. Check .env.local.' };
     }
 
+    // BE-08: Rate limiting check
+    const attempts = loginAttemptsRef.current;
+    const now = Date.now();
+    if (now < attempts.lockedUntil) {
+      const remaining = Math.ceil((attempts.lockedUntil - now) / 1000);
+      return { success: false, error: `Too many failed attempts. Try again in ${remaining}s.` };
+    }
+
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -186,31 +240,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        console.error('[Login] Supabase error:', error.message);
         return { success: false, error: `Database error: ${error.message}` };
       }
 
       if (!data) {
-        return { success: false, error: `Account "${cleanUser}" does not exist in Supabase. Please register first.` };
+        return { success: false, error: `Account "${cleanUser}" does not exist. Please register first.` };
       }
 
-      if (data.password_hash !== password) {
+      // BE-01: Rolling migration — supports both bcrypt and legacy plain-text passwords
+      const { valid, needsRehash } = await verifyPassword(password, (data as UserProfileRow).password_hash);
+
+      if (!valid) {
+        // Track failed attempts
+        attempts.count += 1;
+        if (attempts.count >= MAX_ATTEMPTS) {
+          attempts.lockedUntil = Date.now() + LOCKOUT_MS;
+          attempts.count = 0;
+          return { success: false, error: `Too many failed attempts. Locked for 60 seconds.` };
+        }
         return { success: false, error: 'Incorrect password.' };
       }
 
-      const account = mapRowToAccount(data);
+      // Reset rate limiter on success
+      attempts.count = 0;
+      attempts.lockedUntil = 0;
+
+      // BE-01 Rolling migration: silently upgrade legacy plain-text password to bcrypt
+      if (needsRehash) {
+        const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        await supabase
+          .from('user_profiles')
+          .update({ password_hash: newHash, updated_at: new Date().toISOString() })
+          .ilike('username', cleanUser);
+      }
+
+      const account = mapRowToAccount(data as UserProfileRow);
       setCurrentUser(account);
       localStorage.setItem(SESSION_KEY, account.username);
       setIsAuthModalOpen(false);
       await refreshGlobalStats();
       return { success: true };
-    } catch (err: any) {
-      console.error('[Login] Connection error:', err);
-      return { success: false, error: `Failed to connect to Supabase: ${err?.message || err}` };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `Failed to connect to Supabase: ${msg}` };
     }
   };
 
-  // ─── Register (Strict Supabase) ─────────────────────────────────────────────
+  // ─── Register (BE-02: bcrypt hash on insert, BE-08: rate limiting) ────────
   const register = async (
     username: string,
     password: string,
@@ -228,10 +304,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Supabase is not configured. Check .env.local.' };
     }
 
+    // BE-08: Rate limiting
+    const attempts = registerAttemptsRef.current;
+    const now = Date.now();
+    if (now < attempts.lockedUntil) {
+      const remaining = Math.ceil((attempts.lockedUntil - now) / 1000);
+      return { success: false, error: `Too many registration attempts. Try again in ${remaining}s.` };
+    }
+
     const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${cleanUser}`;
 
     try {
-      // 1. Check if user already exists in Supabase
       const { data: existing, error: checkError } = await supabase
         .from('user_profiles')
         .select('id')
@@ -239,20 +322,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (checkError) {
-        console.error('[Register] Supabase check error:', checkError.message);
-        return { success: false, error: `Supabase check error: ${checkError.message}` };
+        attempts.count += 1;
+        if (attempts.count >= MAX_ATTEMPTS) {
+          attempts.lockedUntil = Date.now() + LOCKOUT_MS;
+          attempts.count = 0;
+        }
+        return { success: false, error: `Check error: ${checkError.message}` };
       }
 
       if (existing) {
-        return { success: false, error: 'Username is already taken in Supabase. Please log in.' };
+        return { success: false, error: 'Username is already taken. Please log in.' };
       }
 
-      // 2. Insert into user_profiles table in Supabase
+      // BE-02: Hash password before storing — never store plain text
+      const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+
       const { data: inserted, error: insertError } = await supabase
         .from('user_profiles')
         .insert({
           username: cleanUser,
-          password_hash: password,
+          password_hash: hashedPassword,
           avatar_url: finalAvatar,
           rooms_created: 0,
           matches_played: 0,
@@ -265,12 +354,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (insertError) {
-        console.error('[Register] Supabase insert failed:', insertError);
-        return { success: false, error: `Supabase insert failed: ${insertError.message}` };
+        return { success: false, error: `Registration failed: ${insertError.message}` };
       }
 
       if (inserted) {
-        const account = mapRowToAccount(inserted);
+        // Reset rate limiter on success
+        attempts.count = 0;
+        attempts.lockedUntil = 0;
+
+        const account = mapRowToAccount(inserted as UserProfileRow);
         setCurrentUser(account);
         localStorage.setItem(SESSION_KEY, account.username);
         setIsAuthModalOpen(false);
@@ -278,22 +370,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       }
 
-      return { success: false, error: 'Failed to create user profile in Supabase.' };
-    } catch (err: any) {
-      console.error('[Register] Connection error:', err);
-      return { success: false, error: `Supabase registration error: ${err?.message || err}` };
+      return { success: false, error: 'Failed to create user profile.' };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: `Registration error: ${msg}` };
     }
   };
 
-  // ─── Logout ─────────────────────────────────────────────────────────────────
+  // ─── Logout (BE-24: no forced auth modal) ────────────────────────────────
   const logout = () => {
     setCurrentUser(null);
     localStorage.removeItem(SESSION_KEY);
-    setIsAuthModalOpen(true);
+    // Let users browse the public site freely — do NOT force the auth modal
   };
 
-  // ─── Delete Account (Strict Supabase) ───────────────────────────────────────
-  const deleteAccount = async () => {
+  // ─── Delete Account (BE-26: properly async) ───────────────────────────────
+  const deleteAccount = async (): Promise<void> => {
     if (!currentUser) return;
 
     if (isSupabaseConfigured) {
@@ -314,11 +406,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem(SESSION_KEY);
     setCurrentUser(null);
     setIsSettingsModalOpen(false);
-    setIsAuthModalOpen(true);
+    // BE-26: Now properly awaited since deleteAccount is async
     await refreshGlobalStats();
   };
 
-  // ─── Update Profile (Strict Supabase) ───────────────────────────────────────
+  // ─── Update Profile (BE-03: bcrypt hash on password change) ──────────────
   const updateProfile = async (
     newUsername?: string,
     newPassword?: string,
@@ -328,7 +420,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isSupabaseConfigured) return { success: false, error: 'Supabase is not configured' };
 
     const cleanUser = newUsername?.trim();
-    const updates: any = { updated_at: new Date().toISOString() };
+    const updates: Record<string, string> = { updated_at: new Date().toISOString() };
 
     if (cleanUser && cleanUser.toLowerCase() !== currentUser.username.toLowerCase()) {
       const { data: existing } = await supabase
@@ -338,13 +430,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
 
       if (existing) {
-        return { success: false, error: 'Username already taken in Supabase' };
+        return { success: false, error: 'Username already taken' };
       }
       updates.username = cleanUser;
     }
 
     if (newPassword && newPassword.length >= 4) {
-      updates.password_hash = newPassword;
+      // BE-03: Hash the new password before storing
+      updates.password_hash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     }
 
     if (newAvatar) {
@@ -358,25 +451,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .ilike('username', currentUser.username);
 
       if (error) {
-        return { success: false, error: `Supabase update error: ${error.message}` };
+        return { success: false, error: `Update error: ${error.message}` };
       }
 
+      // BE-07: Never store passwordHash in state — only keep safe fields
       const updatedAccount: UserAccount = {
         ...currentUser,
         username: updates.username || currentUser.username,
-        passwordHash: updates.password_hash || currentUser.passwordHash,
         avatarUrl: updates.avatar_url || currentUser.avatarUrl,
       };
 
       localStorage.setItem(SESSION_KEY, updatedAccount.username);
       setCurrentUser(updatedAccount);
       return { success: true };
-    } catch (e: any) {
-      return { success: false, error: `Update failed: ${e?.message || e}` };
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      return { success: false, error: `Update failed: ${msg}` };
     }
   };
 
-  // ─── Increment Stat (Strict Supabase) ───────────────────────────────────────
+  // ─── Increment Stat (BE-17: no refreshGlobalStats on every call) ──────────
   const incrementStat = async (
     statKey: 'roomsCreated' | 'matchesPlayed' | 'wins' | 'totalScore' | 'correctAnswers' | 'totalAnswers',
     amount: number = 1
@@ -393,14 +487,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const newStatValue = (currentUser.stats[statKey] || 0) + amount;
-    const updatedUser: UserAccount = {
+
+    // Optimistic UI update
+    setCurrentUser({
       ...currentUser,
-      stats: {
-        ...currentUser.stats,
-        [statKey]: newStatValue,
-      },
-    };
-    setCurrentUser(updatedUser);
+      stats: { ...currentUser.stats, [statKey]: newStatValue },
+    });
 
     try {
       const dbCol = colMap[statKey];
@@ -418,8 +510,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error('[incrementStat] Supabase error:', e);
     }
-
-    await refreshGlobalStats();
+    // BE-17: Removed refreshGlobalStats() call — no longer triggers full-table
+    // scan on every answer submission. Stats refresh on login/logout only.
   };
 
   return (

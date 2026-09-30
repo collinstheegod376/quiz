@@ -27,10 +27,10 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
     if (isSupabaseConfigured) {
       setIsLoading(true);
       try {
-        // 1. Fetch from Supabase
+        // 1. Fetch from Supabase (only public fields, never password_hash)
         const { data, error } = await supabase
           .from('user_profiles')
-          .select('*')
+          .select('username, avatar_url, created_at, rooms_created, matches_played, wins, total_score, correct_answers, total_answers')
           .order('total_score', { ascending: false })
           .limit(50);
 
@@ -42,9 +42,8 @@ export function GlobalLeaderboardModal({ isOpen, onClose }: GlobalLeaderboardMod
         }
 
         if (data) {
-          const mapped: UserAccount[] = data.map((row) => ({
+          const mapped: UserAccount[] = data.map((row: any) => ({
             username: row.username,
-            passwordHash: row.password_hash,
             avatarUrl: row.avatar_url,
             createdAt: row.created_at,
             stats: {

@@ -101,6 +101,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const answerTimeStartRef = useRef<number>(0);
   const isTransitioningRef = useRef<boolean>(false);
   const sessionSeenQuestionsRef = useRef<Record<string, string[]>>({});
+  // FE-14: store setTimeout handle so it can be cleared on unmount
+  const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initialize session history from sessionStorage if available
   useEffect(() => {
@@ -164,7 +166,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           filter: `code=eq.${roomCode}`,
         },
         (payload) => {
-          const incomingRoom = (payload.new as any)?.state as Room | undefined;
+          // FE-13: typed properly — no `as any`
+          const incomingRoom = (payload.new as { state?: Room })?.state;
           if (!incomingRoom) return;
 
           // Sync questions if present
@@ -205,9 +208,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           }
         }
       )
-      .subscribe((status) => {
-        console.log(`[Realtime] Channel room:${roomCode} status:`, status);
-      });
+      .subscribe();
 
     realtimeChannelRef.current = channel;
   }, []);
@@ -217,6 +218,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => {
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current);
+      }
+      // FE-14: clear any pending reveal→advance timeout on unmount
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
       }
     };
   }, []);
@@ -355,7 +360,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // ─── Activity logger ───────────────────────────────────────────────────────
   const logActivity = (text: string, type: RoomActivityLog['type'] = 'system') => {
     const newLog: RoomActivityLog = {
-      id: Math.random().toString(36).substring(2, 9),
+      id: crypto.randomUUID(),
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       text,
       type,
@@ -373,7 +378,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   ) => {
     sound.playClick();
     const finalName = displayName.trim() || currentUser?.username || 'HostPlayer';
-    const playerId = 'host_' + Math.random().toString(36).substring(2, 9);
+    const playerId = 'host_' + crypto.randomUUID();
     const hostPlayer: Player = {
       id: playerId,
       userId: playerId,
@@ -389,7 +394,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     const roomCode = generateRoomCode();
     const newRoom: Room = {
-      id: 'room_' + Math.random().toString(36).substring(2, 9),
+      id: 'room_' + crypto.randomUUID(),
       code: roomCode,
       hostId: playerId,
       categoryId: selectedCategoryId,
@@ -466,7 +471,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
-      const playerId = 'p_' + Math.random().toString(36).substring(2, 9);
+      const playerId = 'p_' + crypto.randomUUID();
       const joinedPlayer: Player = {
         id: playerId,
         userId: playerId,
@@ -514,7 +519,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const availableNames = botNames.filter((n) => !room.players.some((p) => p.displayName === n));
     const chosenName = availableNames[0] || `Challenger_${room.players.length + 1}`;
 
-    const botId = 'bot_' + Math.random().toString(36).substring(2, 9);
+    const botId = 'bot_' + crypto.randomUUID();
     const botPlayer: Player = {
       id: botId,
       userId: botId,
@@ -740,6 +745,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       }
       incrementStat('totalAnswers');
 
+      const streak = isCorrect ? (player.streak || 0) + 1 : 0;
+      const maxStreak = Math.max(player.maxStreak || 0, streak);
+
       const updatedPlayer: Player = {
         ...player,
         hasAnswered: true,
@@ -747,6 +755,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         score: player.score + pointsAwarded,
         correctAnswers: player.correctAnswers + (isCorrect ? 1 : 0),
         totalResponseTimeMs: player.totalResponseTimeMs + responseTimeMs,
+        streak,
+        maxStreak,
       };
 
       setCurrentPlayer(updatedPlayer);
@@ -761,7 +771,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       saveRoomToSupabase(nextRoom);
 
       // 700ms crisp micro-reveal then zero-delay jump to next question
-      setTimeout(() => {
+      // FE-14: store handle so it can be cleared on unmount
+      if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+      submitTimeoutRef.current = setTimeout(() => {
         advanceLocalQuestion();
       }, 700);
     },
@@ -771,19 +783,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   // ─── Local Question Countdown Timer ────────────────────────────────────────
   useEffect(() => {
     if (!room || (room.status !== 'QUESTION' && room.status !== 'REVEAL') || isLocalReveal) return;
-
-    if (timerSeconds <= 0) {
-      // Time ran out on this question
-      setIsAnswerSubmitted(true);
-      setIsLocalReveal(true);
-      sound.playIncorrect();
-      incrementStat('totalAnswers');
-
-      setTimeout(() => {
-        advanceLocalQuestion();
-      }, 700);
-      return;
-    }
 
     const timer = setInterval(() => {
       setTimerSeconds((prev) => {
@@ -796,7 +795,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setIsLocalReveal(true);
           sound.playIncorrect();
           incrementStat('totalAnswers');
-          setTimeout(() => {
+          if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+          submitTimeoutRef.current = setTimeout(() => {
             advanceLocalQuestion();
           }, 700);
           return 0;
@@ -806,7 +806,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [room?.status, localQuestionIndex, timerSeconds, isLocalReveal, advanceLocalQuestion, incrementStat]);
+  }, [room?.status, localQuestionIndex, isLocalReveal, advanceLocalQuestion, incrementStat]);
 
   // ─── Simulated Rivals / Bots Progression (Host Only) ───────────────────────
   useEffect(() => {

@@ -88,6 +88,13 @@ export function VoiceControlsBar() {
           </div>
         )}
 
+        {/* Accessibility live region for voice status */}
+        <div className="sr-only" aria-live="polite">
+          {isVoiceJoined
+            ? `Connected to voice chat with ${totalInVoice} speaker${totalInVoice === 1 ? '' : 's'}`
+            : 'Voice chat disconnected'}
+        </div>
+
         {!isVoiceJoined ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="text-xs text-[#595955] dark:text-[#A4A3A3] font-roboto">
@@ -98,6 +105,7 @@ export function VoiceControlsBar() {
               type="button"
               onClick={joinVoice}
               disabled={isConnecting}
+              aria-label="Connect to voice chat"
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#4CA471] hover:bg-[#439364] active:scale-95 text-white font-nunito font-black text-xs sm:text-sm rounded-full transition-all cursor-pointer shadow-md disabled:opacity-50 shrink-0"
             >
               {isConnecting ? (
@@ -144,6 +152,8 @@ export function VoiceControlsBar() {
                 <button
                   type="button"
                   onClick={toggleMute}
+                  aria-pressed={isMicMuted}
+                  aria-label={isMicMuted ? 'Unmute microphone' : 'Mute microphone'}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-nunito font-extrabold text-xs transition-all cursor-pointer border ${
                     isMicMuted
                       ? 'bg-red-600 hover:bg-red-700 text-white border-red-700 shadow-sm'
@@ -168,6 +178,8 @@ export function VoiceControlsBar() {
                 <button
                   type="button"
                   onClick={toggleDeafen}
+                  aria-pressed={isDeafened}
+                  aria-label={isDeafened ? 'Undeafen audio' : 'Deafen audio'}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-nunito font-extrabold text-xs transition-all cursor-pointer border ${
                     isDeafened
                       ? 'bg-amber-600 hover:bg-amber-700 text-white border-amber-700 shadow-sm'
@@ -193,6 +205,7 @@ export function VoiceControlsBar() {
               <button
                 type="button"
                 onClick={leaveVoice}
+                aria-label="Disconnect from voice chat"
                 className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full font-nunito font-bold text-xs bg-[#FF94AB]/15 hover:bg-[#FF94AB]/25 text-red-600 dark:text-red-400 border border-[#FF94AB]/40 transition-colors cursor-pointer"
               >
                 <PhoneOff className="w-3.5 h-3.5" />

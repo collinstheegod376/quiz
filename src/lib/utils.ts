@@ -7,11 +7,11 @@ export function cn(...inputs: ClassValue[]) {
 
 export function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  const randomBytes = new Uint8Array(6);
+  crypto.getRandomValues(randomBytes);
+  return Array.from(randomBytes)
+    .map((byte) => chars[byte % chars.length])
+    .join('');
 }
 
 export function formatTime(seconds: number): string {

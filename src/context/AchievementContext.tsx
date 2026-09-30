@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Achievement, UserAchievementState } from '@/types/achievement';
 import { ACHIEVEMENTS } from '@/data/achievements';
 import { sound } from '@/lib/sound';
@@ -45,6 +45,10 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   const [activeToast, setActiveToast] = useState<Achievement | null>(null);
 
+  const userStatesRef = useRef<Record<string, UserAchievementState>>({});
+  userStatesRef.current = userStates;
+  const isInitialMount = useRef(true);
+
   // Load from localStorage on mount
   useEffect(() => {
     try {
@@ -57,15 +61,18 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
     }
   }, []);
 
-  // Save to localStorage whenever userStates update
-  const persistStates = useCallback((states: Record<string, UserAchievementState>) => {
-    setUserStates(states);
+  // FE-12: Save to localStorage in useEffect instead of impure state updaters
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(states));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(userStates));
     } catch (e) {
       console.error('[Achievements] Failed to save to storage:', e);
     }
-  }, []);
+  }, [userStates]);
 
   const triggerCelebration = useCallback((achievement: Achievement) => {
     sound.playAchievement();
@@ -114,11 +121,12 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
     (id: string) => {
       const def = ACHIEVEMENTS.find((a) => a.id === id);
       if (!def) return;
+      if (userStatesRef.current[id]?.unlocked) return; // already unlocked
 
+      triggerCelebration(def);
       setUserStates((prev) => {
-        if (prev[id]?.unlocked) return prev; // already unlocked
-
-        const next = {
+        if (prev[id]?.unlocked) return prev;
+        return {
           ...prev,
           [id]: {
             unlocked: true,
@@ -126,13 +134,6 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
             progress: def.target,
           },
         };
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
-        triggerCelebration(def);
-        return next;
       });
     },
     [triggerCelebration]
@@ -143,30 +144,31 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
       const def = ACHIEVEMENTS.find((a) => a.id === id);
       if (!def) return;
 
+      const current = userStatesRef.current[id] || { unlocked: false, progress: 0 };
+      if (current.unlocked) return;
+
+      const newProg = isDelta ? current.progress + value : Math.max(current.progress, value);
+      const didUnlock = newProg >= def.target;
+
+      if (didUnlock) {
+        triggerCelebration(def);
+      }
+
       setUserStates((prev) => {
-        const current = prev[id] || { unlocked: false, progress: 0 };
-        if (current.unlocked) return prev;
+        const cur = prev[id] || { unlocked: false, progress: 0 };
+        if (cur.unlocked) return prev;
 
-        const newProg = isDelta ? current.progress + value : Math.max(current.progress, value);
-        const didUnlock = newProg >= def.target;
+        const calculatedProg = isDelta ? cur.progress + value : Math.max(cur.progress, value);
+        const unlocked = calculatedProg >= def.target;
 
-        const next = {
+        return {
           ...prev,
           [id]: {
-            unlocked: didUnlock,
-            unlockedAt: didUnlock ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
-            progress: Math.min(newProg, def.target),
+            unlocked,
+            unlockedAt: unlocked ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
+            progress: Math.min(calculatedProg, def.target),
           },
         };
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        } catch {
-          // ignore
-        }
-        if (didUnlock) {
-          triggerCelebration(def);
-        }
-        return next;
       });
     },
     [triggerCelebration]

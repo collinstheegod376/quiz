@@ -64,6 +64,8 @@ export interface Player {
   isOnline: boolean;
   selectedOption?: 'A' | 'B' | 'C' | 'D';
   hasAnswered?: boolean;
+  streak?: number;
+  maxStreak?: number;
 }
 
 export interface Room {

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -148,6 +149,7 @@ export function Navbar() {
               onClick={() => setCurrentView('categories')}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Search quizzes"
+              aria-label="Search quizzes"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -158,6 +160,7 @@ export function Navbar() {
               onClick={() => setCurrentView('achievements')}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Achievements"
+              aria-label="View achievements"
             >
               <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC679]" />
             </button>
@@ -168,6 +171,7 @@ export function Navbar() {
               onClick={() => setCurrentView('leaderboard')}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Global Leaderboard"
+              aria-label="View global leaderboard"
             >
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#B9843E] dark:text-[#FFC679]" />
             </button>
@@ -178,6 +182,7 @@ export function Navbar() {
               onClick={toggleTheme}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {theme === 'dark' ? (
                 <Sun className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
@@ -189,14 +194,18 @@ export function Navbar() {
             {/* User Profile or Clear Log In / Sign Up buttons */}
             {currentUser ? (
               <button
+                type="button"
                 onClick={() => setIsSettingsModalOpen(true)}
                 className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 border border-[#CECCC5] dark:border-[#363535] cursor-pointer transition-colors"
                 title={`${currentUser.username} (Settings)`}
+                aria-label={`${currentUser.username}'s account settings`}
               >
-                <div className="w-7 h-7 rounded-full overflow-hidden border border-black/30 dark:border-white/30">
-                  <img
+                <div className="w-7 h-7 rounded-full overflow-hidden border border-black/30 dark:border-white/30 relative">
+                  <Image
                     src={currentUser.avatarUrl}
                     alt={currentUser.username}
+                    width={28}
+                    height={28}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -251,6 +260,12 @@ export function Navbar() {
       >
         {/* Backdrop */}
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Close menu"
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' || e.key === 'Enter') closeMobileMenu();
+          }}
           className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${
             mobileMenuOpen ? 'opacity-100' : 'opacity-0'
           }`}
@@ -274,6 +289,7 @@ export function Navbar() {
                 onClick={toggleTheme}
                 className="w-9 h-9 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] flex items-center justify-center cursor-pointer hover:bg-black/10 dark:hover:bg-white/10 transition-colors border border-[#CECCC5] dark:border-[#363535]"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {theme === 'dark' ? (
                   <Sun className="w-4 h-4 text-amber-400" />
@@ -299,18 +315,26 @@ export function Navbar() {
             <div className="p-3 mb-4 rounded-xl bg-[#E5E3DB] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
               {currentUser ? (
                 <div className="flex items-center justify-between">
-                  <div
-                    className="flex items-center gap-2.5 cursor-pointer"
+                  <button
+                    type="button"
+                    className="flex items-center gap-2.5 cursor-pointer text-left bg-transparent border-0 p-0 focus:outline-none"
                     onClick={() => { setIsSettingsModalOpen(true); closeMobileMenu(); }}
+                    aria-label={`${currentUser.username}'s account settings`}
                   >
-                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black dark:border-white">
-                      <img src={currentUser.avatarUrl} alt={currentUser.username} className="w-full h-full object-cover" />
+                    <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-black dark:border-white relative shrink-0">
+                      <Image
+                        src={currentUser.avatarUrl}
+                        alt={currentUser.username}
+                        width={36}
+                        height={36}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div>
                       <p className="font-nunito font-extrabold text-sm text-black dark:text-white">{currentUser.username}</p>
                       <p className="text-[11px] text-[#595955] dark:text-[#A4A3A3]">Account Settings</p>
                     </div>
-                  </div>
+                  </button>
                   <button
                     onClick={() => { logout(); closeMobileMenu(); }}
                     className="text-xs font-nunito font-bold text-red-600 hover:underline px-2 py-1"
