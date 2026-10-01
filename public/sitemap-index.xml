@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Core Landing Pages Sitemap -->
+  <sitemap>
+    <loc>https://anizuki.sbs/sitemap-pages.xml</loc>
+    <lastmod>2026-10-01</lastmod>
+  </sitemap>
+
+  <!-- Quiz Category Hubs Sitemap -->
+  <sitemap>
+    <loc>https://anizuki.sbs/sitemap-categories.xml</loc>
+    <lastmod>2026-10-01</lastmod>
+  </sitemap>
+
+  <!-- Public Quiz Topics Sitemap -->
+  <sitemap>
+    <loc>https://anizuki.sbs/sitemap-topics.xml</loc>
+    <lastmod>2026-10-01</lastmod>
+  </sitemap>
+
+  <!-- Google Image Search Media Sitemap -->
+  <sitemap>
+    <loc>https://anizuki.sbs/sitemap-images.xml</loc>
+    <lastmod>2026-10-01</lastmod>
+  </sitemap>
+</sitemapindex>
