@@ -54,3 +54,4 @@ Disallow: /scratch/
 
 # ── 4. Dynamic XML Sitemap Reference ──
 Sitemap: https://anizuki.sbs/sitemap.xml
+Sitemap: https://anizuki.sbs/sitemap-index.xml
