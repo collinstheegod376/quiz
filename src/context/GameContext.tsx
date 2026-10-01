@@ -10,7 +10,13 @@ import {
   RoomActivityLog,
 } from '@/types/quiz';
 import { getQuestionsForMatch } from '@/data/questions';
-import { calculateGameLength, generateRoomCode } from '@/lib/utils';
+import {
+  calculateGameLength,
+  generateRoomCode,
+  calculateQuestionXp,
+  validateAnswerOption,
+  sortPlayersFairly,
+} from '@/lib/utils';
 import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -70,7 +76,7 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const { currentUser, incrementStat } = useAuth();
+  const { currentUser, incrementStat, incrementStats } = useAuth();
 
   const [currentView, setCurrentView] = useState<AppView>('landing');
   const [selectedCategoryId, setSelectedCategoryId] = useState<CategoryId>('anime');
@@ -103,6 +109,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const sessionSeenQuestionsRef = useRef<Record<string, string[]>>({});
   // FE-14: store setTimeout handle so it can be cleared on unmount
   const submitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Race-safe refs: submitAnswer and the countdown timer both read these to guard each other
+  const isAnswerSubmittedRef = useRef<boolean>(false);
+  const isLocalRevealRef = useRef<boolean>(false);
+  // Ref for the countdown interval so it can be cleared from inside a state updater safely
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const botAnsweredIndexRef = useRef<Record<string, number>>({});
+  const botTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   // Initialize session history from sessionStorage if available
   useEffect(() => {
@@ -232,18 +245,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (roomStatus === 'QUESTION') {
+      // Reset refs immediately so submitAnswer / countdown timer guard correctly
+      isAnswerSubmittedRef.current = false;
+      isLocalRevealRef.current = false;
+      isTransitioningRef.current = false;
+      // Cancel any pending submit timeout from the previous question
+      if (submitTimeoutRef.current) {
+        clearTimeout(submitTimeoutRef.current);
+        submitTimeoutRef.current = null;
+      }
+      // Cancel any lingering countdown from the previous question
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+      }
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
       setIsLocalReveal(false);
       setIsMatchFinished(false);
       setTimerSeconds(room?.timePerQuestion || 15);
       setAnswerTimeStart(Date.now());
-      isTransitioningRef.current = false;
       // Blur any active element to prevent phantom keypress or tap triggers
       if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
     } else if (roomStatus === 'NEXT_ROUND') {
+      isAnswerSubmittedRef.current = false;
+      isLocalRevealRef.current = false;
       setIsMatchFinished(false);
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
@@ -643,6 +671,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       })),
     };
 
+    botAnsweredIndexRef.current = {};
     setLocalQuestionIndex(0);
     setIsLocalReveal(false);
     setIsMatchFinished(false);
@@ -692,12 +721,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setRoom(finishedRoom);
         saveRoomToSupabase(finishedRoom);
 
-        const sorted = [...currentRoom.players].sort((a, b) => b.score - a.score);
+        const sorted = sortPlayersFairly(currentRoom.players);
         if (sorted[0]?.id === currentPlayerRef.current?.id) {
           incrementStat('wins');
         }
       }
     } else {
+      // Reset refs synchronously so the new question's guards are live before
+      // React re-renders (prevents a tap landing during the state-flush window)
+      isAnswerSubmittedRef.current = false;
+      isLocalRevealRef.current = false;
       setLocalQuestionIndex(nextIdx);
       setSelectedOption(null);
       setIsAnswerSubmitted(false);
@@ -716,46 +749,61 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const currentRoom = roomRef.current;
       const player = currentPlayerRef.current;
       const q = currentQuestionRef.current;
-      if (!currentRoom || !player || isAnswerSubmitted || !q || isLocalReveal) return;
+      // Bug fix 1: read from refs (not stale closure state) to guard against the
+      // tap-vs-timer-expiry race condition.
+      if (!currentRoom || !player || isAnswerSubmittedRef.current || !q || isLocalRevealRef.current) return;
 
       // 300ms tap bleed protection
       const elapsed = Date.now() - answerTimeStartRef.current;
       if (elapsed < 300) return;
 
+      // Bug fix 2: flip refs synchronously BEFORE any async work so the countdown
+      // timer interval sees the lock on its very next tick.
+      isAnswerSubmittedRef.current = true;
+      isLocalRevealRef.current = true;
+
       setSelectedOption(option);
       setIsAnswerSubmitted(true);
       setIsLocalReveal(true);
 
-      const correctOpt = q.correctOption || 'A';
-      const isCorrect = option === correctOpt;
+      // Validate answer securely against canonical correctOption
+      const validation = validateAnswerOption(option, q.correctOption);
+      const isCorrect = validation.isCorrect;
       const responseTimeMs = Math.max(50, elapsed);
-      const responseSeconds = Math.min(currentRoom.timePerQuestion || 15, Math.max(0.5, responseTimeMs / 1000));
 
-      let pointsAwarded = 0;
-      let timeBonus = 0;
-      const basePoints = 1000;
+      // Calculate XP with normalized time decay, streak combo, and difficulty scalar
+      const xpResult = calculateQuestionXp({
+        isCorrect,
+        responseTimeMs,
+        timePerQuestion: currentRoom.timePerQuestion || 15,
+        streak: player.streak || 0,
+        difficultyLevel: currentRoom.difficultyLevel || 1,
+      });
 
       if (isCorrect) {
         sound.playCorrect();
-        incrementStat('correctAnswers');
-        timeBonus = Math.max(0, Math.floor(500 - responseSeconds * 20));
-        pointsAwarded = basePoints + timeBonus;
+        incrementStats({
+          correctAnswers: 1,
+          totalScore: xpResult.pointsAwarded,
+          totalAnswers: 1,
+        });
       } else {
         sound.playIncorrect();
+        incrementStats({
+          totalAnswers: 1,
+        });
       }
-      incrementStat('totalAnswers');
 
-      const streak = isCorrect ? (player.streak || 0) + 1 : 0;
-      const maxStreak = Math.max(player.maxStreak || 0, streak);
+      const maxStreak = Math.max(player.maxStreak || 0, xpResult.newStreak);
 
       const updatedPlayer: Player = {
         ...player,
         hasAnswered: true,
         selectedOption: option,
-        score: player.score + pointsAwarded,
+        score: player.score + xpResult.pointsAwarded,
         correctAnswers: player.correctAnswers + (isCorrect ? 1 : 0),
         totalResponseTimeMs: player.totalResponseTimeMs + responseTimeMs,
-        streak,
+        streak: xpResult.newStreak,
         maxStreak,
       };
 
@@ -777,72 +825,129 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         advanceLocalQuestion();
       }, 700);
     },
-    [isAnswerSubmitted, isLocalReveal, incrementStat, advanceLocalQuestion]
+    [incrementStats, advanceLocalQuestion]
   );
 
   // ─── Local Question Countdown Timer ────────────────────────────────────────
   useEffect(() => {
     if (!room || (room.status !== 'QUESTION' && room.status !== 'REVEAL') || isLocalReveal) return;
 
-    const timer = setInterval(() => {
+    // Bug fix 3: store the interval ID in a ref so it can be reliably cleared
+    // from inside the setTimerSeconds functional updater (where the local `timer`
+    // variable from the closure cannot be safely captured in Concurrent Mode).
+    const id = setInterval(() => {
       setTimerSeconds((prev) => {
         if (prev <= 4 && prev > 1) {
           sound.playTick();
         }
         if (prev <= 1) {
-          clearInterval(timer);
-          setIsAnswerSubmitted(true);
-          setIsLocalReveal(true);
-          sound.playIncorrect();
-          incrementStat('totalAnswers');
-          if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
-          submitTimeoutRef.current = setTimeout(() => {
-            advanceLocalQuestion();
-          }, 700);
+          // Bug fix 3: clear via ref, not via the local `id` closure inside a state updater
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          // Bug fix 4: only count totalAnswers on timeout if the player hasn't
+          // already answered (prevents double-count when a tap and the timer fire together)
+          if (!isAnswerSubmittedRef.current) {
+            isAnswerSubmittedRef.current = true;
+            isLocalRevealRef.current = true;
+            setIsAnswerSubmitted(true);
+            setIsLocalReveal(true);
+            sound.playIncorrect();
+            incrementStat('totalAnswers');
+            if (submitTimeoutRef.current) clearTimeout(submitTimeoutRef.current);
+            submitTimeoutRef.current = setTimeout(() => {
+              advanceLocalQuestion();
+            }, 700);
+          }
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
+    countdownTimerRef.current = id;
 
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(id);
+      countdownTimerRef.current = null;
+    };
   }, [room?.status, localQuestionIndex, isLocalReveal, advanceLocalQuestion, incrementStat]);
 
-  // ─── Simulated Rivals / Bots Progression (Host Only) ───────────────────────
+  // ─── Simulated Rivals / Bots Progression (Host Only, Anchored Per Question) ───
   useEffect(() => {
+    // Clear any previous scheduled bot timeouts when question changes or leaves QUESTION state
+    botTimeoutsRef.current.forEach((t) => clearTimeout(t));
+    botTimeoutsRef.current = [];
+
     if (!room || room.status !== 'QUESTION' || !currentPlayer?.isHost) return;
 
     const bots = room.players.filter((p) => p.id.startsWith('bot_'));
     if (bots.length === 0) return;
 
-    const interval = setInterval(() => {
-      setRoom((prev) => {
-        if (!prev || prev.status !== 'QUESTION') return prev;
-        const updatedPlayers = prev.players.map((p) => {
-          if (p.id.startsWith('bot_') && Math.random() > 0.4) {
-            const isBotCorrect = Math.random() > 0.35;
-            const botPoints = isBotCorrect ? 1000 + Math.floor(Math.random() * 400) : 0;
-            return {
-              ...p,
-              score: p.score + botPoints,
-              correctAnswers: p.correctAnswers + (isBotCorrect ? 1 : 0),
-            };
-          }
-          return p;
+    const currentQIdx = localQuestionIndex;
+    const timeLimitSec = room.timePerQuestion || 15;
+    const diffLevel = room.difficultyLevel || 1;
+
+    bots.forEach((bot) => {
+      // Ensure each bot answers at most once per question index
+      if (botAnsweredIndexRef.current[bot.id] === currentQIdx) return;
+      botAnsweredIndexRef.current[bot.id] = currentQIdx;
+
+      // Realistic human-like delay: between 2.0s and (timeLimitSec * 0.75)s
+      const delayMs = Math.floor(2000 + Math.random() * Math.max(1000, (timeLimitSec * 0.75 - 2) * 1000));
+
+      const timerId = setTimeout(() => {
+        setRoom((prev) => {
+          if (!prev || prev.status !== 'QUESTION') return prev;
+
+          // Fair accuracy curve: 70% base accuracy slightly calibrated by difficulty level
+          const accuracyChance = Math.max(0.40, Math.min(0.75, 0.75 - (diffLevel - 1) * 0.025));
+          const isBotCorrect = Math.random() < accuracyChance;
+
+          const responseTimeMs = delayMs;
+          const xpResult = calculateQuestionXp({
+            isCorrect: isBotCorrect,
+            responseTimeMs,
+            timePerQuestion: timeLimitSec,
+            streak: bot.streak || 0,
+            difficultyLevel: diffLevel,
+          });
+
+          const updatedPlayers = prev.players.map((p) => {
+            if (p.id === bot.id) {
+              const maxStreak = Math.max(p.maxStreak || 0, xpResult.newStreak);
+              return {
+                ...p,
+                score: p.score + xpResult.pointsAwarded,
+                correctAnswers: p.correctAnswers + (isBotCorrect ? 1 : 0),
+                totalResponseTimeMs: p.totalResponseTimeMs + responseTimeMs,
+                streak: xpResult.newStreak,
+                maxStreak,
+                hasAnswered: true,
+              };
+            }
+            return p;
+          });
+
+          const nextRoom = { ...prev, players: updatedPlayers };
+          saveRoomToSupabase(nextRoom);
+          return nextRoom;
         });
+      }, delayMs);
 
-        const nextRoom = { ...prev, players: updatedPlayers };
-        saveRoomToSupabase(nextRoom);
-        return nextRoom;
-      });
-    }, 3000);
+      botTimeoutsRef.current.push(timerId);
+    });
 
-    return () => clearInterval(interval);
-  }, [room?.status, currentPlayer?.isHost]);
+    return () => {
+      botTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      botTimeoutsRef.current = [];
+    };
+  }, [room?.status, localQuestionIndex, currentPlayer?.isHost, room?.timePerQuestion, room?.difficultyLevel]);
 
   const playAgain = async () => {
     if (!room) return;
     sound.playClick();
+    botAnsweredIndexRef.current = {};
     const resetRoom: Room = {
       ...room,
       status: 'LOBBY',
@@ -870,6 +975,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const goToNextRound = async (targetLevel?: number) => {
     if (!room) return;
     sound.playClick();
+    botAnsweredIndexRef.current = {};
     const currentLvl = room.difficultyLevel || selectedDifficultyLevel || 1;
     const nextLvl = targetLevel || (currentLvl >= 9 ? 1 : currentLvl + 1);
     setSelectedDifficultyLevel(nextLvl);

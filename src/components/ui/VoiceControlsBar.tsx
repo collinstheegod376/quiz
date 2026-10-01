@@ -22,6 +22,7 @@ export function VoiceControlsBar() {
     isDeafened,
     isConnecting,
     hasMicPermissionError,
+    isQuestionAutoMuted,
     audioLevel,
     joinVoice,
     leaveVoice,
@@ -131,17 +132,17 @@ export function VoiceControlsBar() {
               <div className="flex-1 h-2 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] overflow-hidden p-0.5 border border-[#CECCC5] dark:border-[#363535]">
                 <div
                   className={`h-full rounded-full transition-all duration-75 ${
-                    isMicMuted
+                    isQuestionAutoMuted || isMicMuted
                       ? 'bg-red-500 w-0'
                       : audioLevel > 20
                       ? 'bg-[#4CA471]'
                       : 'bg-[#B9843E]'
                   }`}
-                  style={{ width: isMicMuted ? '0%' : `${Math.min(100, audioLevel * 1.5)}%` }}
+                  style={{ width: isQuestionAutoMuted || isMicMuted ? '0%' : `${Math.min(100, audioLevel * 1.5)}%` }}
                 />
               </div>
-              <span className="font-mono text-[10px] font-bold text-[#595955] dark:text-[#A4A3A3] w-8 text-right">
-                {isMicMuted ? 'MUTED' : `${audioLevel}%`}
+              <span className="font-mono text-[10px] font-bold text-[#595955] dark:text-[#A4A3A3] w-20 text-right">
+                {isQuestionAutoMuted ? 'GAME MUTE' : isMicMuted ? 'MUTED' : `${audioLevel}%`}
               </span>
             </div>
 

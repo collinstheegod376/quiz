@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useGame } from '@/context/GameContext';
 import confetti from 'canvas-confetti';
@@ -13,16 +13,21 @@ import {
   Home,
   Award,
   ArrowRight,
+  GraduationCap,
+  Share2,
+  Check,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useAchievements } from '@/context/AchievementContext';
 import { useAuth } from '@/context/AuthContext';
+import { sortPlayersFairly, calculateAcademicGrade } from '@/lib/utils';
 
 export function FinalResultsScreen() {
   const { room, currentPlayer, playAgain, goToNextRound, leaveRoom } = useGame();
   const { checkMatchAchievements } = useAchievements();
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
   const hasEvaluatedRef = useRef<string | null>(null);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   useEffect(() => {
     try {
@@ -41,7 +46,7 @@ export function FinalResultsScreen() {
       if (hasEvaluatedRef.current === matchKey) return;
       hasEvaluatedRef.current = matchKey;
 
-      const sorted = [...room.players].sort((a, b) => b.score - a.score);
+      const sorted = sortPlayersFairly(room.players);
       const myRank = sorted.findIndex((p) => p.id === currentPlayer.id) + 1;
       const avgSec =
         currentPlayer.correctAnswers > 0
@@ -58,16 +63,16 @@ export function FinalResultsScreen() {
         avgResponseSec: avgSec,
         playerRank: myRank > 0 ? myRank : 1,
         totalScore: currentPlayer.score,
-        careerCorrect: (currentUser?.stats.correctAnswers || 0) + currentPlayer.correctAnswers,
-        careerMatches: (currentUser?.stats.matchesPlayed || 0) + 1,
-        careerTotalScore: (currentUser?.stats.totalScore || 0) + currentPlayer.score,
+        careerCorrect: currentUser ? currentUser.stats.correctAnswers : currentPlayer.correctAnswers,
+        careerMatches: currentUser ? currentUser.stats.matchesPlayed : 1,
+        careerTotalScore: currentUser ? currentUser.stats.totalScore : currentPlayer.score,
       });
     }
   }, [room, currentPlayer, checkMatchAchievements, currentUser]);
 
   if (!room || !currentPlayer) return null;
 
-  const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+  const sortedPlayers = sortPlayersFairly(room.players);
   const winner = sortedPlayers[0];
   const second = sortedPlayers[1];
   const third = sortedPlayers[2];
@@ -80,27 +85,40 @@ export function FinalResultsScreen() {
       ? (currentPlayer.totalResponseTimeMs / 1000 / totalQuestions).toFixed(1)
       : '3.4';
 
+  const academicGrade = calculateAcademicGrade(
+    myCorrect,
+    totalQuestions,
+    currentPlayer.score,
+    room.difficultyLevel || 1
+  );
+
   const stats = [
     { label: 'Accuracy', value: `${myAccuracy}%`, sub: `${myCorrect} of ${totalQuestions} Correct`, icon: Target },
-    { label: 'Avg Response', value: `${avgResponseTimeSec}s`, sub: 'Speed bonus tier', icon: Clock },
+    { label: 'Avg Response', value: `${avgResponseTimeSec}s`, sub: 'Speed reflex tier', icon: Clock },
+    { label: 'Academic Grade', value: academicGrade.grade, sub: `${academicGrade.title} (${Math.round(academicGrade.masteryIndex * 100)}%)`, icon: GraduationCap },
     { label: 'Top Score', value: winner?.score.toLocaleString() || '0', sub: 'Arena record', icon: Trophy },
-    { label: 'Questions', value: String(totalQuestions), sub: 'Server calculated', icon: Award },
   ];
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 space-y-6 animate-fadeIn">
 
       {/* ── Header ── */}
-      <div className="text-center space-y-2 pb-6 border-b border-[#CECCC5] dark:border-[#363535]">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-          <Trophy className="w-3.5 h-3.5" />
-          Match Concluded
-        </span>
+      <div className="text-center space-y-3 pb-6 border-b border-[#CECCC5] dark:border-[#363535]">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
+            <Trophy className="w-3.5 h-3.5" />
+            Match Concluded
+          </span>
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border font-nunito font-black text-[12.8px] tracking-[0.38px] ${academicGrade.badgeBg} ${academicGrade.colorClass}`}>
+            <GraduationCap className="w-3.5 h-3.5" />
+            Evaluation: Grade {academicGrade.grade} ({academicGrade.title})
+          </span>
+        </div>
         <h1 className="font-nunito font-black text-[30px] sm:text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
           Game Complete!
         </h1>
         <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
-          The battle has ended. Champion podium and final statistics below.
+          The battle has ended. Champion podium and academic evaluation below.
         </p>
       </div>
 
@@ -200,6 +218,27 @@ export function FinalResultsScreen() {
         ))}
       </div>
 
+      {/* ── Guest Registration Callout ── */}
+      {!currentUser && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#FFC679]/20 via-[#4CA471]/15 to-transparent border border-[#CECCC5] dark:border-[#363535] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h3 className="font-nunito font-black text-sm text-black dark:text-white">
+              Playing as Guest — Save Your Arena XP!
+            </h3>
+            <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3] mt-0.5">
+              Create a free account in 5 seconds to lock in this match&apos;s score, track your win rate, and climb the global leaderboard.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => openAuthModal('register')}
+            className="shrink-0 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs hover:bg-black/80 dark:hover:bg-white/90 transition-all cursor-pointer shadow-sm text-center"
+          >
+            Save XP &amp; Register
+          </button>
+        </div>
+      )}
+
       {/* ── Actions ── */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
         <Button
@@ -215,6 +254,48 @@ export function FinalResultsScreen() {
               : `Next Round (Level ${(room.difficultyLevel || 1) + 1})`}
           </span>
         </Button>
+        <button
+          type="button"
+          onClick={async () => {
+            const sorted = sortPlayersFairly(room.players);
+            const myRank = sorted.findIndex((p) => p.id === currentPlayer.id) + 1;
+            const origin = typeof window !== 'undefined' ? window.location.origin : 'https://anizuki.sbs';
+            const shareUrl = `${origin}/share/result?player=${encodeURIComponent(currentPlayer.displayName)}&score=${currentPlayer.score}&topic=${encodeURIComponent(room.topicId)}&grade=${encodeURIComponent(academicGrade.grade)}&accuracy=${myAccuracy}&rank=${myRank > 0 ? myRank : 1}`;
+
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: `${currentPlayer.displayName}'s AniZuki Score: ${currentPlayer.score.toLocaleString()} XP`,
+                  text: `I scored ${currentPlayer.score.toLocaleString()} XP (Grade ${academicGrade.grade}) with ${myAccuracy}% accuracy on AniZuki! Can you beat me?`,
+                  url: shareUrl,
+                });
+                return;
+              } catch {
+                // Ignore cancel
+              }
+            }
+            try {
+              await navigator.clipboard.writeText(shareUrl);
+              setCopiedShare(true);
+              setTimeout(() => setCopiedShare(false), 2500);
+            } catch {
+              // Ignore clipboard failure
+            }
+          }}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-black font-nunito font-black text-sm shadow-md transition-all active:scale-95 cursor-pointer"
+        >
+          {copiedShare ? (
+            <>
+              <Check className="w-5 h-5 text-emerald-700" />
+              <span>Link Copied!</span>
+            </>
+          ) : (
+            <>
+              <Share2 className="w-5 h-5" />
+              <span>Share Result &amp; Card</span>
+            </>
+          )}
+        </button>
         <Button
           variant="outline"
           size="xl"

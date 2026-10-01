@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -16,12 +16,12 @@ export default function SignUpPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // If already logged in, redirect home
-  if (currentUser) {
-    if (typeof window !== 'undefined') {
+  // If already logged in, redirect home safely after mount
+  useEffect(() => {
+    if (currentUser) {
       router.push('/');
     }
-  }
+  }, [currentUser, router]);
 
   const randomizeAvatar = () => {
     const seeds = ['Luffy', 'Zoro', 'Nami', 'Sanji', 'Chopper', 'Robin', 'Law', 'Shanks', 'Ace', 'Goku', 'Naruto', 'Levi', 'Gojo'];
@@ -157,7 +157,7 @@ export default function SignUpPage() {
           </form>
 
           {/* Footer link */}
-          <div className="text-center pt-2 border-t border-[#CECCC5] dark:border-[#363535]">
+          <div className="text-center pt-2 border-t border-[#CECCC5] dark:border-[#363535] space-y-2">
             <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3]">
               Already have an account?{' '}
               <Link
@@ -167,6 +167,14 @@ export default function SignUpPage() {
                 Log In here
               </Link>
             </p>
+            <div>
+              <Link
+                href="/"
+                className="inline-block font-nunito font-extrabold text-xs text-[#595955] dark:text-[#A4A3A3] hover:text-black dark:hover:text-white hover:underline"
+              >
+                Skip & Play as Guest →
+              </Link>
+            </div>
           </div>
         </div>
       </div>

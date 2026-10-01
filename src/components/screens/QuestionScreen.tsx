@@ -12,7 +12,13 @@ import {
   XCircle,
   AlertCircle,
   HelpCircle,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
 } from 'lucide-react';
+import { validateAnswerOption } from '@/lib/utils';
+import { useVoice } from '@/context/VoiceContext';
 
 export function QuestionScreen() {
   const {
@@ -26,6 +32,15 @@ export function QuestionScreen() {
     submitAnswer,
     timerSeconds,
   } = useGame();
+
+  const {
+    isVoiceJoined,
+    isMicMuted,
+    isDeafened,
+    isQuestionAutoMuted,
+    toggleMute,
+    toggleDeafen,
+  } = useVoice();
 
   const currentTopic = useMemo(() => {
     if (!room) return null;
@@ -67,6 +82,34 @@ export function QuestionScreen() {
               {currentTopic?.name} · Level {room.difficultyLevel.toString().padStart(2, '0')}
             </span>
           </div>
+
+          {/* Voice Chat Compact Status (Active only when joined) */}
+          {isVoiceJoined && (
+            <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-[#4CA471]/10 border border-[#4CA471]/30 text-xs">
+              <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
+              <span className="font-nunito font-bold text-[#4CA471] text-[11px]">
+                {isQuestionAutoMuted ? 'Game Muted' : isMicMuted ? 'Mic Off' : 'Voice Live'}
+              </span>
+              <div className="flex items-center gap-1 border-l border-[#4CA471]/30 pl-2">
+                <button
+                  type="button"
+                  onClick={toggleMute}
+                  className="p-1 hover:bg-[#4CA471]/20 rounded transition-colors text-[#000000] dark:text-[#FEFEFD]"
+                  title={isMicMuted ? 'Unmute' : 'Mute'}
+                >
+                  {isMicMuted ? <MicOff className="w-3 h-3 text-red-500" /> : <Mic className="w-3 h-3 text-[#4CA471]" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleDeafen}
+                  className="p-1 hover:bg-[#4CA471]/20 rounded transition-colors text-[#000000] dark:text-[#FEFEFD]"
+                  title={isDeafened ? 'Undeafen' : 'Deafen'}
+                >
+                  {isDeafened ? <VolumeX className="w-3 h-3 text-amber-500" /> : <Volume2 className="w-3 h-3 text-[#23616A] dark:text-[#6FEEFF]" />}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Question counter + Timer */}
           <div className="flex items-center gap-4 shrink-0">
@@ -120,7 +163,8 @@ export function QuestionScreen() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 border border-[#CECCC5] dark:border-[#363535]">
         {options.map((opt, idx) => {
           const isUserPick = selectedOption === opt.key;
-          const isCorrect = currentQuestion.correctOption === opt.key;
+          // Use canonical validation so whitespace/case drift never produces a visual false positive
+          const { isCorrect } = validateAnswerOption(opt.key, currentQuestion.correctOption);
 
           let containerStyle = 'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D] hover:border-[#00AFC6] cursor-pointer';
           let badgeStyle = 'bg-[#E5E3DB] dark:bg-[#2A2929] text-[#000000] dark:text-[#FEFEFD] border-[#CECCC5] dark:border-[#363535]';
@@ -158,7 +202,7 @@ export function QuestionScreen() {
               'bg-[#FFFDF4] dark:bg-[#100F0F] border-[#CECCC5] dark:border-[#363535] opacity-50 cursor-not-allowed';
           }
 
-          const borderClass = idx % 2 === 0 && idx < options.length - 1 ? 'sm:border-r' : '';
+          const borderClass = idx % 2 === 0 ? 'sm:border-r' : '';
           const bottomBorderClass = idx < 2 ? 'border-b' : '';
 
           return (
@@ -166,7 +210,7 @@ export function QuestionScreen() {
               key={opt.key}
               disabled={isAnswerSubmitted || isReveal}
               onClick={() => submitAnswer(opt.key)}
-              className={`group relative flex items-center gap-4 p-5 sm:p-6 border-b border-r border-[#CECCC5] dark:border-[#363535] last:border-b-0 text-left transition-all duration-150 ${containerStyle}`}
+              className={`group relative flex items-center gap-4 p-5 sm:p-6 ${borderClass} ${bottomBorderClass} border-[#CECCC5] dark:border-[#363535] text-left transition-all duration-150 ${containerStyle}`}
             >
               {/* Option Letter */}
               <div
@@ -216,7 +260,7 @@ export function QuestionScreen() {
 
         {isReveal ? (
           selectedOption ? (
-            selectedOption === currentQuestion.correctOption ? (
+            validateAnswerOption(selectedOption, currentQuestion.correctOption).isCorrect ? (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#4CA471]/10 border border-[#4CA471]/30">
                 <CheckCircle2 className="w-3.5 h-3.5 text-[#4CA471]" />
                 <span className="font-nunito font-extrabold text-[12.8px] text-[#4CA471] tracking-[0.38px] capitalize">

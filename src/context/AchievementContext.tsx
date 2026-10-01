@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { Achievement, UserAchievementState } from '@/types/achievement';
 import { ACHIEVEMENTS } from '@/data/achievements';
 import { sound } from '@/lib/sound';
+import { useAuth } from '@/context/AuthContext';
 import confetti from 'canvas-confetti';
 
 interface MatchContext {
@@ -36,11 +37,12 @@ interface AchievementContextType {
   dismissToast: () => void;
 }
 
-const STORAGE_KEY = 'anizuki_achievements_v1';
+const BASE_STORAGE_KEY = 'anizuki_achievements_v1';
 
 const AchievementContext = createContext<AchievementContextType | undefined>(undefined);
 
 export function AchievementProvider({ children }: { children: React.ReactNode }) {
+  const { currentUser } = useAuth();
   const [userStates, setUserStates] = useState<Record<string, UserAchievementState>>({});
   const [toastQueue, setToastQueue] = useState<Achievement[]>([]);
   const [activeToast, setActiveToast] = useState<Achievement | null>(null);
@@ -49,30 +51,38 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
   userStatesRef.current = userStates;
   const isInitialMount = useRef(true);
 
-  // Load from localStorage on mount
+  // Compute session-isolated key so guests and logged-in accounts never share milestone states
+  const storageKey = currentUser
+    ? `${BASE_STORAGE_KEY}_${currentUser.username.toLowerCase()}`
+    : `${BASE_STORAGE_KEY}_guest`;
+
+  // Load from localStorage on mount and whenever the active user changes
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) {
         setUserStates(JSON.parse(stored));
+      } else {
+        setUserStates({});
       }
     } catch (e) {
       console.error('[Achievements] Failed to load from storage:', e);
+      setUserStates({});
     }
-  }, []);
+  }, [storageKey]);
 
-  // FE-12: Save to localStorage in useEffect instead of impure state updaters
+  // Persist to scoped storage key whenever userStates change
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userStates));
+      localStorage.setItem(storageKey, JSON.stringify(userStates));
     } catch (e) {
       console.error('[Achievements] Failed to save to storage:', e);
     }
-  }, [userStates]);
+  }, [userStates, storageKey]);
 
   const triggerCelebration = useCallback((achievement: Achievement) => {
     sound.playAchievement();

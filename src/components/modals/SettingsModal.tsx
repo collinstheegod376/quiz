@@ -12,7 +12,6 @@ import {
   Lock,
   Volume2,
   VolumeX,
-  Clock,
   Trash2,
   ShieldAlert,
   Moon,
@@ -36,30 +35,39 @@ export function SettingsModal() {
   const { isSoundMuted, toggleSound } = useGame();
 
   const [username, setUsername] = useState(currentUser?.username || '');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState(currentUser?.username || 'Challenger');
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
+  const [deletePassword, setDeletePassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!isSettingsModalOpen || !currentUser) return null;
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setFeedbackMsg(null);
-    setIsSaving(true);
 
+    if (!currentPassword) {
+      setFeedbackMsg({ type: 'error', text: 'Current password is required to save changes.' });
+      return;
+    }
+
+    setIsSaving(true);
     try {
       const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;
       const res = await updateProfile(
         username !== currentUser.username ? username : undefined,
         newPassword ? newPassword : undefined,
-        avatarUrl
+        avatarUrl,
+        currentPassword
       );
 
       if (res.success) {
         setFeedbackMsg({ type: 'success', text: 'Profile settings updated successfully.' });
+        setCurrentPassword('');
         setNewPassword('');
       } else {
         setFeedbackMsg({ type: 'error', text: res.error || 'Failed to update profile.' });
@@ -76,7 +84,22 @@ export function SettingsModal() {
   };
 
   const handleDelete = async () => {
-    await deleteAccount();
+    if (!deletePassword) {
+      setFeedbackMsg({ type: 'error', text: 'Enter your password to confirm account deletion.' });
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      const res = await deleteAccount(deletePassword);
+      if (!res.success) {
+        setFeedbackMsg({ type: 'error', text: res.error || 'Failed to delete account.' });
+        setShowDeleteConfirm(false);
+        setDeletePassword('');
+      }
+      // On success the provider clears state and closes modal automatically
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -171,7 +194,22 @@ export function SettingsModal() {
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-black dark:text-white flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5" />
-              Change Password (Leave blank to keep current)
+              Current Password <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Required to save any changes..."
+              className="w-full px-4 py-2.5 rounded-xl border-2 border-black dark:border-[#363535] bg-white dark:bg-[#100F0F] text-sm text-black dark:text-white placeholder-black/30 dark:placeholder-white/30 focus:outline-none"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-black dark:text-white flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" />
+              New Password (Leave blank to keep current)
             </label>
             <input
               type="password"
@@ -183,8 +221,8 @@ export function SettingsModal() {
             />
           </div>
 
-          <Button type="submit" variant="arena" size="md" className="w-full">
-            Save Profile Changes
+          <Button type="submit" variant="arena" size="md" className="w-full" disabled={isSaving}>
+            {isSaving ? 'Saving...' : 'Save Profile Changes'}
           </Button>
         </form>
 
@@ -243,12 +281,25 @@ export function SettingsModal() {
               <p className="text-xs text-red-600 dark:text-red-400 font-semibold leading-relaxed">
                 Are you absolutely sure? This will permanently delete your combatant account, scores, and match statistics. This action cannot be undone.
               </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-red-700 dark:text-red-300 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5" />
+                  Enter your password to confirm
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="Your current password..."
+                  className="w-full px-4 py-2.5 rounded-xl border-2 border-red-400 bg-white dark:bg-[#100F0F] text-sm text-black dark:text-white placeholder-red-300/60 focus:outline-none"
+                />
+              </div>
               <div className="flex items-center gap-2">
-                <Button variant="danger" size="sm" onClick={handleDelete}>
+                <Button variant="danger" size="sm" onClick={handleDelete} disabled={isDeleting}>
                   <Trash2 className="w-3.5 h-3.5" />
-                  Yes, Permanently Delete Account
+                  {isDeleting ? 'Deleting...' : 'Yes, Permanently Delete Account'}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}>
+                <Button variant="outline" size="sm" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}>
                   Cancel
                 </Button>
               </div>

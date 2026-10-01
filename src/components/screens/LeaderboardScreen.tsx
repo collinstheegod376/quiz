@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 
 export function LeaderboardScreen() {
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
   const { checkLeaderboardRank } = useAchievements();
   const { setCurrentView } = useGame();
 
@@ -188,7 +188,7 @@ export function LeaderboardScreen() {
         </div>
 
         {/* Current User Quick-Status Card */}
-        {currentUser && (
+        {currentUser ? (
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#FFC679]/20 via-[#4CA471]/10 to-transparent dark:from-[#FFC679]/10 dark:via-[#4CA471]/5 border border-[#CECCC5] dark:border-[#363535] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-black dark:border-white shadow-sm shrink-0 relative">
@@ -243,6 +243,30 @@ export function LeaderboardScreen() {
                 </p>
               </div>
             </div>
+          </div>
+        ) : (
+          /* Guest Mode Status Banner */
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#E5E3DB]/40 dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="font-nunito font-black text-sm text-black dark:text-white">
+                  Viewing in Guest Mode
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/10 dark:bg-white/10 text-black dark:text-white">
+                  Guest
+                </span>
+              </div>
+              <p className="text-xs text-[#595955] dark:text-[#A4A3A3] max-w-xl">
+                Guest combatants are welcome in all arenas, but leaderboard rankings and permanent XP require a registered combatant profile.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => openAuthModal('register')}
+              className="shrink-0 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs hover:bg-black/80 dark:hover:bg-white/90 transition-all cursor-pointer shadow-sm text-center"
+            >
+              Sign Up to Claim Rank
+            </button>
           </div>
         )}
 

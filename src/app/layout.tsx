@@ -66,7 +66,10 @@ export const metadata: Metadata = {
     images: ['/images/topics/gojo-vs-sukuna.jpg'],
   },
   verification: {
-    google: '_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk',
+    google: ['googlefa213d5eb4f735fc', '_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk'],
+  },
+  alternates: {
+    canonical: 'https://anizuki.sbs',
   },
 };
 
@@ -81,15 +84,30 @@ export const viewport = {
 import { AchievementProvider } from '@/context/AchievementContext';
 import { AchievementToast } from '@/components/ui/AchievementToast';
 import { VoiceProvider } from '@/context/VoiceContext';
+import { getSoftwareApplicationSchema } from '@/lib/seo-schema';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const softwareSchema = getSoftwareApplicationSchema();
+
   return (
     <html lang="en" className={`${nunito.variable} ${roboto.variable}`} suppressHydrationWarning>
       <head>
+        <meta
+          name="google-site-verification"
+          content="googlefa213d5eb4f735fc"
+        />
+        <meta
+          name="google-site-verification"
+          content="_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareSchema) }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `

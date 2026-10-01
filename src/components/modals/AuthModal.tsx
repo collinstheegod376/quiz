@@ -208,6 +208,17 @@ export function AuthModal() {
               {tab === 'login' ? 'Sign In & Enter Arena' : 'Create Account & Play'}
             </Button>
           </form>
+
+          {/* Guest exit ramp — no auth lock-in */}
+          <div className="pt-3 text-center border-t border-[#CECCC5] dark:border-[#363535]">
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(false)}
+              className="font-nunito font-extrabold text-[13px] text-[#595955] dark:text-[#A4A3A3] hover:text-black dark:hover:text-white transition-colors"
+            >
+              Skip &amp; Play as Guest →
+            </button>
+          </div>
         </div>
       </div>
     </div>
