@@ -21,6 +21,11 @@ import { DARWINS_GAME_QUESTIONS } from './questions_darwinsgame';
 import { MODERN_FAMILY_QUESTIONS } from './questions_modernfamily';
 import { GTA_V_QUESTIONS } from './questions_gtav';
 import { BLACK_LIGHTNING_QUESTIONS } from './questions_blacklightning';
+import { DANDADAN_QUESTIONS } from './questions_dandadan';
+import { ALICE_IN_BORDERLAND_QUESTIONS } from './questions_aliceinborderland';
+import { SAKAMOTO_DAYS_QUESTIONS } from './questions_sakamotodays';
+import { RICK_AND_MORTY_QUESTIONS } from './questions_rickandmorty';
+import { SPIDER_MAN_BND_QUESTIONS } from './questions_spidermanbnd';
 
 const RAW_SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -45,6 +50,11 @@ const RAW_SEED_QUESTIONS: Question[] = [
   ...MODERN_FAMILY_QUESTIONS,
   ...GTA_V_QUESTIONS,
   ...BLACK_LIGHTNING_QUESTIONS,
+  ...DANDADAN_QUESTIONS,
+  ...ALICE_IN_BORDERLAND_QUESTIONS,
+  ...SAKAMOTO_DAYS_QUESTIONS,
+  ...RICK_AND_MORTY_QUESTIONS,
+  ...SPIDER_MAN_BND_QUESTIONS,
 ];
 
 // Deduplicate questions by ID and normalized prompt text to guarantee 100% uniqueness across datasets
@@ -276,3 +286,65 @@ function generateProceduralQuestion(
     explanation: template.exp,
   };
 }
+
+/**
+ * Resolves the canonical correct option and explanation for a question without requiring
+ * correctOption to be transmitted across public network channels or stored in Supabase realtime_rooms.
+ */
+export function resolveQuestionSecret(q: Question): {
+  correctOption: 'A' | 'B' | 'C' | 'D';
+  explanation?: string;
+} {
+  if (q.correctOption) {
+    return { correctOption: q.correctOption, explanation: q.explanation };
+  }
+
+  // 1. Check SEED_QUESTIONS by ID
+  let canonical = SEED_QUESTIONS.find((sq) => sq.id === q.id);
+
+  // 2. Fallback to matching by normalized question text
+  if (!canonical && q.questionText) {
+    const norm = q.questionText.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+    canonical = SEED_QUESTIONS.find(
+      (sq) => sq.questionText.trim().toLowerCase().replace(/[^a-z0-9]/g, '') === norm
+    );
+  }
+
+  // 3. Fallback for procedurally generated questions
+  if (!canonical && q.id && q.id.includes('-synth-')) {
+    const parts = q.id.split('-synth-');
+    const idx = parseInt(parts[1], 10);
+    if (!isNaN(idx)) {
+      canonical = generateProceduralQuestion(q.topicId, q.levelNumber || 1, idx);
+    }
+  }
+
+  if (canonical && canonical.correctOption) {
+    const correctText =
+      canonical.correctOption === 'A'
+        ? canonical.optionA
+        : canonical.correctOption === 'B'
+        ? canonical.optionB
+        : canonical.correctOption === 'C'
+        ? canonical.optionC
+        : canonical.optionD;
+
+    const normCorrectText = (correctText || '').trim().toLowerCase();
+    if (q.optionA && q.optionA.trim().toLowerCase() === normCorrectText) {
+      return { correctOption: 'A', explanation: canonical.explanation };
+    }
+    if (q.optionB && q.optionB.trim().toLowerCase() === normCorrectText) {
+      return { correctOption: 'B', explanation: canonical.explanation };
+    }
+    if (q.optionC && q.optionC.trim().toLowerCase() === normCorrectText) {
+      return { correctOption: 'C', explanation: canonical.explanation };
+    }
+    if (q.optionD && q.optionD.trim().toLowerCase() === normCorrectText) {
+      return { correctOption: 'D', explanation: canonical.explanation };
+    }
+    return { correctOption: canonical.correctOption, explanation: canonical.explanation };
+  }
+
+  return { correctOption: 'A', explanation: '' };
+}
+

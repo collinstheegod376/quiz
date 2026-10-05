@@ -12,7 +12,9 @@ interface Props {
 }
 
 export async function generateStaticParams() {
-  return CATEGORIES.map((cat) => ({
+  return CATEGORIES.filter((cat) =>
+    TOPICS.some((t) => t.categoryId === cat.id && t.isActive)
+  ).map((cat) => ({
     id: cat.id,
   }));
 }
@@ -20,15 +22,18 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
   const category = CATEGORIES.find((c) => c.id === id);
+  const hasActiveTopics = TOPICS.some((t) => t.categoryId === id && t.isActive);
 
-  if (!category) {
+  if (!category || !hasActiveTopics) {
     return {
       title: 'Category Not Found — AniZuki',
+      robots: { index: false, follow: false },
     };
   }
 
-  const title = `${category.name} Quizzes & Trivia Battles — AniZuki`;
-  const description = `${category.description} Play free ${category.name} quizzes, test your knowledge, and compete on the global leaderboard.`;
+  const displayName = category.name.charAt(0) + category.name.slice(1).toLowerCase();
+  const title = `${displayName} Quizzes & Trivia Battles — AniZuki`;
+  const description = `Play free ${displayName.toLowerCase()} trivia and quiz battles on AniZuki. Test your lore across 10 difficulty tiers and climb the leaderboard.`;
   const canonicalUrl = `https://anizuki.sbs/category/${category.id}`;
 
   return {
@@ -63,12 +68,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function CategoryPage({ params }: Props) {
   const { id } = await params;
   const category = CATEGORIES.find((c) => c.id === id);
+  const categoryTopics = category
+    ? TOPICS.filter((t) => t.categoryId === category.id && t.isActive)
+    : [];
 
-  if (!category) {
+  if (!category || categoryTopics.length === 0) {
     notFound();
   }
-
-  const categoryTopics = TOPICS.filter((t) => t.categoryId === category.id && t.isActive);
 
   const breadcrumbSchema = getBreadcrumbSchema([
     { name: 'Home', url: '/' },

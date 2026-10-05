@@ -129,21 +129,23 @@ export function validateAnswerOption(
 }
 
 /**
- * Objectively fair lexicographical tie-breaker:
- * 1. Score (highest)
- * 2. Accuracy / Total Correct Answers (highest)
- * 3. Total Response Time (lowest / fastest)
+ * Objectively fair ranking and tie-breaker:
+ * 1. Primary: Correct Answers (highest / descending) — winner must have the most correct answers
+ * 2. Secondary (Tie-breaker): Total Response Time (lowest / ascending) — fastest time breaks ties
+ * 3. Tertiary: Total XP Score (highest / descending) — progression bonus tie-breaker fallback
  */
 export function sortPlayersFairly<T extends { score: number; correctAnswers: number; totalResponseTimeMs?: number }>(
   players: T[]
 ): T[] {
   return [...players].sort((a, b) => {
-    // 1. Primary: Score
-    if (b.score !== a.score) return b.score - a.score;
-    // 2. Secondary: Correct Answers
+    // 1. Primary: Total Correct Answers (descending)
     if (b.correctAnswers !== a.correctAnswers) return b.correctAnswers - a.correctAnswers;
-    // 3. Tertiary: Total response speed (lower is better)
-    return (a.totalResponseTimeMs || 0) - (b.totalResponseTimeMs || 0);
+    // 2. Secondary (Tie-breaker): Total response speed (lower/faster is better)
+    const timeA = a.totalResponseTimeMs || 0;
+    const timeB = b.totalResponseTimeMs || 0;
+    if (timeA !== timeB) return timeA - timeB;
+    // 3. Tertiary fallback: Score/XP (descending)
+    return b.score - a.score;
   });
 }
 

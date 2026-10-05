@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { useGame } from './GameContext';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { sound } from '@/lib/sound';
 
 interface VoiceSignal {
@@ -24,9 +24,12 @@ interface VoiceContextType {
   isDeafened: boolean;
   isConnecting: boolean;
   hasMicPermissionError: boolean;
+  micErrorMessage: string | null;
+  voiceError: string | null;
   isQuestionAutoMuted: boolean;
   activeSpeakers: Set<string>;
   peersInVoice: Set<string>;
+  mutedPeers: Set<string>;
   audioLevel: number; // 0 to 100 for local mic visualizer
   joinVoice: () => Promise<void>;
   leaveVoice: () => void;
@@ -34,34 +37,57 @@ interface VoiceContextType {
   toggleDeafen: () => void;
   isPlayerSpeaking: (playerId: string) => boolean;
   isPlayerInVoice: (playerId: string) => boolean;
+  isPlayerMuted: (playerId: string) => boolean;
 }
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
-const RTC_CONFIG: RTCConfiguration = {
-  iceServers: [
+// Helper to configure ICE servers dynamically with TURNS (TLS) and custom env credentials
+const getIceServers = (): RTCIceServer[] => {
+  const customTurnUrl = process.env.NEXT_PUBLIC_TURN_URL;
+  const customTurnUser = process.env.NEXT_PUBLIC_TURN_USER;
+  const customTurnCredential = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
+
+  const servers: RTCIceServer[] = [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' },
     { urls: 'stun:stun3.l.google.com:19302' },
-    // TURN relay fallback for symmetric NAT (Open Relay Project — free public servers)
-    {
-      urls: 'turn:openrelay.metered.ca:80',
-      username: 'openrelayproject',
-      credential: 'openrelayproject',
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443',
-      username: 'openrelayproject',
-      credential: 'openrelayproject',
-    },
-    {
-      urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-      username: 'openrelayproject',
-      credential: 'openrelayproject',
-    },
-  ],
-  iceCandidatePoolSize: 10,
+  ];
+
+  if (customTurnUrl && customTurnUser && customTurnCredential) {
+    servers.push({
+      urls: customTurnUrl,
+      username: customTurnUser,
+      credential: customTurnCredential,
+    });
+  } else {
+    // Open Relay Project with both TLS TURNS and standard TURN relays
+    servers.push(
+      {
+        urls: 'turns:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      }
+    );
+  }
+
+  return servers;
 };
 
 export function VoiceProvider({ children }: { children: React.ReactNode }) {
@@ -72,8 +98,11 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
   const [isDeafened, setIsDeafened] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [hasMicPermissionError, setHasMicPermissionError] = useState(false);
+  const [micErrorMessage, setMicErrorMessage] = useState<string | null>(null);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
   const [activeSpeakers, setActiveSpeakers] = useState<Set<string>>(new Set());
   const [peersInVoice, setPeersInVoice] = useState<Set<string>>(new Set());
+  const [mutedPeers, setMutedPeers] = useState<Set<string>>(new Set());
   const [audioLevel, setAudioLevel] = useState(0);
   const [isQuestionAutoMuted, setIsQuestionAutoMuted] = useState(false);
 
@@ -85,6 +114,13 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const remoteAudioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+
+  // Perfect Negotiation state trackers per peer
+  const makingOfferRef = useRef<Map<string, boolean>>(new Map());
+  const ignoreOfferRef = useRef<Map<string, boolean>>(new Map());
+
+  // Mute state override flag during question phase
+  const manualMuteOverrideRef = useRef<boolean>(false);
   const wasMutedBeforeQuestionRef = useRef<boolean>(false);
 
   // Channels
@@ -92,12 +128,13 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
   const realtimeChannelRef = useRef<any>(null);
   const localBroadcastRef = useRef<BroadcastChannel | null>(null);
 
-  // Keep ref to state for async event handlers
+  // Keep refs to state for async event handlers
   const isMicMutedRef = useRef(isMicMuted);
   const isDeafenedRef = useRef(isDeafened);
   const isVoiceJoinedRef = useRef(isVoiceJoined);
   const currentPlayerRef = useRef(currentPlayer);
   const lastKnownPlayerIdRef = useRef<string | null>(currentPlayer?.id || null);
+  const roomRef = useRef(room);
 
   useEffect(() => {
     isMicMutedRef.current = isMicMuted;
@@ -117,6 +154,10 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       lastKnownPlayerIdRef.current = currentPlayer.id;
     }
   }, [currentPlayer]);
+
+  useEffect(() => {
+    roomRef.current = room;
+  }, [room]);
 
   // ─── Broadcast Signaling Helper ──────────────────────────────────────────
   const broadcastSignal = useCallback(
@@ -148,24 +189,78 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  // ─── Create or Get Peer Connection ───────────────────────────────────────
+  // ─── Clean Up A Specific Peer Connection & Remote Audio ─────────────────
+  const cleanUpPeer = useCallback((peerId: string) => {
+    const pc = peerConnectionsRef.current.get(peerId);
+    if (pc) {
+      pc.onicecandidate = null;
+      pc.ontrack = null;
+      pc.onconnectionstatechange = null;
+      pc.oniceconnectionstatechange = null;
+      pc.close();
+      peerConnectionsRef.current.delete(peerId);
+    }
+
+    const audioEl = remoteAudioElementsRef.current.get(peerId);
+    if (audioEl) {
+      try {
+        audioEl.pause();
+        audioEl.srcObject = null;
+        if (audioEl.parentNode) {
+          audioEl.parentNode.removeChild(audioEl);
+        }
+      } catch {
+        // Safe DOM removal
+      }
+      remoteAudioElementsRef.current.delete(peerId);
+    }
+
+    pendingCandidatesRef.current.delete(peerId);
+    makingOfferRef.current.delete(peerId);
+    ignoreOfferRef.current.delete(peerId);
+
+    setPeersInVoice((prev) => {
+      const next = new Set(prev);
+      next.delete(peerId);
+      return next;
+    });
+    setActiveSpeakers((prev) => {
+      const next = new Set(prev);
+      next.delete(peerId);
+      return next;
+    });
+    setMutedPeers((prev) => {
+      const next = new Set(prev);
+      next.delete(peerId);
+      return next;
+    });
+  }, []);
+
+  // ─── Create or Get Peer Connection (with Perfect Negotiation) ─────────────
   const getOrCreatePeerConnection = useCallback(
     (targetPeerId: string): RTCPeerConnection => {
       const existing = peerConnectionsRef.current.get(targetPeerId);
-      if (existing && existing.connectionState !== 'closed') {
+      if (existing && existing.connectionState !== 'closed' && existing.connectionState !== 'failed') {
         return existing;
       }
 
-      const pc = new RTCPeerConnection(RTC_CONFIG);
+      if (existing) {
+        cleanUpPeer(targetPeerId);
+      }
 
-      // Add local audio tracks to the peer connection
+      const pc = new RTCPeerConnection({
+        iceServers: getIceServers(),
+        iceCandidatePoolSize: 6,
+      });
+
+      // Bind local audio track if present
       if (localStreamRef.current) {
         localStreamRef.current.getAudioTracks().forEach((track) => {
           pc.addTrack(track, localStreamRef.current!);
         });
       }
 
-      // ICE Candidate generation
+      // ICE Candidate dispatch
       pc.onicecandidate = (event) => {
         if (event.candidate && (currentPlayerRef.current || lastKnownPlayerIdRef.current)) {
           broadcastSignal('voice-signal', {
@@ -178,38 +273,49 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         }
       };
 
-      // Handle receiving remote audio track
+      // Remote track arrival (Safari/iOS compatible DOM attachment)
       pc.ontrack = (event) => {
-        const remoteStream = event.streams[0];
+        const remoteStream = event.streams[0] || new MediaStream([event.track]);
         let audioEl = remoteAudioElementsRef.current.get(targetPeerId);
 
         if (!audioEl) {
           audioEl = new Audio();
           audioEl.autoplay = true;
+          // Required for iOS Safari WebKit inline audio playback
+          audioEl.setAttribute('playsinline', 'true');
+          audioEl.setAttribute('webkit-playsinline', 'true');
+          audioEl.style.display = 'none';
+
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.appendChild(audioEl);
+          }
+
           audioEl.volume = isDeafenedRef.current ? 0 : 1;
           remoteAudioElementsRef.current.set(targetPeerId, audioEl);
         }
 
         audioEl.srcObject = remoteStream;
-        audioEl.play().catch(() => {
-          // User interaction policy safe catch
+        audioEl.play().catch((playErr) => {
+          console.warn('[Voice] Remote audio play policy deferred:', playErr);
         });
 
-        // Add to voice roster
         setPeersInVoice((prev) => new Set([...prev, targetPeerId]));
       };
 
+      // Peer Connection state tracking & auto-recovery
       pc.onconnectionstatechange = () => {
-        if (
-          pc.connectionState === 'disconnected' ||
-          pc.connectionState === 'failed' ||
-          pc.connectionState === 'closed'
-        ) {
-          setPeersInVoice((prev) => {
-            const next = new Set(prev);
-            next.delete(targetPeerId);
-            return next;
-          });
+        const state = pc.connectionState;
+        if (state === 'failed') {
+          console.warn(`[WebRTC] Connection failed with ${targetPeerId}, attempting ICE restart`);
+          try {
+            pc.restartIce();
+          } catch {
+            cleanUpPeer(targetPeerId);
+          }
+        } else if (state === 'closed' || state === 'disconnected') {
+          if (state === 'closed') {
+            cleanUpPeer(targetPeerId);
+          }
           setActiveSpeakers((prev) => {
             const next = new Set(prev);
             next.delete(targetPeerId);
@@ -221,17 +327,25 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       peerConnectionsRef.current.set(targetPeerId, pc);
       return pc;
     },
-    [broadcastSignal]
+    [broadcastSignal, cleanUpPeer]
   );
 
-  // ─── Initiate Connection to Peer ─────────────────────────────────────────
+  // ─── Initiate Call to Peer (SDP Offer) ────────────────────────────────────
   const initiateCallToPeer = useCallback(
     async (targetPeerId: string) => {
       try {
         const pc = getOrCreatePeerConnection(targetPeerId);
+        makingOfferRef.current.set(targetPeerId, true);
+
         const offer = await pc.createOffer({
           offerToReceiveAudio: true,
         });
+
+        // Safeguard state before setting local description
+        if (pc.signalingState !== 'stable' && pc.signalingState !== 'have-local-offer') {
+          return;
+        }
+
         await pc.setLocalDescription(offer);
 
         broadcastSignal('voice-signal', {
@@ -243,12 +357,14 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         });
       } catch (err) {
         console.warn('Failed to initiate voice call to peer:', targetPeerId, err);
+      } finally {
+        makingOfferRef.current.set(targetPeerId, false);
       }
     },
     [broadcastSignal, getOrCreatePeerConnection]
   );
 
-  // ─── Handle Incoming Voice Signal ────────────────────────────────────────
+  // ─── Handle Incoming Voice Signal (Perfect Negotiation Pattern) ───────────
   const handleIncomingSignal = useCallback(
     async (data: {
       fromPlayerId: string;
@@ -260,15 +376,40 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       if (data.fromPlayerId === activePlayer.id) return;
       if (data.toPlayerId && data.toPlayerId !== activePlayer.id) return;
 
+      // Security check: Drop signals from unknown players not registered in room
+      const activeRoom = roomRef.current;
+      if (activeRoom && !activeRoom.players.some((p) => p.id === data.fromPlayerId)) {
+        console.warn('[Voice Security] Ignored signal from unauthorized sender:', data.fromPlayerId);
+        return;
+      }
+
       const peerId = data.fromPlayerId;
       const { signal } = data;
 
       try {
         if (signal.type === 'offer' && signal.sdp) {
           const pc = getOrCreatePeerConnection(peerId);
+
+          // Perfect Negotiation: Polite peer has lexicographically larger ID
+          const isPolite = activePlayer.id > peerId;
+          const isOfferCollision =
+            makingOfferRef.current.get(peerId) || pc.signalingState !== 'stable';
+
+          ignoreOfferRef.current.set(peerId, !isPolite && isOfferCollision);
+
+          if (ignoreOfferRef.current.get(peerId)) {
+            console.log('[WebRTC] Impolite peer ignored colliding offer from', peerId);
+            return;
+          }
+
+          if (isOfferCollision && isPolite) {
+            console.log('[WebRTC] Polite peer rolling back colliding local offer for', peerId);
+            await pc.setLocalDescription({ type: 'rollback' });
+          }
+
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
-          // Drain any queued candidates for this peer
+          // Drain buffered candidates
           const queued = pendingCandidatesRef.current.get(peerId);
           if (queued && queued.length > 0) {
             for (const cand of queued) {
@@ -294,7 +435,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
           if (pc && pc.signalingState !== 'stable') {
             await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
-            // Drain any queued candidates for this peer
+            // Drain buffered candidates
             const queued = pendingCandidatesRef.current.get(peerId);
             if (queued && queued.length > 0) {
               for (const cand of queued) {
@@ -307,8 +448,8 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (signal.type === 'candidate' && signal.candidate) {
           const pc = peerConnectionsRef.current.get(peerId);
-          if (pc && pc.remoteDescription) {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate)).catch(() => {});
           } else {
             // Buffer candidate until remote description is ready
             const list = pendingCandidatesRef.current.get(peerId) || [];
@@ -323,7 +464,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     [broadcastSignal, getOrCreatePeerConnection]
   );
 
-  // ─── Leave Voice Chat (memoized for use in cleanup & external calls) ─────
+  // ─── Leave Voice Chat (Full teardown) ─────────────────────────────────────
   const leaveVoice = useCallback(() => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -331,23 +472,52 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (audioContextRef.current) {
-      audioContextRef.current.close().catch(() => {});
+      try {
+        audioContextRef.current.close().catch(() => {});
+      } catch {
+        // Safe close
+      }
       audioContextRef.current = null;
     }
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current.getTracks().forEach((track) => {
+        try {
+          track.stop();
+        } catch {
+          // Safe stop
+        }
+      });
       localStreamRef.current = null;
     }
 
-    // Close all peer connections
-    peerConnectionsRef.current.forEach((pc) => pc.close());
+    // Close all peer connections cleanly
+    peerConnectionsRef.current.forEach((pc) => {
+      try {
+        pc.onicecandidate = null;
+        pc.ontrack = null;
+        pc.onconnectionstatechange = null;
+        pc.close();
+      } catch {
+        // Safe close
+      }
+    });
     peerConnectionsRef.current.clear();
     pendingCandidatesRef.current.clear();
+    makingOfferRef.current.clear();
+    ignoreOfferRef.current.clear();
 
-    // Clear remote audios
+    // Clean up DOM audio elements
     remoteAudioElementsRef.current.forEach((el) => {
-      el.srcObject = null;
+      try {
+        el.pause();
+        el.srcObject = null;
+        if (el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      } catch {
+        // Safe removal
+      }
     });
     remoteAudioElementsRef.current.clear();
 
@@ -363,6 +533,9 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     setAudioLevel(0);
     setActiveSpeakers(new Set());
     setPeersInVoice(new Set());
+    setMutedPeers(new Set());
+    setVoiceError(null);
+    manualMuteOverrideRef.current = false;
     sound.playClick();
   }, [broadcastSignal]);
 
@@ -384,43 +557,45 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       const myId = currentPlayerRef.current?.id || lastKnownPlayerIdRef.current;
       if (!data || data.fromPlayerId === myId) return;
 
+      // Drop signals from players not in current room roster
+      if (roomRef.current && !roomRef.current.players.some((p) => p.id === data.fromPlayerId)) {
+        return;
+      }
+
       if (evtName === 'voice-signal') {
         handleIncomingSignal(data);
       } else if (evtName === 'voice-joined') {
         const peerId = data.fromPlayerId;
         setPeersInVoice((prev) => new Set([...prev, peerId]));
 
-        // Deterministic offerer: If my ID is smaller, initiate the offer
+        // If I am joined in voice and my ID is smaller, initiate the offer
         if (isVoiceJoinedRef.current && myId && myId < peerId) {
           initiateCallToPeer(peerId);
+        } else if (isVoiceJoinedRef.current && myId && myId > peerId) {
+          // Acknowledge my presence to the new joiner so they know I'm in voice
+          broadcastSignal('voice-joined', {
+            playerName: currentPlayerRef.current?.displayName || 'Player',
+          });
         }
       } else if (evtName === 'voice-left') {
         const peerId = data.fromPlayerId;
-        const pc = peerConnectionsRef.current.get(peerId);
-        if (pc) {
-          pc.close();
-          peerConnectionsRef.current.delete(peerId);
-        }
-        const audioEl = remoteAudioElementsRef.current.get(peerId);
-        if (audioEl) {
-          audioEl.srcObject = null;
-          remoteAudioElementsRef.current.delete(peerId);
-        }
-        setPeersInVoice((prev) => {
-          const next = new Set(prev);
-          next.delete(peerId);
-          return next;
-        });
-        setActiveSpeakers((prev) => {
-          const next = new Set(prev);
-          next.delete(peerId);
-          return next;
-        });
+        cleanUpPeer(peerId);
       } else if (evtName === 'voice-speaking') {
         const { fromPlayerId, isSpeaking } = data;
         setActiveSpeakers((prev) => {
           const next = new Set(prev);
           if (isSpeaking) {
+            next.add(fromPlayerId);
+          } else {
+            next.delete(fromPlayerId);
+          }
+          return next;
+        });
+      } else if (evtName === 'voice-muted') {
+        const { fromPlayerId, isMuted } = data;
+        setMutedPeers((prev) => {
+          const next = new Set(prev);
+          if (isMuted) {
             next.add(fromPlayerId);
           } else {
             next.delete(fromPlayerId);
@@ -460,7 +635,17 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       .on('broadcast', { event: 'voice-speaking' }, ({ payload }) => {
         handleSignalDispatch('voice-speaking', payload);
       })
-      .subscribe();
+      .on('broadcast', { event: 'voice-muted' }, ({ payload }) => {
+        handleSignalDispatch('voice-muted', payload);
+      })
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED' && isVoiceJoinedRef.current) {
+          // Re-announce presence on channel reconnection
+          broadcastSignal('voice-joined', {
+            playerName: currentPlayerRef.current?.displayName || 'Player',
+          });
+        }
+      });
 
     realtimeChannelRef.current = channel;
 
@@ -471,13 +656,29 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         localBroadcastRef.current = null;
       }
     };
-  }, [room?.code, currentPlayer?.id, handleIncomingSignal, initiateCallToPeer, leaveVoice]);
+  }, [
+    room?.code,
+    currentPlayer?.id,
+    handleIncomingSignal,
+    initiateCallToPeer,
+    leaveVoice,
+    cleanUpPeer,
+    broadcastSignal,
+  ]);
 
   // ─── Setup Local Microphone & Volume Meter ───────────────────────────────
-  const startAudioAnalyzer = (stream: MediaStream) => {
+  const startAudioAnalyzer = async (stream: MediaStream) => {
     try {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      if (!AudioCtx) return;
+
       const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') {
+        await ctx.resume().catch(() => {});
+      }
+
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
@@ -490,7 +691,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
       let wasSpeaking = false;
       let silenceCounter = 0;
-      let lastLevelUpdate = 0;
+      let lastLevel = 0;
 
       const checkVolume = () => {
         if (!analyserRef.current || !isVoiceJoinedRef.current) return;
@@ -503,10 +704,9 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         const average = sum / dataArray.length;
         const normalized = Math.min(100, Math.round((average / 128) * 100));
 
-        // Throttle React state updates to ~15fps (every 66ms) to prevent render thrashing
-        const now = performance.now();
-        if (now - lastLevelUpdate > 66) {
-          lastLevelUpdate = now;
+        // Render optimization: Only update state when there's a significant change
+        if (Math.abs(normalized - lastLevel) >= 3 || (normalized === 0 && lastLevel !== 0)) {
+          lastLevel = normalized;
           setAudioLevel(normalized);
         }
 
@@ -514,18 +714,18 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 
         if (isSpeakingNow) {
           silenceCounter = 0;
-          if (!wasSpeaking && currentPlayer) {
+          if (!wasSpeaking && currentPlayerRef.current) {
             wasSpeaking = true;
-            setActiveSpeakers((prev) => new Set([...prev, currentPlayer.id]));
+            setActiveSpeakers((prev) => new Set([...prev, currentPlayerRef.current!.id]));
             broadcastSignal('voice-speaking', { isSpeaking: true });
           }
         } else {
           silenceCounter++;
-          if (silenceCounter > 8 && wasSpeaking && currentPlayer) {
+          if (silenceCounter > 8 && wasSpeaking && currentPlayerRef.current) {
             wasSpeaking = false;
             setActiveSpeakers((prev) => {
               const next = new Set(prev);
-              next.delete(currentPlayer.id);
+              next.delete(currentPlayerRef.current!.id);
               return next;
             });
             broadcastSignal('voice-speaking', { isSpeaking: false });
@@ -537,7 +737,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 
       checkVolume();
     } catch (e) {
-      console.warn('Web Audio analyzer not supported:', e);
+      console.warn('Web Audio analyzer initialization notice:', e);
     }
   };
 
@@ -546,63 +746,125 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     if (!room || !currentPlayer || isVoiceJoined) return;
     setIsConnecting(true);
     setHasMicPermissionError(false);
+    setMicErrorMessage(null);
+    setVoiceError(null);
 
     try {
       if (!navigator?.mediaDevices?.getUserMedia) {
-        console.warn('getUserMedia not supported or not running in a secure context (HTTPS/localhost required)');
+        setMicErrorMessage('WebRTC voice chat requires a secure browser context (HTTPS or localhost).');
         setHasMicPermissionError(true);
         return;
       }
 
+      // Voice-optimized audio constraints (mono, 48kHz, echo cancellation)
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
+          channelCount: 1,
+          sampleRate: 48000,
         },
         video: false,
       });
 
       localStreamRef.current = stream;
+
+      // Handle hardware unplug mid-call
+      const audioTrack = stream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.onended = () => {
+          console.warn('[Voice] Local microphone hardware disconnected');
+          setMicErrorMessage('Microphone disconnected or hardware unplugged.');
+          setHasMicPermissionError(true);
+          leaveVoice();
+        };
+      }
+
       setIsVoiceJoined(true);
       setIsMicMuted(false);
+      manualMuteOverrideRef.current = false;
       sound.playClick();
 
-      // Start volume monitor
-      startAudioAnalyzer(stream);
+      // Start volume monitor & resume AudioContext inside user gesture
+      await startAudioAnalyzer(stream);
 
       // Broadcast join to existing peers
       broadcastSignal('voice-joined', {
         playerName: currentPlayer.displayName,
       });
-
-      // Initiate calls to existing peers in room if our ID is lower
-      room.players.forEach((p) => {
-        if (p.id !== currentPlayer.id && currentPlayer.id < p.id) {
-          initiateCallToPeer(p.id);
-        }
-      });
-    } catch (err) {
+    } catch (err: unknown) {
       console.error('Failed to access microphone:', err);
+      const errorObj = err as Error;
+      if (errorObj.name === 'NotAllowedError' || errorObj.name === 'PermissionDeniedError') {
+        setMicErrorMessage('Microphone access blocked. Please enable microphone permission in your browser URL bar.');
+      } else if (errorObj.name === 'NotFoundError' || errorObj.name === 'DevicesNotFoundError') {
+        setMicErrorMessage('No microphone detected. Please connect a headset or microphone.');
+      } else if (errorObj.name === 'NotReadableError' || errorObj.name === 'TrackStartError') {
+        setMicErrorMessage('Microphone is in use by another application.');
+      } else {
+        setMicErrorMessage('Unable to access microphone: ' + (errorObj.message || 'Unknown error'));
+      }
       setHasMicPermissionError(true);
     } finally {
       setIsConnecting(false);
     }
   };
 
-  // Auto-leave voice when room closes or user navigates away from room
+  // ─── Lifecycle & Cleanup Listeners (Unload, Navigation, Device Change) ────
   useEffect(() => {
-    if (!room && isVoiceJoinedRef.current) {
+    const handlePageUnload = () => {
+      if (isVoiceJoinedRef.current) {
+        const senderId = currentPlayerRef.current?.id || lastKnownPlayerIdRef.current;
+        if (senderId) {
+          broadcastSignal('voice-left', { fromPlayerId: senderId });
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handlePageUnload);
+    window.addEventListener('pagehide', handlePageUnload);
+
+    const handleDeviceChange = async () => {
+      if (isVoiceJoinedRef.current && localStreamRef.current) {
+        console.log('[Voice] Device change detected');
+      }
+    };
+
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handlePageUnload);
+      window.removeEventListener('pagehide', handlePageUnload);
+      if (navigator.mediaDevices?.removeEventListener) {
+        navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      }
+      if (isVoiceJoinedRef.current) {
+        leaveVoice();
+      }
+    };
+  }, [broadcastSignal, leaveVoice]);
+
+  // Auto-leave voice when room closes, user leaves room, or user logs out
+  useEffect(() => {
+    if ((!room || !currentPlayer) && isVoiceJoinedRef.current) {
       leaveVoice();
     }
-  }, [room, leaveVoice]);
+  }, [room, currentPlayer, leaveVoice]);
 
   // ─── Synchronize Mic Mute with Question Reading Phase ─────────────────────
-  // Auto-suppress mic during active QUESTION prompts to prevent audio leakage/echo
+  // Auto-suppress mic only during active question answering (exempt early finishers on Waiting Screen)
   useEffect(() => {
     if (!isVoiceJoined) return;
 
-    if (room?.status === 'QUESTION') {
+    const isPlayerStillAnswering =
+      room?.status === 'QUESTION' &&
+      !currentPlayer?.isFinished &&
+      currentPlayer?.status !== 'finished';
+
+    if (isPlayerStillAnswering && !manualMuteOverrideRef.current) {
       wasMutedBeforeQuestionRef.current = isMicMutedRef.current;
       setIsQuestionAutoMuted(true);
       if (localStreamRef.current) {
@@ -613,7 +875,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       if (currentPlayer) {
         broadcastSignal('voice-speaking', { isSpeaking: false });
       }
-    } else {
+    } else if (!isPlayerStillAnswering) {
       setIsQuestionAutoMuted(false);
       // Restore mic hardware state to whatever it was before the question
       if (localStreamRef.current && !wasMutedBeforeQuestionRef.current) {
@@ -622,37 +884,54 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         });
       }
     }
-  }, [room?.status, isVoiceJoined, broadcastSignal, currentPlayer]);
+  }, [room?.status, currentPlayer?.isFinished, currentPlayer?.status, isVoiceJoined, broadcastSignal, currentPlayer]);
 
   // ─── Toggle Mute ─────────────────────────────────────────────────────────
   const toggleMute = () => {
     if (!localStreamRef.current) return;
     const next = !isMicMuted;
+
+    // Record manual override if user deliberately changes mute during a question
+    if (isQuestionAutoMuted) {
+      manualMuteOverrideRef.current = true;
+      setIsQuestionAutoMuted(false);
+    }
+
     localStreamRef.current.getAudioTracks().forEach((track) => {
       track.enabled = !next;
     });
+
     setIsMicMuted(next);
     sound.playClick();
 
-    if (next && currentPlayer) {
+    const myId = currentPlayer?.id || lastKnownPlayerIdRef.current;
+    if (next && myId) {
       setActiveSpeakers((prev) => {
         const set = new Set(prev);
-        set.delete(currentPlayer.id);
+        set.delete(myId);
         return set;
       });
       broadcastSignal('voice-speaking', { isSpeaking: false });
     }
+
+    // Broadcast mute state sync to peers
+    broadcastSignal('voice-muted', { isMuted: next });
   };
 
-  // ─── Toggle Deafen ───────────────────────────────────────────────────────
+  // ─── Toggle Deafen (Auto-mutes local mic when deafened) ───────────────────
   const toggleDeafen = () => {
-    const next = !isDeafened;
-    setIsDeafened(next);
+    const nextDeafen = !isDeafened;
+    setIsDeafened(nextDeafen);
     sound.playClick();
 
     remoteAudioElementsRef.current.forEach((audioEl) => {
-      audioEl.volume = next ? 0 : 1;
+      audioEl.volume = nextDeafen ? 0 : 1;
     });
+
+    // Gaming standard (Discord convention): auto-mute self when deafened
+    if (nextDeafen && !isMicMuted) {
+      toggleMute();
+    }
   };
 
   // ─── Helper Queries ──────────────────────────────────────────────────────
@@ -667,6 +946,13 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     return peersInVoice.has(playerId);
   };
 
+  const isPlayerMuted = (playerId: string) => {
+    if (currentPlayer && playerId === currentPlayer.id) {
+      return isMicMuted;
+    }
+    return mutedPeers.has(playerId);
+  };
+
   return (
     <VoiceContext.Provider
       value={{
@@ -675,9 +961,12 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         isDeafened,
         isConnecting,
         hasMicPermissionError,
+        micErrorMessage,
+        voiceError,
         isQuestionAutoMuted,
         activeSpeakers,
         peersInVoice,
+        mutedPeers,
         audioLevel,
         joinVoice,
         leaveVoice,
@@ -685,6 +974,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         toggleDeafen,
         isPlayerSpeaking,
         isPlayerInVoice,
+        isPlayerMuted,
       }}
     >
       {children}

@@ -7,9 +7,11 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 /** Safe public user account — never contains password data */
 export interface UserAccount {
+  id?: string;
   username: string;
   avatarUrl: string;
   createdAt: string;
+  sessionToken?: string;
   stats: {
     roomsCreated: number;
     matchesPlayed: number;
@@ -32,6 +34,7 @@ interface SafeProfileRow {
   correct_answers: number;
   total_answers: number;
   created_at: string;
+  session_token?: string;
 }
 
 export type UserStatKey = 'roomsCreated' | 'matchesPlayed' | 'wins' | 'totalScore' | 'correctAnswers' | 'totalAnswers';
@@ -43,7 +46,7 @@ interface AuthContextType {
   isSupabaseConnected: boolean;
   login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (username: string, password: string, avatarUrl?: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   deleteAccount: (currentPassword: string) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (newUsername?: string, newPassword?: string, newAvatar?: string, currentPassword?: string) => Promise<{ success: boolean; error?: string }>;
   incrementStat: (statKey: UserStatKey, amount?: number) => Promise<void>;
@@ -67,21 +70,22 @@ interface AuthContextType {
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const SESSION_KEY = 'quiz_arena_current_session';
+const SESSION_TOKEN_KEY = 'quiz_arena_session_token';
 
-/** Rate limit: max attempts before lockout */
+/** Client-side debounce limit before server check */
 const MAX_ATTEMPTS = 5;
-/** Lockout duration in milliseconds (60 seconds) */
 const LOCKOUT_MS = 60_000;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Maps a safe server row to a UserAccount — password_hash is never present */
-function mapRowToAccount(row: SafeProfileRow): UserAccount {
+function mapRowToAccount(row: SafeProfileRow, token?: string): UserAccount {
   return {
+    id: row.id,
     username: row.username,
     avatarUrl: row.avatar_url || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${row.username}`,
     createdAt: row.created_at || new Date().toISOString(),
+    sessionToken: row.session_token || token,
     stats: {
       roomsCreated: row.rooms_created || 0,
       matchesPlayed: row.matches_played || 0,
@@ -114,7 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     overallAccuracy: 0,
   });
 
-  // ─── Rate limiter state (in-memory, per session) ─────────────────────────
+  // Client-side rate limiter state
   const loginAttemptsRef = useRef<{ count: number; lockedUntil: number }>({ count: 0, lockedUntil: 0 });
   const registerAttemptsRef = useRef<{ count: number; lockedUntil: number }>({ count: 0, lockedUntil: 0 });
 
@@ -123,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthModalOpen(true);
   }, []);
 
-  // ─── Refresh Global Stats (single aggregate query, no full scan) ──────────
+  // ─── Refresh Global Stats ──────────────────────────────────────────────────
   const refreshGlobalStats = useCallback(async () => {
     if (!isSupabaseConfigured) return;
 
@@ -154,36 +158,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         overallAccuracy: accuracy,
       });
     } catch {
-      // Silently ignore stat aggregation errors — non-critical
+      // Silently ignore stat aggregation errors
     }
   }, []);
 
-  // ─── Initial session restore ──────────────────────────────────────────────
+  // ─── Cryptographic Session Restore (BUG-01 Fix & Guest Data Cleanup) ───────
   useEffect(() => {
     const initAuth = async () => {
       try {
-        const savedSession = localStorage.getItem(SESSION_KEY);
-        if (!savedSession || !isSupabaseConfigured) {
+        // Clean up legacy insecure plaintext storage and guest milestone leftovers
+        try {
+          localStorage.removeItem('quiz_arena_current_session');
+          localStorage.removeItem('anizuki_achievements_v1_guest');
+        } catch {
+          // Ignore storage restrictions
+        }
+
+        const savedToken = localStorage.getItem(SESSION_TOKEN_KEY);
+        if (!savedToken || !isSupabaseConfigured) {
           await refreshGlobalStats();
           return;
         }
 
-        // SEC-FIX: Use restore_session_fn — never SELECT directly (would expose no hash
-        // columns post-migration, but this is explicit and safe regardless)
+        // Restore session via cryptographic token validation
         const { data, error } = await supabase
-          .rpc('restore_session_fn', { p_username: savedSession });
+          .rpc('restore_session_fn', { p_session_token: savedToken });
 
-        if (error) {
-          console.error('[Auth] Session restore failed:', error.message);
-          localStorage.removeItem(SESSION_KEY);
-          await refreshGlobalStats();
-          return;
-        }
-
-        if (data) {
-          setCurrentUser(mapRowToAccount(data as SafeProfileRow));
+        if (error || !data) {
+          if (error) console.error('[Auth] Session validation failed:', error.message);
+          localStorage.removeItem(SESSION_TOKEN_KEY);
+          setCurrentUser(null);
         } else {
-          localStorage.removeItem(SESSION_KEY);
+          setCurrentUser(mapRowToAccount(data as SafeProfileRow, savedToken));
         }
 
         await refreshGlobalStats();
@@ -195,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth();
   }, [refreshGlobalStats]);
 
-  // ─── Login — server-side bcrypt via login_fn RPC ──────────────────────────
+  // ─── Login — server-side bcrypt + server rate limiting + session token ───
   const login = async (
     username: string,
     password: string
@@ -209,7 +215,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, error: 'Supabase is not configured. Check .env.local.' };
     }
 
-    // Rate limiting check
     const attempts = loginAttemptsRef.current;
     const now = Date.now();
     if (now < attempts.lockedUntil) {
@@ -218,8 +223,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // SEC-FIX: Password is verified server-side via pgcrypto inside login_fn.
-      // The hash never leaves the database. The client only receives safe profile fields.
       const { data, error } = await supabase
         .rpc('login_fn', { p_username: cleanUser, p_password: password });
 
@@ -228,26 +231,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (attempts.count >= MAX_ATTEMPTS) {
           attempts.lockedUntil = Date.now() + LOCKOUT_MS;
           attempts.count = 0;
-          return { success: false, error: `Too many failed attempts. Locked for 60 seconds.` };
+          return { success: false, error: 'Too many failed attempts. Locked for 60 seconds.' };
         }
-        // Surface user-facing error without leaking internals
         const msg = error.message.includes('Invalid username or password')
           ? 'Incorrect username or password.'
+          : error.message.includes('temporarily locked')
+          ? error.message
           : `Login failed: ${error.message}`;
         return { success: false, error: msg };
       }
 
-      if (!data) {
+      if (!data || !data.session_token) {
         return { success: false, error: 'Login failed. Please try again.' };
       }
 
-      // Reset rate limiter on success
       attempts.count = 0;
       attempts.lockedUntil = 0;
 
-      const account = mapRowToAccount(data as SafeProfileRow);
+      const token = data.session_token;
+      const account = mapRowToAccount(data as SafeProfileRow, token);
       setCurrentUser(account);
-      localStorage.setItem(SESSION_KEY, account.username);
+      localStorage.setItem(SESSION_TOKEN_KEY, token);
       setIsAuthModalOpen(false);
       await refreshGlobalStats();
       return { success: true };
@@ -257,25 +261,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ─── Register — server-side bcrypt via register_fn RPC ───────────────────
+  // ─── Register — minimum 8-char password + input validation + session token ─
   const register = async (
     username: string,
     password: string,
     avatarUrl?: string
   ): Promise<{ success: boolean; error?: string }> => {
     const cleanUser = username.trim();
-    if (!cleanUser || cleanUser.length < 3) {
-      return { success: false, error: 'Username must be at least 3 characters.' };
+    if (!cleanUser || cleanUser.length < 3 || cleanUser.length > 20) {
+      return { success: false, error: 'Username must be between 3 and 20 characters.' };
     }
-    if (!password || password.length < 4) {
-      return { success: false, error: 'Password must be at least 4 characters.' };
+    if (!/^[a-zA-Z0-9_-]+$/.test(cleanUser)) {
+      return { success: false, error: 'Username may only contain letters, numbers, underscores, and dashes.' };
+    }
+    if (!password || password.length < 8) {
+      return { success: false, error: 'Password must be at least 8 characters.' };
     }
 
     if (!isSupabaseConfigured) {
       return { success: false, error: 'Supabase is not configured. Check .env.local.' };
     }
 
-    // Rate limiting
     const attempts = registerAttemptsRef.current;
     const now = Date.now();
     if (now < attempts.lockedUntil) {
@@ -286,8 +292,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${cleanUser}`;
 
     try {
-      // SEC-FIX: Password hashed server-side in register_fn using pgcrypto.
-      // Plaintext password is sent over TLS but never stored or logged.
       const { data, error } = await supabase
         .rpc('register_fn', {
           p_username: cleanUser,
@@ -302,22 +306,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           attempts.count = 0;
         }
         const msg = error.message.includes('already taken')
-          ? 'Username is already taken. Please log in.'
+          ? 'Username is already taken. Please choose another or log in.'
           : `Registration failed: ${error.message}`;
         return { success: false, error: msg };
       }
 
-      if (!data) {
+      if (!data || !data.session_token) {
         return { success: false, error: 'Failed to create user profile.' };
       }
 
-      // Reset rate limiter on success
       attempts.count = 0;
       attempts.lockedUntil = 0;
 
-      const account = mapRowToAccount(data as SafeProfileRow);
+      const token = data.session_token;
+      const account = mapRowToAccount(data as SafeProfileRow, token);
       setCurrentUser(account);
-      localStorage.setItem(SESSION_KEY, account.username);
+      localStorage.setItem(SESSION_TOKEN_KEY, token);
       setIsAuthModalOpen(false);
       await refreshGlobalStats();
       return { success: true };
@@ -327,14 +331,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ─── Logout ───────────────────────────────────────────────────────────────
-  const logout = () => {
+  // ─── Logout (BUG-05 Server Revocation & State Flush) ──────────────────────
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem(SESSION_TOKEN_KEY);
+      if (token && isSupabaseConfigured) {
+        await supabase.rpc('logout_fn', { p_session_token: token });
+      }
+    } catch {
+      // Ignore network errors on logout
+    }
+
+    try {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      sessionStorage.removeItem('quiz_active_session');
+    } catch {
+      // Ignore storage restrictions
+    }
+
     setCurrentUser(null);
-    localStorage.removeItem(SESSION_KEY);
-    // Let users browse the public site freely — do NOT force the auth modal
   };
 
-  // ─── Delete Account — verified server-side via delete_own_account_fn ──────
+  // ─── Delete Account (Cascade Revocation & DB Wipe) ───────────────────────
   const deleteAccount = async (
     currentPassword: string
   ): Promise<{ success: boolean; error?: string }> => {
@@ -342,7 +360,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (isSupabaseConfigured) {
       try {
-        // SEC-FIX: Password verified server-side. No 'VERIFIED' bypass.
         const { error } = await supabase
           .rpc('delete_own_account_fn', {
             p_username: currentUser.username,
@@ -361,38 +378,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    localStorage.removeItem(SESSION_KEY);
+    try {
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      sessionStorage.removeItem('quiz_active_session');
+    } catch {
+      // Ignore
+    }
+
     setCurrentUser(null);
     setIsSettingsModalOpen(false);
     await refreshGlobalStats();
     return { success: true };
   };
 
-  // ─── Update Profile — verified server-side via update_own_profile_fn ─────
+  // ─── Update Profile (BUG-09 Validation & Session Revocation) ──────────────
   const updateProfile = async (
     newUsername?: string,
     newPassword?: string,
     newAvatar?: string,
     currentPassword?: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!currentUser) return { success: false, error: 'Not logged in' };
-    if (!isSupabaseConfigured) return { success: false, error: 'Supabase is not configured' };
+    if (!currentUser) return { success: false, error: 'Not logged in.' };
+    if (!isSupabaseConfigured) return { success: false, error: 'Supabase is not configured.' };
 
     if (!currentPassword) {
       return { success: false, error: 'Current password is required to update your profile.' };
     }
 
     const cleanUser = newUsername?.trim();
+    if (cleanUser && (cleanUser.length < 3 || cleanUser.length > 20)) {
+      return { success: false, error: 'Username must be between 3 and 20 characters.' };
+    }
+    if (cleanUser && !/^[a-zA-Z0-9_-]+$/.test(cleanUser)) {
+      return { success: false, error: 'Username may only contain letters, numbers, underscores, and dashes.' };
+    }
+
+    if (newPassword && newPassword.length < 8) {
+      return { success: false, error: 'New password must be at least 8 characters.' };
+    }
 
     try {
-      // SEC-FIX: Verification and hashing happen server-side.
-      // New password is hashed inside update_own_profile_fn via pgcrypto.
       const { error } = await supabase
         .rpc('update_own_profile_fn', {
           p_username: currentUser.username,
           p_current_password: currentPassword,
           p_new_username: cleanUser && cleanUser.toLowerCase() !== currentUser.username.toLowerCase() ? cleanUser : null,
-          p_new_password: newPassword && newPassword.length >= 4 ? newPassword : null,
+          p_new_password: newPassword && newPassword.length >= 8 ? newPassword : null,
           p_new_avatar_url: newAvatar || null,
         });
 
@@ -405,7 +436,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: msg };
       }
 
-      // Update local state with new display values (no hash involved)
+      // If password changed, re-authenticate or keep current token
       const updatedAccount: UserAccount = {
         ...currentUser,
         username: cleanUser && cleanUser.toLowerCase() !== currentUser.username.toLowerCase()
@@ -414,7 +445,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatarUrl: newAvatar || currentUser.avatarUrl,
       };
 
-      localStorage.setItem(SESSION_KEY, updatedAccount.username);
       setCurrentUser(updatedAccount);
       return { success: true };
     } catch (e: unknown) {
@@ -423,7 +453,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // ─── Atomic Multi-Stat Increment Engine (Atlas Architecture) ────────────
+  // ─── Stat Increment Engine (BUG-03 Fix: Server-Enforced Capped RPC) ───────
   const colMap: Record<UserStatKey, string> = {
     roomsCreated: 'rooms_created',
     matchesPlayed: 'matches_played',
@@ -438,9 +468,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!currentUserRef.current || !isSupabaseConfigured) return;
 
       const username = currentUserRef.current.username;
-      let calculatedStats: UserAccount['stats'] | null = null;
 
-      // Functional atomic update prevents race conditions and state stomping
+      // Functional optimistic update
       setCurrentUser((prev) => {
         if (!prev) return null;
         const nextStats = { ...prev.stats };
@@ -450,37 +479,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             nextStats[statKey] = (nextStats[statKey] || 0) + amt;
           }
         }
-        calculatedStats = nextStats;
         return {
           ...prev,
           stats: nextStats,
         };
       });
 
+      // SEC-FIX: Dispatch to increment_user_stat_fn RPC with capped bounds
       try {
-        // Construct batched DB update payload
-        const dbUpdates: Record<string, unknown> = {
-          updated_at: new Date().toISOString(),
-        };
-
-        for (const [key] of Object.entries(statsToIncrement)) {
-          const statKey = key as UserStatKey;
-          const dbCol = colMap[statKey];
-          if (calculatedStats && typeof calculatedStats[statKey] === 'number') {
-            dbUpdates[dbCol] = calculatedStats[statKey];
-          }
-        }
-
-        const { error } = await supabase
-          .from('user_profiles')
-          .update(dbUpdates)
-          .ilike('username', username);
-
-        if (error) {
-          console.error('[incrementStats] Supabase batched update failed:', error.message);
-        }
+        await Promise.all(
+          Object.entries(statsToIncrement).map(async ([key, amt]) => {
+            if (typeof amt === 'number' && amt > 0) {
+              const statKey = key as UserStatKey;
+              const dbCol = colMap[statKey];
+              if (!dbCol) return;
+              const { error } = await supabase.rpc('increment_user_stat_fn', {
+                p_username: username,
+                p_stat_col: dbCol,
+                p_amount: amt,
+              });
+              if (error) {
+                console.warn(`[increment_user_stat_fn] Failed for ${dbCol}:`, error.message);
+              }
+            }
+          })
+        );
       } catch (err) {
-        console.error('[incrementStats] Sync error:', err);
+        console.warn('[incrementStats] RPC dispatch error:', err);
       }
     },
     []

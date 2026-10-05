@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const title = `${topic.name} Quiz & Trivia Battles — AniZuki`;
-  const description = `${topic.description} Test your knowledge with 10 difficulty tiers and ${topic.questionCount}+ questions. Play solo as guest or battle friends online!`;
+  const description = `Play ${topic.name} anime trivia on AniZuki! Test your lore across 10 difficulty tiers with ${topic.questionCount}+ questions. Play solo or battle friends online.`;
   const canonicalUrl = `https://anizuki.sbs/topic/${topic.slug || topic.id}`;
   const ogImageUrl = topic.imageUrl.startsWith('http')
     ? topic.imageUrl
@@ -74,7 +74,7 @@ export default async function TopicPage({ params }: Props) {
 
   const category = CATEGORIES.find((c) => c.id === topic.categoryId);
   const topicQuestions = SEED_QUESTIONS.filter((q) => q.topicId === topic.id);
-  const sampleQuestions = topicQuestions.slice(0, 5);
+  const sampleQuestions = topicQuestions.slice(0, 3);
 
   const quizSchema = getQuizSchema(topic, sampleQuestions);
   const breadcrumbSchema = getBreadcrumbSchema([
@@ -144,7 +144,7 @@ export default async function TopicPage({ params }: Props) {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-nunito font-black text-sm transition-all shadow-md active:scale-95"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Play Solo (Guest Friendly)</span>
+              <span>Play Solo Arena</span>
             </Link>
 
             <Link
@@ -194,17 +194,17 @@ export default async function TopicPage({ params }: Props) {
           </div>
         </div>
 
-        {/* Guest Play & Indexable Feature Callout */}
+        {/* Ranked Combatant Feature Callout */}
         <div className="bg-[#FFFDF4] dark:bg-[#1E1D1D] rounded-2xl border-2 border-black dark:border-[#363535] p-6 space-y-4 flex flex-col justify-between">
           <div className="space-y-3">
             <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center">
               <ShieldCheck className="w-6 h-6" />
             </div>
             <h3 className="font-nunito font-black text-lg text-black dark:text-white">
-              Instant Guest Access
+              Ranked Arena Battles
             </h3>
             <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3] leading-relaxed">
-              No account required to jump straight into battles! Guests can answer questions, experience WebRTC live voice arenas, and save their match XP anytime by registering.
+              Every round you play contributes to your combatant profile. Earn permanent match XP, build accuracy streaks, participate in WebRTC voice lobbies, and compete for global leaderboard supremacy.
             </p>
           </div>
 
@@ -231,7 +231,7 @@ export default async function TopicPage({ params }: Props) {
           </div>
 
           <div className="space-y-4">
-            {sampleQuestions.slice(0, 2).map((q, idx) => (
+            {sampleQuestions.map((q, idx) => (
               <div
                 key={q.id || idx}
                 className="p-4 rounded-xl border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F] space-y-2"
@@ -242,13 +242,23 @@ export default async function TopicPage({ params }: Props) {
                 <div className="font-nunito font-bold text-sm text-black dark:text-white">
                   {q.questionText}
                 </div>
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   <div className="text-xs font-nunito p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                     A: {q.optionA}
                   </div>
                   <div className="text-xs font-nunito p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
                     B: {q.optionB}
                   </div>
+                  {q.optionC && (
+                    <div className="text-xs font-nunito p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                      C: {q.optionC}
+                    </div>
+                  )}
+                  {q.optionD && (
+                    <div className="text-xs font-nunito p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                      D: {q.optionD}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

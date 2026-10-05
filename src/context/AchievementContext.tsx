@@ -5,6 +5,7 @@ import { Achievement, UserAchievementState } from '@/types/achievement';
 import { ACHIEVEMENTS } from '@/data/achievements';
 import { sound } from '@/lib/sound';
 import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import confetti from 'canvas-confetti';
 
 interface MatchContext {
@@ -51,28 +52,92 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
   userStatesRef.current = userStates;
   const isInitialMount = useRef(true);
 
-  // Compute session-isolated key so guests and logged-in accounts never share milestone states
+  // Compute session-isolated key strictly for authenticated users
   const storageKey = currentUser
     ? `${BASE_STORAGE_KEY}_${currentUser.username.toLowerCase()}`
-    : `${BASE_STORAGE_KEY}_guest`;
+    : null;
 
-  // Load from localStorage on mount and whenever the active user changes
+  // Purge any legacy guest achievement storage on mount
   useEffect(() => {
+    try {
+      localStorage.removeItem(`${BASE_STORAGE_KEY}_guest`);
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Load from localStorage and sync with Supabase user_achievements table (Bugs 14 & 15)
+  useEffect(() => {
+    if (!storageKey || !currentUser) {
+      setUserStates({});
+      return;
+    }
+
+    let localData: Record<string, UserAchievementState> = {};
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
-        setUserStates(JSON.parse(stored));
+        localData = JSON.parse(stored);
+        setUserStates(localData);
       } else {
         setUserStates({});
       }
     } catch (e) {
       console.error('[Achievements] Failed to load from storage:', e);
-      setUserStates({});
     }
-  }, [storageKey]);
+
+    // Remote sync with Supabase user_achievements table
+    if (isSupabaseConfigured) {
+      const syncRemote = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('user_achievements')
+            .select('achievement_id, unlocked, unlocked_at, progress')
+            .eq('username', currentUser.username.toLowerCase());
+
+          if (!error && data && data.length > 0) {
+            setUserStates((prev) => {
+              const merged = { ...prev };
+              data.forEach((row) => {
+                const existing = merged[row.achievement_id];
+                const isUnlocked = row.unlocked || existing?.unlocked || false;
+                const progress = Math.max(row.progress || 0, existing?.progress || 0);
+                merged[row.achievement_id] = {
+                  unlocked: isUnlocked,
+                  unlockedAt: row.unlocked_at || existing?.unlockedAt,
+                  progress,
+                };
+              });
+              try {
+                localStorage.setItem(storageKey, JSON.stringify(merged));
+              } catch {}
+              return merged;
+            });
+          } else if (!error && data && data.length === 0 && Object.keys(localData).length > 0) {
+            // Seed Supabase with existing local state if remote is fresh
+            const rowsToInsert = Object.entries(localData).map(([achId, state]) => ({
+              user_id: currentUser.id || null,
+              username: currentUser.username.toLowerCase(),
+              achievement_id: achId,
+              unlocked: state.unlocked,
+              unlocked_at: state.unlocked ? new Date().toISOString() : null,
+              progress: state.progress || 0,
+            }));
+            await supabase.from('user_achievements').upsert(rowsToInsert, {
+              onConflict: 'username,achievement_id',
+            });
+          }
+        } catch (err) {
+          console.error('[Achievements] Remote sync error:', err);
+        }
+      };
+      syncRemote();
+    }
+  }, [storageKey, currentUser]);
 
   // Persist to scoped storage key whenever userStates change
   useEffect(() => {
+    if (!storageKey) return;
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
@@ -134,19 +199,51 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
       if (userStatesRef.current[id]?.unlocked) return; // already unlocked
 
       triggerCelebration(def);
+      const unlockedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       setUserStates((prev) => {
         if (prev[id]?.unlocked) return prev;
-        return {
+        const next = {
           ...prev,
           [id]: {
             unlocked: true,
-            unlockedAt: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            unlockedAt: unlockedDate,
             progress: def.target,
           },
         };
+        if (storageKey) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(next));
+          } catch {}
+        }
+        return next;
       });
+
+      // Persist to Supabase user_achievements table (Bugs 14 & 15)
+      if (currentUser && isSupabaseConfigured) {
+        (async () => {
+          try {
+            const { error } = await supabase
+              .from('user_achievements')
+              .upsert(
+                {
+                  user_id: currentUser.id || null,
+                  username: currentUser.username.toLowerCase(),
+                  achievement_id: id,
+                  unlocked: true,
+                  unlocked_at: new Date().toISOString(),
+                  progress: def.target,
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: 'username,achievement_id' }
+              );
+            if (error) console.error('[Achievements] Supabase unlock upsert failed:', error.message);
+          } catch (err) {
+            console.error('[Achievements] Supabase unlock error:', err);
+          }
+        })();
+      }
     },
-    [triggerCelebration]
+    [triggerCelebration, currentUser, storageKey]
   );
 
   const updateProgress = useCallback(
@@ -164,6 +261,10 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
         triggerCelebration(def);
       }
 
+      const unlockedDate = didUnlock
+        ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        : undefined;
+
       setUserStates((prev) => {
         const cur = prev[id] || { unlocked: false, progress: 0 };
         if (cur.unlocked) return prev;
@@ -171,18 +272,59 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
         const calculatedProg = isDelta ? cur.progress + value : Math.max(cur.progress, value);
         const unlocked = calculatedProg >= def.target;
 
-        return {
+        const next = {
           ...prev,
           [id]: {
             unlocked,
-            unlockedAt: unlocked ? new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined,
+            unlockedAt: unlocked ? (cur.unlockedAt || unlockedDate) : undefined,
             progress: Math.min(calculatedProg, def.target),
           },
         };
+        if (storageKey) {
+          try {
+            localStorage.setItem(storageKey, JSON.stringify(next));
+          } catch {}
+        }
+        return next;
       });
+
+      // Persist progress to Supabase user_achievements table (Bugs 14 & 15)
+      if (currentUser && isSupabaseConfigured) {
+        const currentProg = userStatesRef.current[id]?.progress || 0;
+        const calculatedProg = isDelta ? currentProg + value : Math.max(currentProg, value);
+        const unlocked = calculatedProg >= def.target;
+        (async () => {
+          try {
+            const { error } = await supabase
+              .from('user_achievements')
+              .upsert(
+                {
+                  user_id: currentUser.id || null,
+                  username: currentUser.username.toLowerCase(),
+                  achievement_id: id,
+                  unlocked,
+                  unlocked_at: unlocked ? new Date().toISOString() : null,
+                  progress: Math.min(calculatedProg, def.target),
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: 'username,achievement_id' }
+              );
+            if (error) console.error('[Achievements] Supabase progress upsert failed:', error.message);
+          } catch (err) {
+            console.error('[Achievements] Supabase progress error:', err);
+          }
+        })();
+      }
     },
-    [triggerCelebration]
+    [triggerCelebration, currentUser, storageKey]
   );
+
+  // Auto-unlock room_host if user has created rooms (Bug 18)
+  useEffect(() => {
+    if (currentUser?.stats?.roomsCreated && currentUser.stats.roomsCreated >= 1) {
+      unlockAchievement('room_host');
+    }
+  }, [currentUser?.stats?.roomsCreated, unlockAchievement]);
 
   // Evaluates achievements after each match
   const checkMatchAchievements = useCallback(
@@ -196,6 +338,10 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
 
       // 2. Skill achievements
       if (ctx.fastestAnswerSec > 0 && ctx.fastestAnswerSec <= 2.0) unlockAchievement('speed_demon');
+      // Bug 18: Lightning reflexes (5 answers with fast response)
+      if (ctx.avgResponseSec > 0 && ctx.avgResponseSec <= 2.5 && ctx.correctAnswers >= 5) {
+        unlockAchievement('lightning_reflexes');
+      }
       if (ctx.totalQuestions >= 5 && ctx.correctAnswers === ctx.totalQuestions) unlockAchievement('flawless_victory');
       if (ctx.totalQuestions >= 5 && (ctx.correctAnswers / ctx.totalQuestions) >= 0.9) unlockAchievement('sharp_shooter');
       if (ctx.difficultyLevel >= 4 && ctx.difficultyLevel <= 6) unlockAchievement('tactician_medium');
@@ -207,15 +353,18 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
       if (ctx.maxStreak >= 5) unlockAchievement('hot_streak_5');
       if (ctx.maxStreak >= 10) unlockAchievement('hot_streak_10');
 
-      // 4. Podiums & Wins
+      // 4. Podiums & Wins (Synced to career multiplayer wins)
       if (ctx.playerRank <= 3) unlockAchievement('podium_finish');
       if (ctx.playerRank === 1) {
         unlockAchievement('win_1');
-        updateProgress('win_3', 1, true);
-        updateProgress('win_10', 1, true);
       }
+      const careerWins = currentUser?.stats?.wins ?? (ctx.playerRank === 1 ? 1 : 0);
+      if (careerWins >= 3) unlockAchievement('win_3');
+      else updateProgress('win_3', careerWins);
+      if (careerWins >= 10) unlockAchievement('win_10');
+      else updateProgress('win_10', careerWins);
 
-      // 5. Topic Mastery (at least 70% accuracy)
+      // 5. Topic Mastery (at least 70% accuracy) — Bug 17: Support both canonical IDs and common aliases
       const topicRatio = ctx.totalQuestions > 0 ? ctx.correctAnswers / ctx.totalQuestions : 0;
       if (topicRatio >= 0.7) {
         const topicMap: Record<string, string> = {
@@ -224,14 +373,18 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
           'bleach': 'topic_bleach',
           'demon-slayer': 'topic_demon_slayer',
           'attack-on-titan': 'topic_aot',
+          'jujutsu-kaisen': 'topic_jjk',
           'gojo-vs-sukuna': 'topic_jjk',
           'dragon-ball': 'topic_dbz',
           'hunter-x-hunter': 'topic_hxh',
           'fullmetal-alchemist': 'topic_fma',
           'cyberpunk-edgerunners': 'topic_cyberpunk',
+          'reincarnated-slime': 'topic_slime',
           'reincarnated-as-a-slime': 'topic_slime',
+          'jobless-reincarnation': 'topic_mushoku',
           'mushoku-tensei': 'topic_mushoku',
           'spy-x-family': 'topic_spyxfamily',
+          'darwins-game': 'topic_darwins_game',
           'darwin-game': 'topic_darwins_game',
           'the-boys': 'topic_the_boys',
           'breaking-bad': 'topic_breaking_bad',
@@ -240,6 +393,7 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
           'modern-family': 'topic_modern_family',
           'black-lightning': 'topic_black_lightning',
           'gta-v': 'topic_gta',
+          'gtav': 'topic_gta',
         };
         if (topicMap[ctx.topicId]) {
           unlockAchievement(topicMap[ctx.topicId]);
@@ -254,11 +408,15 @@ export function AchievementProvider({ children }: { children: React.ReactNode })
       updateProgress('quiz_veteran', ctx.careerMatches);
       updateProgress('score_millionaire', ctx.careerTotalScore);
 
-      if (ctx.uniqueTopicsPlayed && ctx.uniqueTopicsPlayed.length >= 5) {
-        unlockAchievement('social_butterfly');
+      // 7. Social Butterfly (Bug 18: tracked across played unique topics)
+      if (ctx.uniqueTopicsPlayed && ctx.uniqueTopicsPlayed.length > 0) {
+        updateProgress('social_butterfly', ctx.uniqueTopicsPlayed.length);
+        if (ctx.uniqueTopicsPlayed.length >= 5) {
+          unlockAchievement('social_butterfly');
+        }
       }
     },
-    [unlockAchievement, updateProgress]
+    [unlockAchievement, updateProgress, currentUser]
   );
 
   // Leaderboard rank evaluation

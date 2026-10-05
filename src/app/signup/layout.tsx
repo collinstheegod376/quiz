@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     canonical: 'https://anizuki.sbs/signup',
   },
   robots: {
-    index: true,
+    index: false,
     follow: true,
   },
 };

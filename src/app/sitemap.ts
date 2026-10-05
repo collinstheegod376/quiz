@@ -28,8 +28,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
+  // Filter categories to only those containing active topics
+  const activeCategories = CATEGORIES.filter((cat) =>
+    TOPICS.some((t) => t.categoryId === cat.id && t.isActive)
+  );
+
   // 2. Dynamic Public Quiz Categories (priority: 0.8, weekly)
-  const categoryRoutes: MetadataRoute.Sitemap = CATEGORIES.map((cat) => ({
+  const categoryRoutes: MetadataRoute.Sitemap = activeCategories.map((cat) => ({
     url: `${baseUrl}/category/${cat.id}`,
     lastModified: now,
     changeFrequency: 'weekly',
@@ -44,25 +49,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  // 4. Static Informational Pages (priority: 0.5, monthly)
-  const staticInfoRoutes: MetadataRoute.Sitemap = [
-    {
-      url: `${baseUrl}/login`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-    {
-      url: `${baseUrl}/signup`,
-      lastModified: now,
-      changeFrequency: 'monthly',
-      priority: 0.5,
-    },
-  ];
+  // NOTE: Low-value dynamic pages (e.g. transient game results, temporary session IDs,
+  // active multiplayer lobbies, `/game`, `/lobby`, `/room`, `/settings`) as well as
+  // utility authentication forms (`/login`, `/signup`) are strictly EXCLUDED
+  // to protect crawl budget and prevent indexing thin/duplicate content.
 
-  // NOTE: Low-value dynamic pages (e.g., transient game results, temporary session IDs,
-  // active multiplayer lobbies, `/game`, `/lobby`, `/room`, `/settings`) are strictly EXCLUDED
-  // to protect crawl budget and prevent indexing duplicates.
-
-  return [...coreLandingRoutes, ...categoryRoutes, ...topicRoutes, ...staticInfoRoutes];
+  return [...coreLandingRoutes, ...categoryRoutes, ...topicRoutes];
 }

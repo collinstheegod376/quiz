@@ -19,6 +19,64 @@ export interface LeaderboardRankItem {
 }
 
 /**
+ * Organization Schema for AniZuki
+ */
+export function getOrganizationSchema() {
+  return {
+    '@type': 'Organization',
+    '@id': `${BASE_URL}/#organization`,
+    name: 'AniZuki',
+    url: BASE_URL,
+    logo: `${BASE_URL}/images/topics/gojo-vs-sukuna.jpg`,
+    sameAs: [
+      'https://www.promisedkillua.sbs/',
+    ],
+  };
+}
+
+/**
+ * WebSite Schema with Sitelinks SearchAction
+ */
+export function getWebSiteSchema() {
+  return {
+    '@type': 'WebSite',
+    '@id': `${BASE_URL}/#website`,
+    url: BASE_URL,
+    name: 'AniZuki',
+    alternateName: 'AniZuki Anime Quiz Arena',
+    publisher: {
+      '@id': `${BASE_URL}/#organization`,
+    },
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${BASE_URL}/entertainment?search={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+    inLanguage: 'en',
+  };
+}
+
+/**
+ * Combined Root Structured Data Graph (Organization + WebSite + WebApplication)
+ */
+export function getRootJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      getOrganizationSchema(),
+      getWebSiteSchema(),
+      {
+        ...getSoftwareApplicationSchema(),
+        '@context': undefined,
+      },
+    ],
+  };
+}
+
+/**
  * Global SoftwareApplication (WebApplication) Schema for AniZuki
  */
 export function getSoftwareApplicationSchema() {

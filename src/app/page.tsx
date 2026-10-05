@@ -10,6 +10,7 @@ import { DifficultyScreen } from '@/components/screens/DifficultyScreen';
 import { LobbyScreen } from '@/components/screens/LobbyScreen';
 import { QuestionScreen } from '@/components/screens/QuestionScreen';
 import { FinalResultsScreen } from '@/components/screens/FinalResultsScreen';
+import { WaitingScreen } from '@/components/screens/WaitingScreen';
 import { NextRoundScreen } from '@/components/screens/NextRoundScreen';
 import { EntertainmentScreen } from '@/components/screens/EntertainmentScreen';
 import { AchievementsScreen } from '@/components/screens/AchievementsScreen';
@@ -46,8 +47,11 @@ export default function HomePage() {
       if (room.status === 'NEXT_ROUND') {
         return <NextRoundScreen />;
       }
-      if (isMatchFinished || room.status === 'FINAL_RESULTS' || room.status === 'FINISHED') {
+      if (room.status === 'FINAL_RESULTS' || room.status === 'FINISHED') {
         return <FinalResultsScreen />;
+      }
+      if (currentPlayer.isFinished || currentPlayer.status === 'finished') {
+        return <WaitingScreen />;
       }
       return <QuestionScreen />;
     }

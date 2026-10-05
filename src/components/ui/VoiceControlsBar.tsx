@@ -22,6 +22,8 @@ export function VoiceControlsBar() {
     isDeafened,
     isConnecting,
     hasMicPermissionError,
+    micErrorMessage,
+    voiceError,
     isQuestionAutoMuted,
     audioLevel,
     joinVoice,
@@ -80,12 +82,19 @@ export function VoiceControlsBar() {
 
       {/* Body / Controls */}
       <div className="p-4 sm:p-5">
-        {hasMicPermissionError && (
+        {(hasMicPermissionError || micErrorMessage) && (
           <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2.5 text-xs text-red-600 dark:text-red-400">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span className="font-nunito font-bold">
-              Microphone access blocked. Please enable microphone permission in your browser URL bar.
+              {micErrorMessage || 'Microphone access blocked. Please enable microphone permission in your browser URL bar.'}
             </span>
+          </div>
+        )}
+
+        {voiceError && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-600 dark:text-amber-400">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span className="font-nunito font-bold">{voiceError}</span>
           </div>
         )}
 

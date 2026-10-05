@@ -55,6 +55,11 @@ export function SettingsModal() {
       return;
     }
 
+    if (newPassword && newPassword.length < 8) {
+      setFeedbackMsg({ type: 'error', text: 'New password must be at least 8 characters long.' });
+      return;
+    }
+
     setIsSaving(true);
     try {
       const avatarUrl = `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${avatarSeed}`;

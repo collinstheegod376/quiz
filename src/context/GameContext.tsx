@@ -9,7 +9,7 @@ import {
   AnswerSubmissionResult,
   RoomActivityLog,
 } from '@/types/quiz';
-import { getQuestionsForMatch } from '@/data/questions';
+import { getQuestionsForMatch, resolveQuestionSecret } from '@/data/questions';
 import {
   calculateGameLength,
   generateRoomCode,
@@ -19,6 +19,7 @@ import {
 } from '@/lib/utils';
 import { sound } from '@/lib/sound';
 import { useAuth } from './AuthContext';
+import { useAchievements } from './AchievementContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export type AppView = 'landing' | 'entertainment' | 'categories' | 'topics' | 'difficulty' | 'lobby' | 'game' | 'achievements' | 'leaderboard';
@@ -58,6 +59,8 @@ interface GameContextType {
   lastRevealResult: AnswerSubmissionResult | null;
   advanceToNextState: () => void;
   playAgain: () => void;
+  forceEndGame: () => Promise<void>;
+  isCurrentPlayerFinished: boolean;
   goToNextLevel: () => Promise<void>;
   goToNextRound: (targetLevel?: number) => Promise<void>;
   startNextRound: () => Promise<void>;
@@ -76,7 +79,22 @@ interface GameContextType {
 const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
-  const { currentUser, incrementStat, incrementStats } = useAuth();
+  const { currentUser, incrementStat, incrementStats, openAuthModal } = useAuth();
+  const { unlockAchievement } = useAchievements();
+
+  // Reconstitute canonical correct options and explanations locally from questions cache
+  const hydrateQuestions = useCallback((rawQuestions?: Question[]): Question[] => {
+    if (!rawQuestions || rawQuestions.length === 0) return [];
+    return rawQuestions.map((q) => {
+      if (q.correctOption) return q;
+      const secret = resolveQuestionSecret(q);
+      return {
+        ...q,
+        correctOption: secret.correctOption,
+        explanation: secret.explanation || q.explanation,
+      };
+    });
+  }, []);
 
   const [currentView, setCurrentView] = useState<AppView>('landing');
   const [selectedCategoryId, setSelectedCategoryId] = useState<CategoryId>('anime');
@@ -116,6 +134,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const botAnsweredIndexRef = useRef<Record<string, number>>({});
   const botTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const isFinishingRef = useRef<boolean>(false);
 
   // Initialize session history from sessionStorage if available
   useEffect(() => {
@@ -185,7 +204,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
           // Sync questions if present
           if (incomingRoom.questions && incomingRoom.questions.length > 0) {
-            setGameQuestions(incomingRoom.questions);
+            const hydrated = hydrateQuestions(incomingRoom.questions);
+            setGameQuestions(hydrated);
             if (incomingRoom.topicId) {
               recordSeenQuestions(incomingRoom.topicId, incomingRoom.questions.map((q) => q.id));
             }
@@ -211,20 +231,110 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             setIsLocalReveal(false);
           }
 
-          setRoom(incomingRoom);
+          // If room is in QUESTION state but all active players are now finished, transition to FINAL_RESULTS
+          const allIncomingFinished =
+            incomingRoom.players.length > 0 &&
+            incomingRoom.players.every(
+              (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+            );
+          if (incomingRoom.status === 'QUESTION' && allIncomingFinished) {
+            incomingRoom.status = 'FINAL_RESULTS';
+            if (currentPlayerRef.current?.isHost) {
+              saveRoomToSupabase(incomingRoom);
+            }
+          }
 
           // Restore current player from incoming room by matching our player id
+          // BUG-03 FIX: Prevent local player progression from being downgraded by stale incoming broadcasts
           const myPlayer = currentPlayerRef.current;
+          let finalIncomingRoom = incomingRoom;
           if (myPlayer) {
-            const updated = incomingRoom.players.find((p) => p.id === myPlayer.id);
-            if (updated) setCurrentPlayer(updated);
+            const remoteMyPlayer = incomingRoom.players.find((p) => p.id === myPlayer.id);
+            if (remoteMyPlayer) {
+              const mergedMyPlayer: Player = {
+                ...remoteMyPlayer,
+                score: Math.max(myPlayer.score, remoteMyPlayer.score),
+                correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
+                totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
+                streak: myPlayer.streak ?? remoteMyPlayer.streak,
+                maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
+                isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
+                status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
+              };
+              setCurrentPlayer(mergedMyPlayer);
+              finalIncomingRoom = {
+                ...incomingRoom,
+                players: incomingRoom.players.map((p) => (p.id === myPlayer.id ? mergedMyPlayer : p)),
+              };
+            }
           }
+          setRoom(finalIncomingRoom);
         }
       )
       .subscribe();
 
     realtimeChannelRef.current = channel;
   }, []);
+
+  // ─── Reconnection Handshake on Refresh / Temporary Disconnect ─────────────
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    try {
+      const stored = sessionStorage.getItem('quiz_active_session');
+      if (!stored) return;
+      const { roomCode, playerId } = JSON.parse(stored);
+      if (!roomCode || !playerId) return;
+
+      supabase
+        .from('realtime_rooms')
+        .select('state')
+        .eq('code', roomCode)
+        .maybeSingle()
+        .then(({ data, error }) => {
+          if (!error && data?.state) {
+            const restored = data.state as Room;
+            if (restored.status !== 'FINISHED') {
+              const matchedPlayer = restored.players.find((p) => p.id === playerId);
+              if (matchedPlayer) {
+                const onlinePlayer: Player = {
+                  ...matchedPlayer,
+                  isOnline: true,
+                  status: matchedPlayer.isFinished ? 'finished' : 'playing',
+                };
+                const updatedPlayers = restored.players.map((p) =>
+                  p.id === playerId ? onlinePlayer : p
+                );
+                const updatedRoom: Room = { ...restored, players: updatedPlayers };
+
+                setCurrentPlayer(onlinePlayer);
+                setRoom(updatedRoom);
+                if (updatedRoom.questions && updatedRoom.questions.length > 0) {
+                  const hydrated = hydrateQuestions(updatedRoom.questions);
+                  setGameQuestions(hydrated);
+                  updatedRoom.questions = hydrated;
+                }
+                if (
+                  updatedRoom.status === 'QUESTION' ||
+                  updatedRoom.status === 'REVEAL' ||
+                  updatedRoom.status === 'FINAL_RESULTS' ||
+                  updatedRoom.status === 'NEXT_ROUND'
+                ) {
+                  setCurrentView('game');
+                } else if (updatedRoom.status === 'LOBBY') {
+                  setCurrentView('lobby');
+                }
+                subscribeToRoom(roomCode);
+                saveRoomToSupabase(updatedRoom);
+              }
+            } else {
+              sessionStorage.removeItem('quiz_active_session');
+            }
+          }
+        });
+    } catch {
+      // ignore
+    }
+  }, [subscribeToRoom]);
 
   // Unsubscribe on unmount
   useEffect(() => {
@@ -245,31 +355,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (roomStatus === 'QUESTION') {
-      // Reset refs immediately so submitAnswer / countdown timer guard correctly
-      isAnswerSubmittedRef.current = false;
-      isLocalRevealRef.current = false;
-      isTransitioningRef.current = false;
-      // Cancel any pending submit timeout from the previous question
-      if (submitTimeoutRef.current) {
-        clearTimeout(submitTimeoutRef.current);
-        submitTimeoutRef.current = null;
-      }
-      // Cancel any lingering countdown from the previous question
-      if (countdownTimerRef.current) {
-        clearInterval(countdownTimerRef.current);
-        countdownTimerRef.current = null;
-      }
-      setSelectedOption(null);
-      setIsAnswerSubmitted(false);
-      setIsLocalReveal(false);
-      setIsMatchFinished(false);
-      setTimerSeconds(room?.timePerQuestion || 15);
-      setAnswerTimeStart(Date.now());
-      // Blur any active element to prevent phantom keypress or tap triggers
-      if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
+      // Only reset question UI if current player is not already finished
+      if (!currentPlayerRef.current?.isFinished && currentPlayerRef.current?.status !== 'finished') {
+        isAnswerSubmittedRef.current = false;
+        isLocalRevealRef.current = false;
+        isTransitioningRef.current = false;
+        if (submitTimeoutRef.current) {
+          clearTimeout(submitTimeoutRef.current);
+          submitTimeoutRef.current = null;
+        }
+        if (countdownTimerRef.current) {
+          clearInterval(countdownTimerRef.current);
+          countdownTimerRef.current = null;
+        }
+        setSelectedOption(null);
+        setIsAnswerSubmitted(false);
+        setIsLocalReveal(false);
+        setIsMatchFinished(false);
+        setTimerSeconds(room?.timePerQuestion || 15);
+        setAnswerTimeStart(Date.now());
+        if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
       }
     } else if (roomStatus === 'NEXT_ROUND') {
+      isFinishingRef.current = false;
       isAnswerSubmittedRef.current = false;
       isLocalRevealRef.current = false;
       setIsMatchFinished(false);
@@ -312,9 +422,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                   !lp ||
                   lp.hasAnswered !== rp.hasAnswered ||
                   lp.score !== rp.score ||
-                  lp.isReady !== rp.isReady
+                  lp.isReady !== rp.isReady ||
+                  lp.isFinished !== rp.isFinished ||
+                  lp.status !== rp.status
                 );
               });
+
+            // If room is in QUESTION state but all active players are finished, transition to FINAL_RESULTS
+            const allRemoteFinished =
+              remoteRoom.players.length > 0 &&
+              remoteRoom.players.every(
+                (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+              );
+            if (remoteRoom.status === 'QUESTION' && allRemoteFinished) {
+              remoteRoom.status = 'FINAL_RESULTS';
+              if (currentPlayerRef.current?.isHost) {
+                saveRoomToSupabase(remoteRoom);
+              }
+            }
 
             if (
               playersChanged ||
@@ -322,7 +447,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               remoteRoom.currentQuestionIndex !== prev.currentQuestionIndex
             ) {
               if (remoteRoom.questions && remoteRoom.questions.length > 0) {
-                setGameQuestions(remoteRoom.questions);
+                const hydrated = hydrateQuestions(remoteRoom.questions);
+                setGameQuestions(hydrated);
+                remoteRoom.questions = hydrated;
               }
               if (
                 remoteRoom.status === 'QUESTION' ||
@@ -339,11 +466,28 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                 setIsLocalReveal(false);
               }
               const myPlayer = currentPlayerRef.current;
+              let finalRemoteRoom = remoteRoom;
               if (myPlayer) {
-                const updated = remoteRoom.players.find((p) => p.id === myPlayer.id);
-                if (updated) setCurrentPlayer(updated);
+                const remoteMyPlayer = remoteRoom.players.find((p) => p.id === myPlayer.id);
+                if (remoteMyPlayer) {
+                  const mergedMyPlayer: Player = {
+                    ...remoteMyPlayer,
+                    score: Math.max(myPlayer.score, remoteMyPlayer.score),
+                    correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
+                    totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
+                    streak: myPlayer.streak ?? remoteMyPlayer.streak,
+                    maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
+                    isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
+                    status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
+                  };
+                  setCurrentPlayer(mergedMyPlayer);
+                  finalRemoteRoom = {
+                    ...remoteRoom,
+                    players: remoteRoom.players.map((p) => (p.id === myPlayer.id ? mergedMyPlayer : p)),
+                  };
+                }
               }
-              return remoteRoom;
+              return finalRemoteRoom;
             }
             return prev;
           });
@@ -364,10 +508,70 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
+      let finalRoom = updatedRoom;
+      const myId = currentPlayerRef.current?.id;
+
+      // In active gameplay, merge with latest remote state to prevent clobbering peer progress
+      if (updatedRoom.status !== 'LOBBY' && myId) {
+        const { data: latestData } = await supabase
+          .from('realtime_rooms')
+          .select('state')
+          .eq('code', updatedRoom.code)
+          .maybeSingle();
+
+        if (latestData?.state) {
+          const remoteRoom = latestData.state as Room;
+          const mergedPlayers = updatedRoom.players.map((localP) => {
+            if (localP.id === myId) {
+              return localP; // Local player's own authoritative update
+            }
+            const remoteP = remoteRoom.players.find((rp) => rp.id === localP.id);
+            if (!remoteP) return localP;
+            return {
+              ...localP,
+              score: Math.max(localP.score, remoteP.score),
+              correctAnswers: Math.max(localP.correctAnswers, remoteP.correctAnswers),
+              totalResponseTimeMs: Math.max(localP.totalResponseTimeMs, remoteP.totalResponseTimeMs),
+              hasAnswered: remoteP.hasAnswered || localP.hasAnswered,
+              selectedOption: remoteP.selectedOption || localP.selectedOption,
+              isFinished: remoteP.isFinished || localP.isFinished,
+              status: remoteP.status === 'finished' ? 'finished' : (localP.status || remoteP.status),
+              isReady: remoteP.isReady !== undefined ? remoteP.isReady : localP.isReady,
+              isOnline: remoteP.isOnline !== undefined ? remoteP.isOnline : localP.isOnline,
+            };
+          });
+
+          // Preserve any peer player who joined remotely while this client was active
+          remoteRoom.players.forEach((rp) => {
+            if (!mergedPlayers.some((mp) => mp.id === rp.id)) {
+              mergedPlayers.push(rp);
+            }
+          });
+
+          finalRoom = {
+            ...remoteRoom,
+            ...updatedRoom,
+            players: mergedPlayers,
+            status: remoteRoom.status === 'FINAL_RESULTS' ? 'FINAL_RESULTS' : updatedRoom.status,
+          };
+        }
+      }
+
+      // Strip correctOption and explanation before persisting to Supabase to prevent cheating (Bug 5)
+      const sanitizedQuestions = finalRoom.questions?.map((q) => {
+        const { correctOption, explanation, ...sanitized } = q;
+        return sanitized as Question;
+      });
+
+      const stateToPersist: Room = {
+        ...finalRoom,
+        questions: sanitizedQuestions || [],
+      };
+
       const { error } = await supabase
         .from('realtime_rooms')
         .upsert(
-          { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
+          { code: finalRoom.code, state: stateToPersist, updated_at: new Date().toISOString() },
           { onConflict: 'code' }
         );
 
@@ -404,14 +608,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     timePerQ: number = 15,
     maxPlayers: number = 2
   ) => {
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
+    }
     sound.playClick();
-    const finalName = displayName.trim() || currentUser?.username || 'HostPlayer';
+    const finalName = currentUser.username;
     const playerId = 'host_' + crypto.randomUUID();
     const hostPlayer: Player = {
       id: playerId,
-      userId: playerId,
+      userId: currentUser.id || playerId,
       displayName: finalName,
-      avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
+      avatarUrl: currentUser.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
       isHost: true,
       score: 0,
       correctAnswers: 0,
@@ -445,10 +653,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setCurrentView('lobby');
     setIsCreateModalOpen(false);
     logActivity(`${hostPlayer.displayName} created room ${newRoom.code}`, 'join');
+    try {
+      sessionStorage.setItem('quiz_active_session', JSON.stringify({ roomCode, playerId }));
+    } catch {
+      // ignore
+    }
 
     await saveRoomToSupabase(newRoom);
     subscribeToRoom(roomCode);
     incrementStat('roomsCreated');
+    unlockAchievement('room_host');
   };
 
   // ─── Join Room (Strict Supabase) ───────────────────────────────────────────
@@ -456,9 +670,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     roomCode: string,
     displayName: string
   ): Promise<{ success: boolean; error?: string }> => {
+    if (!currentUser) {
+      openAuthModal('login');
+      return { success: false, error: 'You must log in to join an arena.' };
+    }
     sound.playClick();
     const cleanCode = roomCode.trim().toUpperCase();
-    const finalName = displayName.trim() || currentUser?.username || 'Challenger';
+    const finalName = currentUser.username;
 
     if (!isSupabaseConfigured) {
       return { success: false, error: 'Supabase is not configured. Check .env.local.' };
@@ -502,15 +720,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const playerId = 'p_' + crypto.randomUUID();
       const joinedPlayer: Player = {
         id: playerId,
-        userId: playerId,
+        userId: currentUser.id || playerId,
         displayName: finalName,
-        avatarUrl: currentUser?.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
+        avatarUrl: currentUser.avatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=${finalName}`,
         isHost: false,
         score: 0,
         correctAnswers: 0,
         totalResponseTimeMs: 0,
         isReady: true,
         isOnline: true,
+        isFinished: false,
+        status: 'playing',
       };
 
       const updatedRoom: Room = {
@@ -526,6 +746,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setCurrentView('lobby');
       setIsJoinModalOpen(false);
       logActivity(`${joinedPlayer.displayName} joined the room`, 'join');
+      try {
+        sessionStorage.setItem('quiz_active_session', JSON.stringify({ roomCode: cleanCode, playerId }));
+      } catch {
+        // ignore
+      }
 
       await saveRoomToSupabase(updatedRoom);
       subscribeToRoom(cleanCode);
@@ -601,13 +826,33 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const leaveRoom = async () => {
     sound.playClick();
+    try {
+      sessionStorage.removeItem('quiz_active_session');
+    } catch {
+      // ignore
+    }
+
     if (currentPlayer && room) {
       logActivity(`${currentPlayer.displayName} left the arena`, 'leave');
-      const updatedRoom: Room = {
-        ...room,
-        players: room.players.filter((p) => p.id !== currentPlayer.id),
-      };
-      if (updatedRoom.players.length > 0) {
+      const remainingPlayers = room.players.filter((p) => p.id !== currentPlayer.id);
+      if (remainingPlayers.length > 0) {
+        let newHostId = room.hostId;
+        if (currentPlayer.isHost) {
+          const nextHost = remainingPlayers.find((p) => !p.id.startsWith('bot_')) || remainingPlayers[0];
+          newHostId = nextHost.id;
+          remainingPlayers.forEach((p) => {
+            p.isHost = p.id === newHostId;
+          });
+        }
+        const allRemainingFinished = remainingPlayers.every(
+          (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+        );
+        const updatedRoom: Room = {
+          ...room,
+          hostId: newHostId,
+          players: remainingPlayers,
+          status: room.status === 'QUESTION' && allRemainingFinished ? 'FINAL_RESULTS' : room.status,
+        };
         await saveRoomToSupabase(updatedRoom);
       } else {
         await supabase.from('realtime_rooms').delete().eq('code', room.code);
@@ -626,6 +871,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setCurrentView('landing');
   };
 
+  // Auto-leave room if user logs out
+  useEffect(() => {
+    if (!currentUser && roomRef.current) {
+      leaveRoom();
+    }
+  }, [currentUser]);
+
   const [localQuestionIndex, setLocalQuestionIndex] = useState<number>(0);
   const [isLocalReveal, setIsLocalReveal] = useState<boolean>(false);
   const [isMatchFinished, setIsMatchFinished] = useState<boolean>(false);
@@ -637,7 +889,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Start Game ────────────────────────────────────────────────────────────
   const startGame = async () => {
-    if (!room) return;
+    if (!room || !currentPlayer?.isHost) return;
     sound.playClick();
 
     const confirmedPlayerCount = room.players.length;
@@ -668,10 +920,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         totalResponseTimeMs: 0,
         hasAnswered: false,
         selectedOption: undefined,
+        isFinished: false,
+        status: 'playing',
       })),
     };
 
     botAnsweredIndexRef.current = {};
+    isFinishingRef.current = false;
     setLocalQuestionIndex(0);
     setIsLocalReveal(false);
     setIsMatchFinished(false);
@@ -679,7 +934,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setIsAnswerSubmitted(false);
     setTimerSeconds(room.timePerQuestion || 15);
     setAnswerTimeStart(Date.now());
-    setCurrentPlayer((prev) => (prev ? { ...prev, score: 0, correctAnswers: 0, totalResponseTimeMs: 0, hasAnswered: false, selectedOption: undefined } : null));
+    setCurrentPlayer((prev) => (prev ? { ...prev, score: 0, correctAnswers: 0, totalResponseTimeMs: 0, hasAnswered: false, selectedOption: undefined, isFinished: false, status: 'playing' } : null));
     setRoom(updatedRoom);
     setCurrentView('game');
     logActivity('Match commenced! Questions underway.', 'system');
@@ -708,23 +963,67 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const nextIdx = localQuestionIndexRef.current + 1;
 
     if (nextIdx >= totalCount) {
-      // Completed all questions!
+      if (isFinishingRef.current) return;
+      isFinishingRef.current = true;
+
       setIsMatchFinished(true);
       incrementStat('matchesPlayed');
-      sound.playWin();
 
-      if (currentRoom) {
+      const myPlayer = currentPlayerRef.current;
+      if (!currentRoom || !myPlayer) return;
+
+      const updatedMyPlayer: Player = {
+        ...myPlayer,
+        isFinished: true,
+        status: 'finished',
+      };
+      setCurrentPlayer(updatedMyPlayer);
+
+      const rawPlayers = currentRoom.players.map((p) =>
+        p.id === myPlayer.id ? updatedMyPlayer : p
+      );
+
+      // If host is finishing, finalize any remaining bot simulated questions so bots don't block
+      const updatedPlayers = rawPlayers.map((p) => {
+        if (myPlayer.isHost && p.id.startsWith('bot_') && !p.isFinished) {
+          const answeredSoFar = botAnsweredIndexRef.current[p.id] !== undefined ? botAnsweredIndexRef.current[p.id] + 1 : 0;
+          const remaining = Math.max(0, totalCount - answeredSoFar);
+          const extraCorrect = Math.round(remaining * 0.7);
+          const extraScore = extraCorrect * 1200;
+          return {
+            ...p,
+            correctAnswers: p.correctAnswers + extraCorrect,
+            score: p.score + extraScore,
+            totalResponseTimeMs: p.totalResponseTimeMs + remaining * 3000,
+            isFinished: true,
+            status: 'finished' as const,
+          };
+        }
+        return p;
+      });
+
+      // Check if all players in the room are now finished
+      const allFinished = updatedPlayers.every(
+        (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+      );
+
+      if (allFinished) {
+        sound.playWin();
         const finishedRoom: Room = {
           ...currentRoom,
+          players: updatedPlayers,
           status: 'FINAL_RESULTS',
         };
         setRoom(finishedRoom);
         saveRoomToSupabase(finishedRoom);
-
-        const sorted = sortPlayersFairly(currentRoom.players);
-        if (sorted[0]?.id === currentPlayerRef.current?.id) {
-          incrementStat('wins');
-        }
+      } else {
+        sound.playClick();
+        const waitingRoom: Room = {
+          ...currentRoom,
+          players: updatedPlayers,
+        };
+        setRoom(waitingRoom);
+        saveRoomToSupabase(waitingRoom);
       }
     } else {
       // Reset refs synchronously so the new question's guards are live before
@@ -948,6 +1247,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!room) return;
     sound.playClick();
     botAnsweredIndexRef.current = {};
+    isFinishingRef.current = false;
     const resetRoom: Room = {
       ...room,
       status: 'LOBBY',
@@ -961,6 +1261,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         hasAnswered: false,
         selectedOption: undefined,
         isReady: p.isHost,
+        isFinished: false,
+        status: 'playing',
       })),
     };
     await saveRoomToSupabase(resetRoom);
@@ -976,18 +1278,44 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!room) return;
     sound.playClick();
     botAnsweredIndexRef.current = {};
+    isFinishingRef.current = false;
     const currentLvl = room.difficultyLevel || selectedDifficultyLevel || 1;
     const nextLvl = targetLevel || (currentLvl >= 9 ? 1 : currentLvl + 1);
     setSelectedDifficultyLevel(nextLvl);
 
     const updatedPlayers = room.players.map((p) => ({
       ...p,
+      score: 0,
+      correctAnswers: 0,
+      totalResponseTimeMs: 0,
+      streak: 0,
+      maxStreak: 0,
       hasAnswered: false,
       selectedOption: undefined,
+      isFinished: false,
+      status: 'playing' as const,
       // Host is ready by default; bots are ready; challenger is not ready until they click Ready
       // If the challenger was the one who clicked Next Round, they are marked ready immediately
       isReady: p.isHost || p.id.startsWith('bot_') ? true : p.id === currentPlayer?.id,
     }));
+
+    setCurrentPlayer((prev) =>
+      prev
+        ? {
+            ...prev,
+            score: 0,
+            correctAnswers: 0,
+            totalResponseTimeMs: 0,
+            streak: 0,
+            maxStreak: 0,
+            hasAnswered: false,
+            selectedOption: undefined,
+            isFinished: false,
+            status: 'playing',
+            isReady: prev.isHost || prev.id.startsWith('bot_') ? true : true,
+          }
+        : null
+    );
 
     const updatedRoom: Room = {
       ...room,
@@ -1015,8 +1343,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Launch Next Round (Host Starts after Challenger Ready) ───────────────
   const startNextRound = async () => {
-    if (!room) return;
+    if (!room || !currentPlayer?.isHost) return;
     sound.playClick();
+    isFinishingRef.current = false;
 
     const confirmedPlayerCount = room.players.length;
     const calculatedCount = calculateGameLength(confirmedPlayerCount);
@@ -1030,6 +1359,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
     const updatedSeen = recordSeenQuestions(room.topicId, questions.map((q) => q.id));
 
+    const updatedPlayers = room.players.map((p) => ({
+      ...p,
+      score: 0,
+      correctAnswers: 0,
+      totalResponseTimeMs: 0,
+      streak: 0,
+      maxStreak: 0,
+      hasAnswered: false,
+      selectedOption: undefined,
+      isReady: true,
+      isFinished: false,
+      status: 'playing' as const,
+    }));
+
+    setCurrentPlayer((prev) =>
+      prev
+        ? {
+            ...prev,
+            score: 0,
+            correctAnswers: 0,
+            totalResponseTimeMs: 0,
+            streak: 0,
+            maxStreak: 0,
+            hasAnswered: false,
+            selectedOption: undefined,
+            isReady: true,
+            isFinished: false,
+            status: 'playing',
+          }
+        : null
+    );
+
     const updatedRoom: Room = {
       ...room,
       status: 'QUESTION',
@@ -1039,12 +1400,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       questionStartedAt: Date.now(),
       questions: questions,
       seenQuestionIds: updatedSeen,
-      players: room.players.map((p) => ({
-        ...p,
-        hasAnswered: false,
-        selectedOption: undefined,
-        isReady: true,
-      })),
+      players: updatedPlayers,
     };
 
     setLocalQuestionIndex(0);
@@ -1061,6 +1417,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     await saveRoomToSupabase(updatedRoom);
     logActivity(`Round launched at Level ${room.difficultyLevel}!`, 'system');
   };
+
+  // ─── Host Force End Match (for AFK / timeouts) ───────────────────────────
+  const forceEndGame = useCallback(async () => {
+    const currentRoom = roomRef.current;
+    if (!currentRoom || !currentPlayerRef.current?.isHost) return;
+    sound.playClick();
+
+    const finalizedPlayers = currentRoom.players.map((p) => ({
+      ...p,
+      isFinished: true,
+      status: 'finished' as const,
+    }));
+
+    const finishedRoom: Room = {
+      ...currentRoom,
+      players: finalizedPlayers,
+      status: 'FINAL_RESULTS',
+    };
+    setRoom(finishedRoom);
+    await saveRoomToSupabase(finishedRoom);
+    logActivity('Host force-ended the match.', 'system');
+  }, []);
+
+  const isCurrentPlayerFinished = Boolean(
+    currentPlayer?.isFinished || currentPlayer?.status === 'finished'
+  );
 
   return (
     <GameContext.Provider
@@ -1094,6 +1476,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         lastRevealResult,
         advanceToNextState: advanceLocalQuestion,
         playAgain,
+        forceEndGame,
+        isCurrentPlayerFinished,
         goToNextLevel,
         goToNextRound,
         startNextRound,

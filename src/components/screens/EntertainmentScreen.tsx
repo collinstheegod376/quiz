@@ -301,6 +301,66 @@ export function EntertainmentScreen() {
         imageUrl: '/images/topics/gta.jpg',
         creator: 'Los Santos Customs',
       },
+      {
+        id: 'dandadan-occult-action',
+        topicId: 'dandadan',
+        title: 'Dandadan',
+        category: 'anime',
+        tags: ['Anime', 'Occult', 'Momo', 'Okarun', 'Aliens', 'Ghosts'],
+        questionCount: 130,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/dandadan.jpg',
+        creator: 'Turbo Granny',
+      },
+      {
+        id: 'alice-in-borderland-games',
+        topicId: 'alice-in-borderland',
+        title: 'Alice in Borderland',
+        category: 'series',
+        tags: ['TV Series', 'Survival', 'Psychological', 'Arisu', 'Cards'],
+        questionCount: 130,
+        rating: 4.9,
+        difficulty: 'Nightmare',
+        imageUrl: '/images/topics/alice-in-borderland.jpg',
+        creator: 'Borderland Master',
+      },
+      {
+        id: 'sakamoto-days-assassins',
+        topicId: 'sakamoto-days',
+        title: 'Sakamoto Days',
+        category: 'anime',
+        tags: ['Anime', 'Action', 'Hitman', 'Sakamoto', 'Order'],
+        questionCount: 130,
+        rating: 4.9,
+        difficulty: 'Hard',
+        imageUrl: '/images/topics/sakamoto-days.jpg',
+        creator: 'Sakamoto Store',
+      },
+      {
+        id: 'rick-and-morty-multiverse',
+        topicId: 'rick-and-morty',
+        title: 'Rick and Morty',
+        category: 'series',
+        tags: ['TV Series', 'Sci-Fi', 'Multiverse', 'Rick', 'Morty'],
+        questionCount: 130,
+        rating: 4.9,
+        difficulty: 'Nightmare',
+        imageUrl: '/images/topics/rick-and-morty.jpg',
+        creator: 'Citadel of Ricks',
+      },
+      {
+        id: 'spider-man-brand-new-day',
+        topicId: 'spider-man-bnd',
+        title: 'Spider-Man: Brand New Day',
+        category: 'movies',
+        tags: ['Movies', 'Comics', 'Spider-Man', 'Marvel', 'Peter Parker'],
+        questionCount: 150,
+        rating: 4.8,
+        difficulty: 'Nightmare',
+        imageUrl: '/images/topics/spider-man-bnd.jpg',
+        creator: 'Daily Bugle Press',
+      },
     ];
   }, []);
 
@@ -346,6 +406,40 @@ export function EntertainmentScreen() {
 
       {/* Main Container */}
       <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-4 md:pt-6 space-y-6">
+
+        {/* ── Category Header & Stats ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
+          <div>
+            <h1 className="font-nunito font-black text-2xl sm:text-3xl text-black dark:text-white tracking-tight">
+              Entertainment
+            </h1>
+            <p className="font-roboto text-xs sm:text-sm font-bold text-black/60 dark:text-white/60">
+              From anime to Hollywood blockbusters · {entertainmentQuizzes.length} Quizzes Available
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const randomQuiz = entertainmentQuizzes[Math.floor(Math.random() * entertainmentQuizzes.length)];
+                if (randomQuiz) {
+                  setSelectedTopicId(randomQuiz.topicId);
+                  setCurrentView('difficulty');
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-full border border-black/15 dark:border-white/15 bg-white dark:bg-[#1E1D1D] hover:bg-black/5 dark:hover:bg-white/5 font-nunito font-extrabold text-xs flex items-center gap-1.5 transition-colors cursor-pointer text-black dark:text-white shadow-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#F59E0B]" />
+              <span>Random</span>
+            </button>
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-1.5 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-extrabold text-xs flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Create</span>
+            </button>
+          </div>
+        </div>
 
         {/* ── Promotional Banners: Create Quiz & Categories ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -404,29 +498,8 @@ export function EntertainmentScreen() {
           </div>
         </div>
 
-        {/* ── Category Header & Controls Bar ── */}
+        {/* ── Controls Bar ── */}
         <div className="space-y-4 pt-2">
-          {/* Title & Stats */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h1 className="font-nunito font-black text-2xl sm:text-3xl text-black dark:text-white tracking-tight">
-                Entertainment
-              </h1>
-              <p className="font-roboto text-xs sm:text-sm font-bold text-black/60 dark:text-white/60">
-                From anime to Hollywood blockbusters · {entertainmentQuizzes.length} Quizzes Available
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(true)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-black dark:bg-white hover:bg-black/80 dark:hover:bg-white/90 text-white dark:text-black font-nunito font-black text-xs sm:text-sm rounded-full transition-all cursor-pointer shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Create in Entertainment</span>
-              </button>
-            </div>
-          </div>
 
           {/* Tags Pills Row */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">

@@ -18,10 +18,12 @@ import {
   Zap,
   Sparkles,
   Mic,
+  MicOff,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { VoiceControlsBar } from '../ui/VoiceControlsBar';
 import { useVoice } from '@/context/VoiceContext';
+import { sortPlayersFairly } from '@/lib/utils';
 
 export function NextRoundScreen() {
   const {
@@ -33,7 +35,7 @@ export function NextRoundScreen() {
     leaveRoom,
   } = useGame();
 
-  const { isPlayerSpeaking, isPlayerInVoice } = useVoice();
+  const { isPlayerSpeaking, isPlayerInVoice, isPlayerMuted } = useVoice();
 
   const [copied, setCopied] = useState(false);
 
@@ -63,7 +65,7 @@ export function NextRoundScreen() {
   const readyCount = room.players.filter((p) => p.isReady).length;
   const totalPlayers = room.players.length;
 
-  const sortedPlayers = [...room.players].sort((a, b) => b.score - a.score);
+  const sortedPlayers = sortPlayersFairly(room.players);
   const hostPlayer = room.players.find((p) => p.isHost);
 
   return (
@@ -149,6 +151,7 @@ export function NextRoundScreen() {
                 const isReady = player.isReady || player.isHost || player.id.startsWith('bot_');
                 const isSpeaking = isPlayerSpeaking(player.id);
                 const inVoice = isPlayerInVoice(player.id);
+                const isMuted = isPlayerMuted(player.id);
 
                 return (
                   <div
@@ -199,12 +202,14 @@ export function NextRoundScreen() {
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-nunito font-black transition-colors ${
                                 isSpeaking
                                   ? 'bg-[#4CA471] text-white animate-pulse'
+                                  : isMuted
+                                  ? 'bg-red-500/15 text-red-600 dark:text-red-400'
                                   : 'bg-[#4CA471]/15 text-[#4CA471]'
                               }`}
-                              title={isSpeaking ? 'Speaking Now' : 'Voice Connected'}
+                              title={isSpeaking ? 'Speaking Now' : isMuted ? 'Muted' : 'Voice Connected'}
                             >
-                              <Mic className="w-2.5 h-2.5" />
-                              <span>{isSpeaking ? 'Speaking' : 'Voice'}</span>
+                              {isMuted ? <MicOff className="w-2.5 h-2.5 text-red-500" /> : <Mic className="w-2.5 h-2.5" />}
+                              <span>{isSpeaking ? 'Speaking' : isMuted ? 'Muted' : 'Voice'}</span>
                             </span>
                           )}
                         </div>
@@ -251,7 +256,7 @@ export function NextRoundScreen() {
                 </h3>
               </div>
               <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3]">
-                Cumulative XP
+                Correct Answers &amp; XP
               </span>
             </div>
 
@@ -267,9 +272,14 @@ export function NextRoundScreen() {
                     </span>
                     {idx === 0 && <Crown className="w-4 h-4 text-[#B9843E] fill-[#B9843E]" />}
                   </div>
-                  <span className="font-nunito font-black text-[14px] text-[#23616A] dark:text-[#6FEEFF]">
-                    {player.score.toLocaleString()} XP
-                  </span>
+                  <div className="text-right">
+                    <span className="font-nunito font-black text-[13px] text-[#4CA471] block">
+                      {player.correctAnswers} / {room.calculatedQuestionCount} Correct
+                    </span>
+                    <span className="font-nunito font-extrabold text-[11px] text-[#595955] dark:text-[#A4A3A3] block">
+                      {player.score.toLocaleString()} XP
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

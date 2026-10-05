@@ -60,9 +60,12 @@ export function Navbar() {
   const handleDesktopJoin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!desktopPin.trim()) return;
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
+    }
     const cleanPin = desktopPin.replace(/\s+/g, '').toUpperCase();
-    const username = currentUser?.username || 'PlayerOne';
-    joinRoom(cleanPin, username);
+    joinRoom(cleanPin, currentUser.username);
   };
 
   const handleDesktopPinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,15 +147,20 @@ export function Navbar() {
             )}
 
             {/* Search — desktop only */}
-            <button
-              type="button"
-              onClick={() => setCurrentView('categories')}
+            <Link
+              href="/entertainment"
+              onClick={(e) => {
+                if (typeof window !== 'undefined' && window.location.pathname === '/') {
+                  e.preventDefault();
+                  setCurrentView('categories');
+                }
+              }}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Search quizzes"
               aria-label="Search quizzes"
             >
               <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+            </Link>
 
             {/* Achievements — desktop only */}
             <button
@@ -166,15 +174,20 @@ export function Navbar() {
             </button>
 
             {/* Rankings / Leaderboard — desktop only */}
-            <button
-              type="button"
-              onClick={() => setCurrentView('leaderboard')}
+            <Link
+              href="/leaderboard"
+              onClick={(e) => {
+                if (typeof window !== 'undefined' && window.location.pathname === '/') {
+                  e.preventDefault();
+                  setCurrentView('leaderboard');
+                }
+              }}
               className="hidden md:flex w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#E5E3DB] dark:bg-[#2A2929] hover:bg-black/10 dark:hover:bg-white/10 items-center justify-center text-black dark:text-white transition-colors cursor-pointer border border-[#CECCC5] dark:border-[#363535]"
               title="Global Leaderboard"
               aria-label="View global leaderboard"
             >
               <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#B9843E] dark:text-[#FFC679]" />
-            </button>
+            </Link>
 
             {/* Dark / Light Mode Toggle — desktop only */}
             <button
@@ -373,11 +386,16 @@ export function Navbar() {
             </p>
             <div className="space-y-1">
               {CATEGORY_NAV_ITEMS.map((item) => (
-                <button
+                <Link
                   key={item.id}
-                  type="button"
-                  onClick={() => handleMobileCategoryClick(item)}
-                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm ${
+                  href={item.href || '/'}
+                  onClick={(e) => {
+                    if (item.id === 'start' || item.id === 'achievements') {
+                      e.preventDefault();
+                    }
+                    handleMobileCategoryClick(item);
+                  }}
+                  className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl transition-all duration-150 cursor-pointer font-nunito font-bold text-sm text-inherit no-underline ${
                     activeCategory === item.id
                       ? 'bg-black dark:bg-white text-white dark:text-black'
                       : 'text-black dark:text-white hover:bg-[#E5E3DB] dark:hover:bg-[#2A2929]'
@@ -387,7 +405,7 @@ export function Navbar() {
                     {item.iconSvg}
                   </div>
                   <span>{item.name}</span>
-                </button>
+                </Link>
               ))}
             </div>
           </div>

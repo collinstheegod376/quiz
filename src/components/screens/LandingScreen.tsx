@@ -228,8 +228,11 @@ export function LandingScreen() {
   }, []);
 
   const handleVoteMode = () => {
-    const username = currentUser?.username || 'PlayerOne';
-    createRoom(username, 'one-piece', 5, 15, 4);
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    createRoom(currentUser.username, 'one-piece', 5, 15, 4);
   };
 
   return (
@@ -240,6 +243,18 @@ export function LandingScreen() {
       {/* ── Main Content ── */}
       <div className="max-w-[1248px] mx-auto px-4 md:px-6 pt-3 md:pt-6 space-y-6">
 
+        {/* ── Page Hero Headline (Semantic H1 for SEO & Discoverability) ── */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-1 pt-1">
+          <div>
+            <h1 className="font-nunito font-black text-2xl sm:text-3xl text-black dark:text-white tracking-tight">
+              Anizuki Anime Quiz Arena
+            </h1>
+            <p className="font-roboto text-xs sm:text-sm font-bold text-black/60 dark:text-white/60">
+              Real-time multiplayer trivia battles, community lobbies, and 10-tier franchise lore
+            </p>
+          </div>
+        </div>
+
         {/* ── Dual Hero Promo Banners ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Card 1: Create a quiz */}
@@ -249,13 +264,19 @@ export function LandingScreen() {
                 Create a quiz
               </h2>
               <p className="font-roboto text-xs sm:text-sm font-bold opacity-90 leading-tight">
-                Play for free with  up to 4 participants
+                Host live arenas with up to 4 combatants
               </p>
               <div className="pt-2">
                 <QuizButton
                   color="green"
                   size="md"
-                  onClick={() => setIsCreateModalOpen(true)}
+                  onClick={() => {
+                    if (!currentUser) {
+                      setIsAuthModalOpen(true);
+                    } else {
+                      setIsCreateModalOpen(true);
+                    }
+                  }}
                 >
                   Quiz editor
                 </QuizButton>

@@ -62,6 +62,8 @@ export interface Player {
   totalResponseTimeMs: number;
   isReady: boolean;
   isOnline: boolean;
+  status?: 'playing' | 'finished' | 'disconnected';
+  isFinished?: boolean;
   selectedOption?: 'A' | 'B' | 'C' | 'D';
   hasAnswered?: boolean;
   streak?: number;

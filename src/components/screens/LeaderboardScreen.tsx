@@ -245,27 +245,27 @@ export function LeaderboardScreen() {
             </div>
           </div>
         ) : (
-          /* Guest Mode Status Banner */
+          /* Unauthenticated Combatant CTA Banner */
           <div className="p-4 sm:p-5 rounded-2xl bg-[#E5E3DB]/40 dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-nunito font-black text-sm text-black dark:text-white">
-                  Viewing in Guest Mode
+                  Join the Global Leaderboard
                 </span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/10 dark:bg-white/10 text-black dark:text-white">
-                  Guest
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                  Unranked
                 </span>
               </div>
               <p className="text-xs text-[#595955] dark:text-[#A4A3A3] max-w-xl">
-                Guest combatants are welcome in all arenas, but leaderboard rankings and permanent XP require a registered combatant profile.
+                Create a verified combatant profile to compete for podium ranks, earn match XP, and appear in live standings.
               </p>
             </div>
             <button
               type="button"
               onClick={() => openAuthModal('register')}
-              className="shrink-0 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs hover:bg-black/80 dark:hover:bg-white/90 transition-all cursor-pointer shadow-sm text-center"
+              className="shrink-0 px-5 py-2.5 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs hover:bg-black/80 dark:hover:bg-white/90 transition-all cursor-pointer shadow-sm text-center"
             >
-              Sign Up to Claim Rank
+              Sign Up / Log In
             </button>
           </div>
         )}
@@ -395,7 +395,11 @@ export function LeaderboardScreen() {
           ) : (
             <div className="divide-y divide-[#CECCC5]/60 dark:divide-[#363535]">
               {filteredEntries.map((entry, idx) => {
-                const rank = idx + 1;
+                const actualRank =
+                  leaderboardEntries.findIndex(
+                    (e) => e.username.trim().toLowerCase() === entry.username.trim().toLowerCase()
+                  ) + 1;
+                const rank = actualRank > 0 ? actualRank : idx + 1;
                 const isCurrent =
                   currentUser &&
                   entry.username.trim().toLowerCase() === currentUser.username.trim().toLowerCase();

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useGame } from '@/context/GameContext';
 import { CategoryId } from '@/types/quiz';
 
@@ -8,6 +9,7 @@ export interface CategoryNavItem {
   id: string;
   name: string;
   categoryId?: CategoryId;
+  href?: string;
   iconSvg: React.ReactNode;
 }
 
@@ -15,6 +17,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
   {
     id: 'start',
     name: 'Start',
+    href: '/',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <polygon points="5 3 19 12 5 21 5 3" fill="currentColor" fillOpacity="0.25" />
@@ -25,6 +28,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     id: 'anime',
     name: 'Anime',
     categoryId: 'anime',
+    href: '/category/anime',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
@@ -38,6 +42,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     id: 'series',
     name: 'Series',
     categoryId: 'series',
+    href: '/category/series',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
@@ -49,6 +54,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     id: 'movies',
     name: 'Movies',
     categoryId: 'movies',
+    href: '/category/movies',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18" />
@@ -66,6 +72,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     id: 'games',
     name: 'Games',
     categoryId: 'games',
+    href: '/category/games',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <line x1="6" y1="12" x2="10" y2="12" />
@@ -77,20 +84,9 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
     ),
   },
   {
-    id: 'science',
-    name: 'Science',
-    categoryId: 'chemistry',
-    iconSvg: (
-      <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M10 2v7.31L4.17 19.5a2 2 0 0 0 1.73 3h12.2a2 2 0 0 0 1.73-3L14 9.31V2" />
-        <line x1="8.5" y1="2" x2="15.5" y2="2" />
-        <line x1="7.5" y1="15" x2="16.5" y2="15" />
-      </svg>
-    ),
-  },
-  {
     id: 'achievements',
     name: 'Achievements',
+    href: '/',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="6" />
@@ -101,6 +97,7 @@ export const CATEGORY_NAV_ITEMS: CategoryNavItem[] = [
   {
     id: 'leaderboard',
     name: 'Leaderboard',
+    href: '/leaderboard',
     iconSvg: (
       <svg className="w-full h-full" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
@@ -150,11 +147,17 @@ export function CategoryNav({
         {CATEGORY_NAV_ITEMS.map((item) => {
           const isActive = activeCategory === item.id;
           return (
-            <button
+            <Link
               key={item.id}
-              type="button"
-              onClick={() => handleItemClick(item)}
-              className="whitespace-nowrap group font-roboto flex flex-col items-center cursor-pointer py-1 select-none focus:outline-none min-w-[56px] sm:min-w-[68px]"
+              href={item.href || '/'}
+              onClick={(e) => {
+                // Keep smooth view transition in SPA when appropriate
+                if (item.id === 'start' || item.id === 'achievements') {
+                  e.preventDefault();
+                }
+                handleItemClick(item);
+              }}
+              className="whitespace-nowrap group font-roboto flex flex-col items-center cursor-pointer py-1 select-none focus:outline-none min-w-[56px] sm:min-w-[68px] text-inherit no-underline"
             >
               {/* Category Icon */}
               <div
@@ -186,7 +189,7 @@ export function CategoryNav({
                     : 'bg-black dark:bg-white opacity-0 group-hover:opacity-60'
                 }`}
               />
-            </button>
+            </Link>
           );
         })}
       </div>

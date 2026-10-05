@@ -61,12 +61,16 @@
   - **SettingsModal Updated**: Profile update and account deletion now require the user's current password, validated server-side. Delete confirmation UI includes a password confirmation field.
   - **VoiceContext Type Fix**: Resolved pre-existing `isQuestionAutoMuted` type mismatch in `VoiceContext.tsx` provider value object.
 
-
-- **Beacon SEO & Indexing Strategy Complete**:
-  - **Google Search Console Verification**: Injected updated verification token `googlefa213d5eb4f735fc` (and preserved fallback token `_4C10afDRfjcr611Ibizbwdp9FWKCr3TJ1G870tqnBk`) into root HTML `<head>` across all entry points in `layout.tsx`. Created verification file `public/googlefa213d5eb4f735fc.html`.
-  - **Robots.txt Crawl Policy (`src/app/robots.ts`)**: Configured dedicated user-agent directives for `Googlebot` and `Bingbot` allowing public routes while strictly blocking private user routes and active session paths (`/api/`, `/admin/`, `/settings/`, `/account/`, `/game/`, `/lobby/`, `/room/`, `/session/`, `/scratch/`). Allowed AI crawlers for LLM discovery and linked sitemap.
-  - **Canonical URL Architecture**: Injected `<link rel="canonical" ... />` across all core routes (`/`, `/entertainment`, `/leaderboard`, `/category/[id]`, `/topic/[slug]`, `/login`, `/signup`) eliminating duplicate content flags between guest, session, and authenticated views.
-  - **Dynamic Dynamic Sitemap (`src/app/sitemap.ts`)**: Automated XML sitemap generation mapping core landing pages (priority 1.0, daily), category hubs (0.8, weekly), topic quiz pages (0.8, weekly), and static info pages (0.5, monthly). Excluded low-value transient session IDs.
-  - **Schema.org Structured Data (JSON-LD)**: Implemented `src/lib/seo-schema.ts` with Google Rich Results validated schemas for `SoftwareApplication`, `Quiz` (with real questions, suggested answers, and accepted answers), `ItemList` (Leaderboard rankings), and `BreadcrumbList`.
-  - **Dynamic OpenGraph & Social Cards**: Built dynamic Edge OG image generator (`/api/og/route.tsx`) using `ImageResponse` from `next/og` and public result showcase (`/share/result/page.tsx`). Wired 1-click Web Share API & clipboard copy into `FinalResultsScreen.tsx`.
-  - **Guest Gameplay Fallback Routes**: Created indexable server-rendered fallback routes for `/leaderboard`, `/category/[id]`, and `/topic/[slug]` with direct guest gameplay launch capabilities.
+- **Comprehensive Technical SEO & Indexing Overhaul**:
+  - **Robots.txt & Sitemap Collision Resolved**: Deleted conflicting static `public/robots.txt` and `public/sitemap*.xml` files. Standardized on Next.js dynamic metadata routes (`src/app/robots.ts` and `src/app/sitemap.ts`).
+  - **Crawl Budget & Parameter Trap Sealed**: Disallowed `/share/` parameter trap in `robots.ts`, added `robots: { index: false, follow: true }` to `/share/result`, and removed invalid canonical to `/leaderboard`.
+  - **Sitemap Completeness & 27 Active Topics Indexed**: Included all 27 active topics (adding `dandadan`, `sakamoto-days`, `alice-in-borderland`, `rick-and-morty`, `spider-man-bnd`). Excluded 0-topic categories (`chemistry`, `physics`) to eliminate soft-404 risks. Removed utility auth pages (`/login`, `/signup`) from sitemap.
+  - **Thin Pages Noindexed**: Added `robots: { index: false, follow: true }` to both `/login` and `/signup` layouts.
+  - **Internal Crawlable Linking**: Converted quiz cards in `QuizCarousel.tsx` to semantic Next.js `<Link href="/topic/[slug]">` anchors and added crawlable links in `CategoryNav.tsx` and `Navbar.tsx` (Search and Leaderboard), eliminating orphan topic pages.
+  - **Semantic Heading Outline Enforced**: Added prominent semantic `<h1>` ("Anizuki Anime Quiz Arena") to the homepage, and reordered `EntertainmentScreen.tsx` so `<h1>` strictly precedes `<h2>` in the DOM tree.
+  - **SERP Snippet & Meta Description Optimization**: Trimmed and clamped all category and topic meta descriptions under 155 characters to eliminate truncation ellipses in Google SERPs.
+  - **Structured Data Alignment**: Synchronized `TopicPage` sample questions with `Quiz` schema, displaying all 4 options (A, B, C, D) to satisfy Google Rich Results visible content guidelines. Added `WebSite` schema (with `SearchAction`) and `Organization` schema in a consolidated `@graph` array.
+  - **Brand Assets & Favicons**: Generated crisp brand `public/favicon.ico`, `public/apple-touch-icon.png`, `public/icon.png`, and `public/icon.svg`. Configured metadata `icons` in `src/app/layout.tsx` and updated `manifest.ts` PWA icons.
+  - **Mobile Accessibility & Security Headers**: Removed zoom-blocking `userScalable: false` and `maximumScale: 1` from `viewport`. Added `Strict-Transport-Security` (HSTS) and AVIF/WebP image formats to `next.config.mjs`.
+  - **Next.js Image Pipeline**: Migrated `SafeImage.tsx` to `next/image` with responsive `sizes` and layout shift prevention.
+  - **Production Build Verified**: Passed full Next.js static production build (`next build`) generating 43 static pages cleanly with 0 type errors.

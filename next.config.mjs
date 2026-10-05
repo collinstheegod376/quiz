@@ -10,6 +10,11 @@ const nextConfig = {
         headers: [
           // Prevent the site from being embedded in iframes (clickjacking)
           { key: 'X-Frame-Options', value: 'DENY' },
+          // Enforce HTTPS everywhere (HSTS)
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
           // Prevent MIME type sniffing
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           // Restrict referrer info to same-origin only
@@ -28,6 +33,7 @@ const nextConfig = {
 
   // ─── Image Optimization ───────────────────────────────────────────────────
   images: {
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       { protocol: 'https', hostname: 'm.media-amazon.com' },
       { protocol: 'https', hostname: 'images-na.ssl-images-amazon.com' },

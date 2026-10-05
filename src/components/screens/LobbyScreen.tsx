@@ -14,6 +14,7 @@ import {
   UserPlus,
   CheckCircle2,
   Mic,
+  MicOff,
 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { VoiceControlsBar } from '../ui/VoiceControlsBar';
@@ -31,7 +32,7 @@ export function LobbyScreen() {
     removePlayer,
   } = useGame();
 
-  const { isPlayerSpeaking, isPlayerInVoice } = useVoice();
+  const { isPlayerSpeaking, isPlayerInVoice, isPlayerMuted } = useVoice();
 
   const [copied, setCopied] = useState(false);
 
@@ -144,6 +145,7 @@ export function LobbyScreen() {
               const isCurrent = player.id === currentPlayer.id;
               const isSpeaking = isPlayerSpeaking(player.id);
               const inVoice = isPlayerInVoice(player.id);
+              const isMuted = isPlayerMuted(player.id);
 
               return (
                 <div
@@ -180,7 +182,7 @@ export function LobbyScreen() {
                         </span>
                         {player.isHost && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EBDAC3] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535] font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize">
-                            <Crown className="w-3 h-3 text-[#B9843E]" />
+                            <Crown className="w-3.5 h-3.5 text-[#B9843E]" />
                             Host
                           </span>
                         )}
@@ -194,12 +196,14 @@ export function LobbyScreen() {
                             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-nunito font-black transition-colors ${
                               isSpeaking
                                 ? 'bg-[#4CA471] text-white animate-pulse'
+                                : isMuted
+                                ? 'bg-red-500/15 text-red-600 dark:text-red-400'
                                 : 'bg-[#4CA471]/15 text-[#4CA471]'
                             }`}
-                            title={isSpeaking ? 'Speaking Now' : 'Voice Connected'}
+                            title={isSpeaking ? 'Speaking Now' : isMuted ? 'Muted' : 'Voice Connected'}
                           >
-                            <Mic className="w-2.5 h-2.5" />
-                            <span>{isSpeaking ? 'Speaking' : 'Voice'}</span>
+                            {isMuted ? <MicOff className="w-2.5 h-2.5 text-red-500" /> : <Mic className="w-2.5 h-2.5" />}
+                            <span>{isSpeaking ? 'Speaking' : isMuted ? 'Muted' : 'Voice'}</span>
                           </span>
                         )}
                       </div>

@@ -412,14 +412,14 @@ BEGIN
     RAISE EXCEPTION 'Invalid stat column: %', p_stat_col;
   END IF;
 
-  -- Cap per-call amount to sane maximums
+  -- Cap per-call amount to sane maximums (4000 max XP per question)
   v_max_amount := CASE p_stat_col
-    WHEN 'total_score'     THEN 1600   -- max base (1000) + time bonus (500) + streak (100) per question
-    WHEN 'rooms_created'   THEN 1
-    WHEN 'matches_played'  THEN 1
-    WHEN 'wins'            THEN 1
-    WHEN 'correct_answers' THEN 1
-    WHEN 'total_answers'   THEN 1
+    WHEN 'total_score'     THEN 4000   -- max base (1000) + time bonus (500) + streak (500) * 1.9 = 3800 XP
+    WHEN 'rooms_created'   THEN 5
+    WHEN 'matches_played'  THEN 5
+    WHEN 'wins'            THEN 5
+    WHEN 'correct_answers' THEN 20
+    WHEN 'total_answers'   THEN 20
     ELSE 1
   END;
 

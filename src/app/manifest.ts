@@ -12,14 +12,14 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#FFFDF4',
     icons: [
       {
-        src: '/images/topics/gojo-vs-sukuna.jpg',
-        sizes: '192x192',
-        type: 'image/jpeg',
+        src: '/apple-touch-icon.png',
+        sizes: '180x180',
+        type: 'image/png',
       },
       {
-        src: '/images/topics/gojo-vs-sukuna.jpg',
+        src: '/icon.png',
         sizes: '512x512',
-        type: 'image/jpeg',
+        type: 'image/png',
       },
     ],
   };

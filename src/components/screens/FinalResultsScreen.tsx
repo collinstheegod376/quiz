@@ -21,11 +21,12 @@ import { Button } from '../ui/Button';
 import { useAchievements } from '@/context/AchievementContext';
 import { useAuth } from '@/context/AuthContext';
 import { sortPlayersFairly, calculateAcademicGrade } from '@/lib/utils';
+import { VoiceControlsBar } from '../ui/VoiceControlsBar';
 
 export function FinalResultsScreen() {
   const { room, currentPlayer, playAgain, goToNextRound, leaveRoom } = useGame();
   const { checkMatchAchievements } = useAchievements();
-  const { currentUser, openAuthModal } = useAuth();
+  const { currentUser, openAuthModal, incrementStat } = useAuth();
   const hasEvaluatedRef = useRef<string | null>(null);
   const [copiedShare, setCopiedShare] = useState(false);
 
@@ -42,16 +43,40 @@ export function FinalResultsScreen() {
     }
 
     if (room && currentPlayer) {
-      const matchKey = `${room.id || room.code}-${room.difficultyLevel}-${currentPlayer.id}`;
+      // Bug 8: Include round timestamp so replays of the same level evaluate properly
+      const roundTimestamp = room.questionStartedAt || Date.now();
+      const matchKey = `${room.id || room.code}-${room.difficultyLevel}-${currentPlayer.id}-${roundTimestamp}`;
       if (hasEvaluatedRef.current === matchKey) return;
       hasEvaluatedRef.current = matchKey;
 
       const sorted = sortPlayersFairly(room.players);
       const myRank = sorted.findIndex((p) => p.id === currentPlayer.id) + 1;
+
+      // Bug 9: Guard win stat increment so solo games do not inflate multiplayer win rates
+      const isMultiplayer = room.players.length >= 2;
+      if (myRank === 1 && isMultiplayer) {
+        incrementStat('wins');
+      }
+
       const avgSec =
         currentPlayer.correctAnswers > 0
           ? currentPlayer.totalResponseTimeMs / 1000 / (room.calculatedQuestionCount || 10)
           : 5;
+
+      // Bug 18: Track unique topics played to unlock social_butterfly achievement
+      let uniqueTopics: string[] = [room.topicId];
+      try {
+        const storageKey = currentUser
+          ? `quiz_topics_played_${currentUser.username.toLowerCase()}`
+          : 'quiz_topics_played_guest';
+        const raw = localStorage.getItem(storageKey);
+        const set = new Set<string>(raw ? JSON.parse(raw) : []);
+        set.add(room.topicId);
+        uniqueTopics = Array.from(set);
+        localStorage.setItem(storageKey, JSON.stringify(uniqueTopics));
+      } catch {
+        // Ignored
+      }
 
       checkMatchAchievements({
         topicId: room.topicId,
@@ -66,9 +91,10 @@ export function FinalResultsScreen() {
         careerCorrect: currentUser ? currentUser.stats.correctAnswers : currentPlayer.correctAnswers,
         careerMatches: currentUser ? currentUser.stats.matchesPlayed : 1,
         careerTotalScore: currentUser ? currentUser.stats.totalScore : currentPlayer.score,
+        uniqueTopicsPlayed: uniqueTopics,
       });
     }
-  }, [room, currentPlayer, checkMatchAchievements, currentUser]);
+  }, [room, currentPlayer, checkMatchAchievements, currentUser, incrementStat]);
 
   if (!room || !currentPlayer) return null;
 
@@ -96,7 +122,7 @@ export function FinalResultsScreen() {
     { label: 'Accuracy', value: `${myAccuracy}%`, sub: `${myCorrect} of ${totalQuestions} Correct`, icon: Target },
     { label: 'Avg Response', value: `${avgResponseTimeSec}s`, sub: 'Speed reflex tier', icon: Clock },
     { label: 'Academic Grade', value: academicGrade.grade, sub: `${academicGrade.title} (${Math.round(academicGrade.masteryIndex * 100)}%)`, icon: GraduationCap },
-    { label: 'Top Score', value: winner?.score.toLocaleString() || '0', sub: 'Arena record', icon: Trophy },
+    { label: 'Champion Score', value: `${winner?.correctAnswers ?? 0} / ${totalQuestions}`, sub: `${winner?.score.toLocaleString() || '0'} XP · ${(winner ? (winner.totalResponseTimeMs / 1000).toFixed(1) : 0)}s`, icon: Trophy },
   ];
 
   return (
@@ -117,10 +143,13 @@ export function FinalResultsScreen() {
         <h1 className="font-nunito font-black text-[30px] sm:text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
           Game Complete!
         </h1>
-        <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px] capitalize">
-          The battle has ended. Champion podium and academic evaluation below.
+        <p className="font-nunito font-extrabold text-[14px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.42px]">
+          The battle has ended. Ranked by highest correct answers (tie-breaker: fastest completion time). Champion podium below.
         </p>
       </div>
+
+      {/* ── Voice Chat Comms ── */}
+      <VoiceControlsBar />
 
       {/* ── Podium ── */}
       <div className="border border-[#CECCC5] dark:border-[#363535] bg-[#FFFDF4] dark:bg-[#100F0F] p-6 sm:p-10">
@@ -139,7 +168,10 @@ export function FinalResultsScreen() {
               <span className="font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize truncate w-full">
                 {second.displayName}
               </span>
-              <span className="font-nunito font-black text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px]">
+              <span className="font-nunito font-black text-[13px] text-[#4CA471] tracking-[0.38px]">
+                {second.correctAnswers} / {totalQuestions} Correct
+              </span>
+              <span className="font-nunito font-extrabold text-[12px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px]">
                 {second.score.toLocaleString()} XP
               </span>
               <div className="w-full h-24 bg-[#E5E3DB] dark:bg-[#2A2929] border-t-2 border-[#CECCC5] dark:border-[#363535] flex items-center justify-center font-nunito font-black text-[#595955] dark:text-[#A4A3A3] text-[14px] tracking-[0.42px]">
@@ -163,8 +195,11 @@ export function FinalResultsScreen() {
               <span className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] truncate w-full">
                 {winner.displayName}
               </span>
-              <span className="font-nunito font-black text-[14px] text-[#B9843E] tracking-[0.42px]">
-                {winner.score.toLocaleString()} XP
+              <span className="font-nunito font-black text-[15px] text-[#4CA471] tracking-[0.42px]">
+                {winner.correctAnswers} / {totalQuestions} Correct
+              </span>
+              <span className="font-nunito font-extrabold text-[13px] text-[#B9843E] tracking-[0.42px]">
+                {winner.score.toLocaleString()} XP Awarded
               </span>
               <div className="w-full h-36 bg-[#EBDAC3] dark:bg-[#1E1D1D] border-t-4 border-[#B9843E] flex flex-col items-center justify-center">
                 <Trophy className="w-6 h-6 text-[#B9843E] mb-1" />
@@ -187,7 +222,10 @@ export function FinalResultsScreen() {
               <span className="font-nunito font-extrabold text-[12.8px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.38px] capitalize truncate w-full">
                 {third.displayName}
               </span>
-              <span className="font-nunito font-black text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px]">
+              <span className="font-nunito font-black text-[13px] text-[#4CA471] tracking-[0.38px]">
+                {third.correctAnswers} / {totalQuestions} Correct
+              </span>
+              <span className="font-nunito font-extrabold text-[12px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px]">
                 {third.score.toLocaleString()} XP
               </span>
               <div className="w-full h-16 bg-[#E5E3DB] dark:bg-[#2A2929] border-t border-[#CECCC5] dark:border-[#363535] flex items-center justify-center font-nunito font-black text-[#595955] dark:text-[#A4A3A3] text-[14px] tracking-[0.42px]">
@@ -217,27 +255,6 @@ export function FinalResultsScreen() {
           </div>
         ))}
       </div>
-
-      {/* ── Guest Registration Callout ── */}
-      {!currentUser && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#FFC679]/20 via-[#4CA471]/15 to-transparent border border-[#CECCC5] dark:border-[#363535] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h3 className="font-nunito font-black text-sm text-black dark:text-white">
-              Playing as Guest — Save Your Arena XP!
-            </h3>
-            <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3] mt-0.5">
-              Create a free account in 5 seconds to lock in this match&apos;s score, track your win rate, and climb the global leaderboard.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => openAuthModal('register')}
-            className="shrink-0 px-4 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-xs hover:bg-black/80 dark:hover:bg-white/90 transition-all cursor-pointer shadow-sm text-center"
-          >
-            Save XP &amp; Register
-          </button>
-        </div>
-      )}
 
       {/* ── Actions ── */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">

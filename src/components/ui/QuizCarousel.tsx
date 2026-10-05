@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
+import Link from 'next/link';
 import { ChevronRight, ChevronLeft, Star, Play } from 'lucide-react';
 import { SafeImage } from './SafeImage';
 import { useGame } from '@/context/GameContext';
@@ -32,7 +33,7 @@ export function QuizCarousel({
 }: QuizCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { setSelectedTopicId, setCurrentView } = useGame();
-  const { currentUser, setIsAuthModalOpen } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -41,6 +42,10 @@ export function QuizCarousel({
   };
 
   const handleCardClick = (quiz: QuizCardData) => {
+    if (!currentUser) {
+      openAuthModal('login');
+      return;
+    }
     setSelectedTopicId(quiz.topicId);
     setCurrentView('difficulty');
   };
@@ -83,15 +88,14 @@ export function QuizCarousel({
           {quizzes.map((quiz) => {
             const cleanTitle = quiz.title.split(':')[0].trim();
             return (
-              <div
+              <Link
                 key={quiz.id}
-                onClick={() => handleCardClick(quiz)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') handleCardClick(quiz);
+                href={`/topic/${quiz.topicId}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleCardClick(quiz);
                 }}
-                className="flex flex-col shrink-0 w-[140px] sm:w-[160px] md:w-[180px] snap-start group/card cursor-pointer focus:outline-none select-none"
+                className="flex flex-col shrink-0 w-[140px] sm:w-[160px] md:w-[180px] snap-start group/card cursor-pointer focus:outline-none select-none text-inherit no-underline"
               >
                 {/* Thumbnail 4:3 */}
                 <div className="relative aspect-[4/3] w-full rounded-xl overflow-hidden bg-[#E5E3DB] shadow-sm border border-black/5 dark:border-white/10">
@@ -141,7 +145,7 @@ export function QuizCarousel({
                     </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>

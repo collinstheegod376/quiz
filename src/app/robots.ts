@@ -13,7 +13,6 @@ export default function robots(): MetadataRoute.Robots {
           '/leaderboard',
           '/category/',
           '/topic/',
-          '/share/',
         ],
         disallow: [
           '/api/',
@@ -25,6 +24,9 @@ export default function robots(): MetadataRoute.Robots {
           '/room/',
           '/session/',
           '/scratch/',
+          '/share/',
+          '/login',
+          '/signup',
         ],
       },
       {
@@ -40,6 +42,9 @@ export default function robots(): MetadataRoute.Robots {
           '/room/',
           '/session/',
           '/scratch/',
+          '/share/',
+          '/login',
+          '/signup',
         ],
       },
       {
@@ -55,6 +60,9 @@ export default function robots(): MetadataRoute.Robots {
           '/room/',
           '/session/',
           '/scratch/',
+          '/share/',
+          '/login',
+          '/signup',
         ],
       },
     ],

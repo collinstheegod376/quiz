@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useGame } from '@/context/GameContext';
 import { useAuth } from '@/context/AuthContext';
 import { TOPICS } from '@/data/topics';
 import { CATEGORIES } from '@/data/categories';
-import { X, Users, Clock } from 'lucide-react';
+import { X, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '../ui/Button';
 
 export function CreateRoomModal() {
@@ -20,25 +20,60 @@ export function CreateRoomModal() {
     setSelectedTopicId,
     setSelectedDifficultyLevel,
   } = useGame();
-  const { currentUser } = useAuth();
+  const { currentUser, openAuthModal } = useAuth();
 
-  const [displayName, setDisplayName] = useState(currentUser?.username || 'PlayerOne');
   const [timePerQ, setTimePerQ] = useState(15);
   const [targetPlayers, setTargetPlayers] = useState<2 | 3 | 4>(2);
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    if (currentUser?.username) setDisplayName(currentUser.username);
-  }, [currentUser]);
-
   if (!isCreateModalOpen) return null;
+
+  if (!currentUser) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/60 backdrop-blur-sm animate-fadeIn"
+        onClick={(e) => { if (e.target === e.currentTarget) setIsCreateModalOpen(false); }}
+      >
+        <div className="relative w-full max-w-md bg-[#FFFDF4] dark:bg-[#1E1D1D] border border-[#CECCC5] dark:border-[#363535] p-6 sm:p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h2 className="font-nunito font-black text-xl text-black dark:text-white">
+            Combatant Profile Required
+          </h2>
+          <p className="font-roboto text-xs text-[#595955] dark:text-[#A4A3A3] leading-relaxed">
+            Guest mode has been disabled. You must log in or create an account to host real-time multiplayer arenas and save match XP.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Button
+              variant="arena"
+              size="md"
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                openAuthModal('login');
+              }}
+            >
+              Sign In / Register
+            </Button>
+            <Button
+              variant="outline"
+              size="md"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTopicId) return;
     setIsCreating(true);
     try {
-      await createRoom(displayName, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
+      await createRoom(currentUser.username, selectedTopicId, selectedDifficultyLevel, timePerQ, targetPlayers);
       setIsCreateModalOpen(false);
     } finally {
       setIsCreating(false);
@@ -48,7 +83,6 @@ export function CreateRoomModal() {
   const currentCategoryTopics = TOPICS.filter((t) => t.categoryId === selectedCategoryId);
 
   const selectClass = "w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px] focus:outline-none appearance-none cursor-pointer";
-  const inputClass = "w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none";
   const labelClass = "font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize block mb-1.5";
 
   return (
@@ -61,10 +95,10 @@ export function CreateRoomModal() {
         <div className="bg-[#EBDAC3] dark:bg-[#2A2929] border-b border-[#CECCC5] dark:border-[#363535] px-6 py-5 flex items-start justify-between">
           <div>
             <h2 className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
-              Create a Room
+              Create an Arena Room
             </h2>
             <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize mt-1">
-              Set up your arena and invite 1–3 rivals.
+              Host a live match for 1–3 rivals.
             </p>
           </div>
           <button
@@ -76,18 +110,30 @@ export function CreateRoomModal() {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Display Name */}
-          <div>
-            <label className={labelClass}>Host Display Name</label>
-            <input
-              type="text"
-              required
-              maxLength={20}
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your arena name…"
-              className={inputClass}
-            />
+          {/* Verified Host Badge */}
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-[#E5E3DB]/50 dark:bg-[#100F0F] border border-[#CECCC5] dark:border-[#363535]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-full overflow-hidden border border-black/20 dark:border-white/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={currentUser.avatarUrl}
+                  alt={currentUser.username}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <span className="font-nunito font-extrabold text-[11px] text-[#595955] dark:text-[#A4A3A3] block uppercase tracking-wider">
+                  Host Profile
+                </span>
+                <span className="font-nunito font-black text-sm text-black dark:text-white">
+                  {currentUser.username}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>Authenticated</span>
+            </div>
           </div>
 
           {/* Category */}
@@ -151,47 +197,56 @@ export function CreateRoomModal() {
             </select>
           </div>
 
-          {/* Players */}
+          {/* Target Players */}
           <div>
-            <label className={labelClass}>Number of Players</label>
-            <div className="grid grid-cols-3 gap-0 border border-[#CECCC5] dark:border-[#363535]">
-              {([2, 3, 4] as const).map((num) => {
-                const isSelected = targetPlayers === num;
-                const questionCount = num === 2 ? 10 : num === 3 ? 12 : 15;
-                return (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => setTargetPlayers(num)}
-                    className={`flex flex-col items-center py-3 px-2 border-r last:border-r-0 border-[#CECCC5] dark:border-[#363535] text-center transition-colors ${
-                      isSelected
-                        ? 'bg-[#EBDAC3]'
-                        : 'bg-[#FFFDF4] dark:bg-[#100F0F] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
-                    }`}
-                  >
-                    <Users className="w-4 h-4 text-[#000000] dark:text-[#FEFEFD] mb-1" />
-                    <span className="font-nunito font-black text-[16px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.48px]">
-                      {num}p
-                    </span>
-                    <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
-                      {questionCount} Q's
-                    </span>
-                  </button>
-                );
-              })}
+            <label className={labelClass}>Maximum Combatants</label>
+            <div className="grid grid-cols-3 gap-2">
+              {([2, 3, 4] as const).map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => setTargetPlayers(num)}
+                  className={`py-3 rounded-full border-[3px] border-[#000000] dark:border-[#FEFEFD] font-nunito font-black text-[16px] transition-colors ${
+                    targetPlayers === num
+                      ? 'bg-[#EBDAC3] dark:bg-[#B9843E] text-[#000000] dark:text-[#FEFEFD]'
+                      : 'bg-[#FFFDF4] dark:bg-[#100F0F] text-[#595955] dark:text-[#A4A3A3] hover:bg-[#E5E3DB] dark:hover:bg-[#1E1D1D]'
+                  }`}
+                >
+                  {num} Players
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Info strip */}
-          <div className="flex items-center gap-2 p-3 bg-[#F7F5ED] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
-            <Clock className="w-4 h-4 text-[#23616A] shrink-0" />
-            <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
-              15 seconds per question · Match length auto-scales to player count
-            </span>
+          {/* Time per Question */}
+          <div>
+            <label className={labelClass}>Time Per Question: {timePerQ}s</label>
+            <input
+              type="range"
+              min={10}
+              max={30}
+              step={5}
+              value={timePerQ}
+              onChange={(e) => setTimePerQ(Number(e.target.value))}
+              className="w-full accent-black dark:accent-white cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-[#595955] dark:text-[#A4A3A3] font-nunito font-extrabold mt-1">
+              <span>10s (Fast)</span>
+              <span>15s (Standard)</span>
+              <span>20s</span>
+              <span>30s (Casual)</span>
+            </div>
           </div>
 
-          <Button type="submit" variant="arena" size="lg" className="w-full" disabled={isCreating} isLoading={isCreating}>
-            {isCreating ? 'Initializing Arena…' : 'Create Arena & Enter Lobby'}
+          <Button
+            type="submit"
+            variant="arena"
+            size="lg"
+            className="w-full mt-4"
+            disabled={isCreating}
+            isLoading={isCreating}
+          >
+            Launch Room
           </Button>
         </form>
       </div>

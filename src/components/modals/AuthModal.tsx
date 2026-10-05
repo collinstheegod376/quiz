@@ -17,6 +17,7 @@ export function AuthModal() {
   } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [avatarSeed, setAvatarSeed] = useState('Ace');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +40,18 @@ export function AuthModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (tab === 'register') {
+      if (password.length < 8) {
+        setErrorMsg('Password must be at least 8 characters long.');
+        return;
+      }
+      if (password !== confirmPassword) {
+        setErrorMsg('Passwords do not match. Please verify.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -79,12 +92,12 @@ export function AuthModal() {
         <div className="bg-[#EBDAC3] dark:bg-[#2A2929] border-b border-[#CECCC5] dark:border-[#363535] px-6 py-5 flex items-start justify-between">
           <div>
             <h2 id="auth-modal-title" className="font-nunito font-black text-[20px] text-[#000000] dark:text-[#FEFEFD] leading-[1.4] tracking-[0.6px]">
-              {tab === 'login' ? 'Sign In to Anizuki' : 'Create Your Account'}
+              {tab === 'login' ? 'Sign In to AniZuki' : 'Create Combatant Profile'}
             </h2>
             <p className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize mt-1">
               {tab === 'login'
                 ? 'Welcome back! Enter your credentials to continue.'
-                : 'No email required. Instant access.'}
+                : 'Join the arena. Permanent XP and leaderboard rankings.'}
             </p>
           </div>
           <button
@@ -181,19 +194,38 @@ export function AuthModal() {
               <input
                 type="password"
                 required
-                minLength={4}
+                minLength={tab === 'register' ? 8 : 4}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your arena password…"
+                placeholder={tab === 'register' ? 'At least 8 characters…' : 'Your arena password…'}
                 className="w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none"
               />
             </div>
 
-            {/* Shield notice */}
+            {/* Confirm Password (Registration Only) */}
+            {tab === 'register' && (
+              <div className="space-y-1.5">
+                <label className="flex items-center gap-1.5 font-nunito font-extrabold text-[14px] text-[#000000] dark:text-[#FEFEFD] tracking-[0.42px] capitalize">
+                  <Lock className="w-3.5 h-3.5" />
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password…"
+                  className="w-full px-5 py-3 rounded-full border-[4px] border-[#000000] dark:border-[#FEFEFD] bg-[#FFFDF4] dark:bg-[#100F0F] font-nunito font-extrabold text-[16px] text-[#000000] dark:text-[#FEFEFD] placeholder-[#CECCC5] tracking-[0.48px] focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* Security Notice */}
             <div className="flex items-center gap-2 p-3 bg-[#F7F5ED] dark:bg-[#2A2929] border border-[#CECCC5] dark:border-[#363535]">
               <ShieldCheck className="w-4 h-4 text-[#4CA471] shrink-0" />
               <span className="font-nunito font-extrabold text-[12.8px] text-[#595955] dark:text-[#A4A3A3] tracking-[0.38px] capitalize">
-                Zero email verification. Seamless instant access.
+                Encrypted credentials. Track rank, streaks, and match XP.
               </span>
             </div>
 
@@ -208,17 +240,6 @@ export function AuthModal() {
               {tab === 'login' ? 'Sign In & Enter Arena' : 'Create Account & Play'}
             </Button>
           </form>
-
-          {/* Guest exit ramp — no auth lock-in */}
-          <div className="pt-3 text-center border-t border-[#CECCC5] dark:border-[#363535]">
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(false)}
-              className="font-nunito font-extrabold text-[13px] text-[#595955] dark:text-[#A4A3A3] hover:text-black dark:hover:text-white transition-colors"
-            >
-              Skip &amp; Play as Guest →
-            </button>
-          </div>
         </div>
       </div>
     </div>

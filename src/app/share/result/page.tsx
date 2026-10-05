@@ -34,8 +34,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   return {
     title,
     description,
-    alternates: {
-      canonical: 'https://anizuki.sbs/leaderboard',
+    robots: {
+      index: false,
+      follow: true,
     },
     openGraph: {
       type: 'article',
@@ -158,7 +159,7 @@ export default async function ShareResultPage({ searchParams }: Props) {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-black dark:bg-white text-white dark:text-black font-nunito font-black text-sm hover:opacity-90 transition-opacity shadow-md"
             >
               <Play className="w-4 h-4 fill-current" />
-              <span>Challenge This Score (Play as Guest)</span>
+              <span>Challenge This Score</span>
             </Link>
 
             <Link
