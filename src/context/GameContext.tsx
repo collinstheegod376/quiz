@@ -225,22 +225,41 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             setCurrentView('game');
           }
 
-          if (incomingRoom.status === 'NEXT_ROUND') {
+          const currentLocalRoom = roomRef.current;
+          const isRoundTransition =
+            incomingRoom.status === 'NEXT_ROUND' ||
+            incomingRoom.status === 'LOBBY' ||
+            (currentLocalRoom && incomingRoom.difficultyLevel !== currentLocalRoom.difficultyLevel) ||
+            (currentLocalRoom &&
+              (currentLocalRoom.status === 'NEXT_ROUND' || currentLocalRoom.status === 'FINAL_RESULTS') &&
+              incomingRoom.status === 'QUESTION');
+
+          if (isRoundTransition) {
             setIsMatchFinished(false);
+            isFinishingRef.current = false;
+            isAnswerSubmittedRef.current = false;
+            isLocalRevealRef.current = false;
+            isTransitioningRef.current = false;
             setLocalQuestionIndex(0);
+            localQuestionIndexRef.current = 0;
+            setSelectedOption(null);
+            setIsAnswerSubmitted(false);
             setIsLocalReveal(false);
           }
 
           // If room is in QUESTION state but all active players are now finished, transition to FINAL_RESULTS
-          const allIncomingFinished =
-            incomingRoom.players.length > 0 &&
-            incomingRoom.players.every(
-              (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
-            );
-          if (incomingRoom.status === 'QUESTION' && allIncomingFinished) {
-            incomingRoom.status = 'FINAL_RESULTS';
-            if (currentPlayerRef.current?.isHost) {
-              saveRoomToSupabase(incomingRoom);
+          // Guard: Do not trigger on round transitions
+          if (incomingRoom.status === 'QUESTION' && !isRoundTransition) {
+            const allIncomingFinished =
+              incomingRoom.players.length > 0 &&
+              incomingRoom.players.every(
+                (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+              );
+            if (allIncomingFinished) {
+              incomingRoom.status = 'FINAL_RESULTS';
+              if (currentPlayerRef.current?.isHost) {
+                saveRoomToSupabase(incomingRoom);
+              }
             }
           }
 
@@ -251,16 +270,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           if (myPlayer) {
             const remoteMyPlayer = incomingRoom.players.find((p) => p.id === myPlayer.id);
             if (remoteMyPlayer) {
-              const mergedMyPlayer: Player = {
-                ...remoteMyPlayer,
-                score: Math.max(myPlayer.score, remoteMyPlayer.score),
-                correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
-                totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
-                streak: myPlayer.streak ?? remoteMyPlayer.streak,
-                maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
-                isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
-                status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
-              };
+              let mergedMyPlayer: Player;
+              if (isRoundTransition) {
+                // In round transitions, reset player to fresh state matching server room
+                mergedMyPlayer = {
+                  ...remoteMyPlayer,
+                  isFinished: false,
+                  status: 'playing',
+                  score: remoteMyPlayer.score ?? 0,
+                  correctAnswers: remoteMyPlayer.correctAnswers ?? 0,
+                  totalResponseTimeMs: remoteMyPlayer.totalResponseTimeMs ?? 0,
+                  streak: 0,
+                  hasAnswered: false,
+                  selectedOption: undefined,
+                };
+              } else {
+                mergedMyPlayer = {
+                  ...remoteMyPlayer,
+                  score: Math.max(myPlayer.score, remoteMyPlayer.score),
+                  correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
+                  totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
+                  streak: myPlayer.streak ?? remoteMyPlayer.streak,
+                  maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
+                  isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
+                  status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
+                };
+              }
               setCurrentPlayer(mergedMyPlayer);
               finalIncomingRoom = {
                 ...incomingRoom,
@@ -428,23 +463,48 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
                 );
               });
 
+            const isRoundTransition =
+              remoteRoom.status === 'NEXT_ROUND' ||
+              remoteRoom.status === 'LOBBY' ||
+              (prev && remoteRoom.difficultyLevel !== prev.difficultyLevel) ||
+              (prev &&
+                (prev.status === 'NEXT_ROUND' || prev.status === 'FINAL_RESULTS') &&
+                remoteRoom.status === 'QUESTION');
+
+            if (isRoundTransition) {
+              setIsMatchFinished(false);
+              isFinishingRef.current = false;
+              isAnswerSubmittedRef.current = false;
+              isLocalRevealRef.current = false;
+              isTransitioningRef.current = false;
+              setLocalQuestionIndex(0);
+              localQuestionIndexRef.current = 0;
+              setSelectedOption(null);
+              setIsAnswerSubmitted(false);
+              setIsLocalReveal(false);
+            }
+
             // If room is in QUESTION state but all active players are finished, transition to FINAL_RESULTS
-            const allRemoteFinished =
-              remoteRoom.players.length > 0 &&
-              remoteRoom.players.every(
-                (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
-              );
-            if (remoteRoom.status === 'QUESTION' && allRemoteFinished) {
-              remoteRoom.status = 'FINAL_RESULTS';
-              if (currentPlayerRef.current?.isHost) {
-                saveRoomToSupabase(remoteRoom);
+            // Guard: Do not trigger on round transitions
+            if (remoteRoom.status === 'QUESTION' && !isRoundTransition) {
+              const allRemoteFinished =
+                remoteRoom.players.length > 0 &&
+                remoteRoom.players.every(
+                  (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+                );
+              if (allRemoteFinished) {
+                remoteRoom.status = 'FINAL_RESULTS';
+                if (currentPlayerRef.current?.isHost) {
+                  saveRoomToSupabase(remoteRoom);
+                }
               }
             }
 
             if (
               playersChanged ||
               remoteRoom.status !== prev.status ||
-              remoteRoom.currentQuestionIndex !== prev.currentQuestionIndex
+              remoteRoom.currentQuestionIndex !== prev.currentQuestionIndex ||
+              isRoundTransition
             ) {
               if (remoteRoom.questions && remoteRoom.questions.length > 0) {
                 const hydrated = hydrateQuestions(remoteRoom.questions);
@@ -463,6 +523,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               if (remoteRoom.status === 'NEXT_ROUND') {
                 setIsMatchFinished(false);
                 setLocalQuestionIndex(0);
+                localQuestionIndexRef.current = 0;
                 setIsLocalReveal(false);
               }
               const myPlayer = currentPlayerRef.current;
@@ -470,16 +531,31 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               if (myPlayer) {
                 const remoteMyPlayer = remoteRoom.players.find((p) => p.id === myPlayer.id);
                 if (remoteMyPlayer) {
-                  const mergedMyPlayer: Player = {
-                    ...remoteMyPlayer,
-                    score: Math.max(myPlayer.score, remoteMyPlayer.score),
-                    correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
-                    totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
-                    streak: myPlayer.streak ?? remoteMyPlayer.streak,
-                    maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
-                    isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
-                    status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
-                  };
+                  let mergedMyPlayer: Player;
+                  if (isRoundTransition) {
+                    mergedMyPlayer = {
+                      ...remoteMyPlayer,
+                      isFinished: false,
+                      status: 'playing',
+                      score: remoteMyPlayer.score ?? 0,
+                      correctAnswers: remoteMyPlayer.correctAnswers ?? 0,
+                      totalResponseTimeMs: remoteMyPlayer.totalResponseTimeMs ?? 0,
+                      streak: 0,
+                      hasAnswered: false,
+                      selectedOption: undefined,
+                    };
+                  } else {
+                    mergedMyPlayer = {
+                      ...remoteMyPlayer,
+                      score: Math.max(myPlayer.score, remoteMyPlayer.score),
+                      correctAnswers: Math.max(myPlayer.correctAnswers, remoteMyPlayer.correctAnswers),
+                      totalResponseTimeMs: Math.max(myPlayer.totalResponseTimeMs, remoteMyPlayer.totalResponseTimeMs),
+                      streak: myPlayer.streak ?? remoteMyPlayer.streak,
+                      maxStreak: Math.max(myPlayer.maxStreak || 0, remoteMyPlayer.maxStreak || 0),
+                      isFinished: myPlayer.isFinished || remoteMyPlayer.isFinished,
+                      status: myPlayer.status === 'finished' ? 'finished' : remoteMyPlayer.status,
+                    };
+                  }
                   setCurrentPlayer(mergedMyPlayer);
                   finalRemoteRoom = {
                     ...remoteRoom,
@@ -521,25 +597,53 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
         if (latestData?.state) {
           const remoteRoom = latestData.state as Room;
-          const mergedPlayers = updatedRoom.players.map((localP) => {
-            if (localP.id === myId) {
-              return localP; // Local player's own authoritative update
-            }
-            const remoteP = remoteRoom.players.find((rp) => rp.id === localP.id);
-            if (!remoteP) return localP;
-            return {
-              ...localP,
-              score: Math.max(localP.score, remoteP.score),
-              correctAnswers: Math.max(localP.correctAnswers, remoteP.correctAnswers),
-              totalResponseTimeMs: Math.max(localP.totalResponseTimeMs, remoteP.totalResponseTimeMs),
-              hasAnswered: remoteP.hasAnswered || localP.hasAnswered,
-              selectedOption: remoteP.selectedOption || localP.selectedOption,
-              isFinished: remoteP.isFinished || localP.isFinished,
-              status: remoteP.status === 'finished' ? 'finished' : (localP.status || remoteP.status),
-              isReady: remoteP.isReady !== undefined ? remoteP.isReady : localP.isReady,
-              isOnline: remoteP.isOnline !== undefined ? remoteP.isOnline : localP.isOnline,
-            };
-          });
+          const isRoundTransition =
+            updatedRoom.status === 'NEXT_ROUND' ||
+            (remoteRoom && updatedRoom.difficultyLevel !== remoteRoom.difficultyLevel) ||
+            (remoteRoom &&
+              (remoteRoom.status === 'NEXT_ROUND' || remoteRoom.status === 'FINAL_RESULTS') &&
+              updatedRoom.status === 'QUESTION');
+
+          let mergedPlayers: Player[];
+
+          if (isRoundTransition) {
+            // Round staging or launch: Authoritative fresh player states
+            mergedPlayers = updatedRoom.players.map((localP) => {
+              const remoteP = remoteRoom.players.find((rp) => rp.id === localP.id);
+              if (!remoteP) return localP;
+              return {
+                ...localP,
+                // In NEXT_ROUND intermission, preserve isReady if peer already toggled it remotely
+                isReady:
+                  updatedRoom.status === 'NEXT_ROUND' && remoteP.isReady !== undefined
+                    ? remoteP.isReady
+                    : localP.isReady,
+                isOnline: remoteP.isOnline !== undefined ? remoteP.isOnline : localP.isOnline,
+                isFinished: false,
+                status: 'playing',
+              };
+            });
+          } else {
+            mergedPlayers = updatedRoom.players.map((localP) => {
+              if (localP.id === myId) {
+                return localP; // Local player's own authoritative update
+              }
+              const remoteP = remoteRoom.players.find((rp) => rp.id === localP.id);
+              if (!remoteP) return localP;
+              return {
+                ...localP,
+                score: Math.max(localP.score, remoteP.score),
+                correctAnswers: Math.max(localP.correctAnswers, remoteP.correctAnswers),
+                totalResponseTimeMs: Math.max(localP.totalResponseTimeMs, remoteP.totalResponseTimeMs),
+                hasAnswered: remoteP.hasAnswered || localP.hasAnswered,
+                selectedOption: remoteP.selectedOption || localP.selectedOption,
+                isFinished: remoteP.isFinished || localP.isFinished,
+                status: remoteP.status === 'finished' ? 'finished' : (localP.status || remoteP.status),
+                isReady: remoteP.isReady !== undefined ? remoteP.isReady : localP.isReady,
+                isOnline: remoteP.isOnline !== undefined ? remoteP.isOnline : localP.isOnline,
+              };
+            });
+          }
 
           // Preserve any peer player who joined remotely while this client was active
           remoteRoom.players.forEach((rp) => {
@@ -548,11 +652,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
             }
           });
 
+          // Only preserve remote FINAL_RESULTS if this is NOT an explicit transition to NEXT_ROUND or a new round QUESTION
+          const shouldPreserveFinalResults =
+            remoteRoom.status === 'FINAL_RESULTS' &&
+            !isRoundTransition &&
+            updatedRoom.status !== 'NEXT_ROUND';
+
           finalRoom = {
             ...remoteRoom,
             ...updatedRoom,
             players: mergedPlayers,
-            status: remoteRoom.status === 'FINAL_RESULTS' ? 'FINAL_RESULTS' : updatedRoom.status,
+            status: shouldPreserveFinalResults ? 'FINAL_RESULTS' : updatedRoom.status,
           };
         }
       }
@@ -1327,6 +1437,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
 
     setLocalQuestionIndex(0);
+    localQuestionIndexRef.current = 0;
+    isTransitioningRef.current = false;
+    isAnswerSubmittedRef.current = false;
+    isLocalRevealRef.current = false;
     setIsLocalReveal(false);
     setIsMatchFinished(false);
     setLastRevealResult(null);
@@ -1404,6 +1518,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
 
     setLocalQuestionIndex(0);
+    localQuestionIndexRef.current = 0;
+    isTransitioningRef.current = false;
+    isAnswerSubmittedRef.current = false;
+    isLocalRevealRef.current = false;
     setIsLocalReveal(false);
     setIsMatchFinished(false);
     setLastRevealResult(null);

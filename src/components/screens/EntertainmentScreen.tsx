@@ -361,6 +361,18 @@ export function EntertainmentScreen() {
         imageUrl: '/images/topics/spider-man-bnd.jpg',
         creator: 'Daily Bugle Press',
       },
+      {
+        id: 'solo-leveling-shadows',
+        topicId: 'solo-leveling',
+        title: 'Solo Leveling',
+        category: 'anime',
+        tags: ['Anime', 'Action', 'Hunters', 'Shadow Monarch', 'Jinwoo'],
+        questionCount: 130,
+        rating: 5.0,
+        difficulty: 'Nightmare',
+        imageUrl: '/images/topics/solo-leveling.jpg',
+        creator: 'Shadow Monarch',
+      },
     ];
   }, []);
 

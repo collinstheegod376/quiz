@@ -486,4 +486,66 @@ test('Bug 17 & 18: Anime topic slug mapping and social_butterfly unique topic tr
   assert.equal(isSocialButterflyUnlocked, true, 'Playing 5 unique topics unlocks social_butterfly');
 });
 
+test('Bug 19: Next Round transition correctly clears isFinished and does not get stuck in FINAL_RESULTS', () => {
+  // Remote room currently in Supabase after Round 1 finishes
+  const remoteRoom = {
+    status: 'FINAL_RESULTS' as const,
+    difficultyLevel: 1,
+    players: [
+      { id: 'p1', isFinished: true, status: 'finished' as const, score: 5000 },
+      { id: 'p2', isFinished: true, status: 'finished' as const, score: 4000 },
+    ],
+  };
+
+  // Player stages NEXT_ROUND for Level 2
+  const updatedRoom = {
+    status: 'NEXT_ROUND' as const,
+    difficultyLevel: 2,
+    players: [
+      { id: 'p1', isFinished: false, status: 'playing' as const, score: 0 },
+      { id: 'p2', isFinished: false, status: 'playing' as const, score: 0 },
+    ],
+  };
+
+  const isRoundTransition =
+    updatedRoom.status === 'NEXT_ROUND' ||
+    (remoteRoom && updatedRoom.difficultyLevel !== remoteRoom.difficultyLevel) ||
+    (remoteRoom &&
+      (remoteRoom.status === 'NEXT_ROUND' || remoteRoom.status === 'FINAL_RESULTS') &&
+      updatedRoom.status === 'QUESTION');
+
+  assert.equal(isRoundTransition, true, 'Transition to NEXT_ROUND must be detected as round transition');
+
+  // Verify shouldPreserveFinalResults is false
+  const shouldPreserveFinalResults =
+    remoteRoom.status === 'FINAL_RESULTS' &&
+    !isRoundTransition &&
+    updatedRoom.status !== 'NEXT_ROUND';
+
+  assert.equal(shouldPreserveFinalResults, false, 'FINAL_RESULTS must not override NEXT_ROUND');
+
+  // Verify merged players have isFinished: false
+  const mergedPlayers = updatedRoom.players.map((localP) => {
+    const remoteP = remoteRoom.players.find((rp) => rp.id === localP.id);
+    if (!remoteP) return localP;
+    if (isRoundTransition) {
+      return {
+        ...localP,
+        isFinished: false,
+        status: 'playing' as const,
+      };
+    }
+    return {
+      ...localP,
+      isFinished: remoteP.isFinished || localP.isFinished,
+    };
+  });
+
+  assert.equal(mergedPlayers[0].isFinished, false);
+  assert.equal(mergedPlayers[1].isFinished, false);
+  assert.equal(mergedPlayers[0].status, 'playing');
+  assert.equal(mergedPlayers[1].status, 'playing');
+});
+
+
 

@@ -74,3 +74,7 @@
   - **Mobile Accessibility & Security Headers**: Removed zoom-blocking `userScalable: false` and `maximumScale: 1` from `viewport`. Added `Strict-Transport-Security` (HSTS) and AVIF/WebP image formats to `next.config.mjs`.
   - **Next.js Image Pipeline**: Migrated `SafeImage.tsx` to `next/image` with responsive `sizes` and layout shift prevention.
   - **Production Build Verified**: Passed full Next.js static production build (`next build`) generating 43 static pages cleanly with 0 type errors.
+- **New Topic Added — Solo Leveling (130 Questions Across 10 Tiers)**:
+  - **Dataset Creation**: Generated and validated `questions_sololeveling.ts` with 130 lore-accurate questions distributed evenly (13 per level) from E-Rank Hunter basics through the Cartenon Temple Double Dungeon, System Daily Quests, Kasaka, Igris, Red Gate, Demon Castle, Jeju Island Beru raid, National Level Hunters, Ashborn, and the final war with Antares.
+  - **Topic Registration & Assets**: Registered `solo-leveling` under `anime` in `src/data/topics.ts` with local banner image `public/images/topics/solo-leveling.jpg`. Wired into `RAW_SEED_QUESTIONS` in `src/data/questions.ts` and added featured card to `EntertainmentScreen.tsx`.
+  - **Static Build Verification**: Clean static build passed with 44/44 pages prerendered (including `/topic/solo-leveling`), 0 TypeScript compiler warnings, and 0 linting errors.

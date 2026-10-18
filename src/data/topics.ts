@@ -189,6 +189,17 @@ export const TOPICS: Topic[] = [
     popularityRank: 16,
     isActive: true,
   },
+  {
+    id: 'solo-leveling',
+    categoryId: 'anime',
+    slug: 'solo-leveling',
+    name: 'Solo Leveling',
+    description: 'The Weakest Hunter, Cartenon Temple, the Player System, Jeju Island, and Shadow Monarch warfare.',
+    imageUrl: '/images/topics/solo-leveling.jpg',
+    questionCount: 130,
+    popularityRank: 17,
+    isActive: true,
+  },
 
   // Popular Series
   {

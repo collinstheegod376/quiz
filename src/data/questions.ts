@@ -26,6 +26,7 @@ import { ALICE_IN_BORDERLAND_QUESTIONS } from './questions_aliceinborderland';
 import { SAKAMOTO_DAYS_QUESTIONS } from './questions_sakamotodays';
 import { RICK_AND_MORTY_QUESTIONS } from './questions_rickandmorty';
 import { SPIDER_MAN_BND_QUESTIONS } from './questions_spidermanbnd';
+import { SOLO_LEVELING_QUESTIONS } from './questions_sololeveling';
 
 const RAW_SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -55,6 +56,7 @@ const RAW_SEED_QUESTIONS: Question[] = [
   ...SAKAMOTO_DAYS_QUESTIONS,
   ...RICK_AND_MORTY_QUESTIONS,
   ...SPIDER_MAN_BND_QUESTIONS,
+  ...SOLO_LEVELING_QUESTIONS,
 ];
 
 // Deduplicate questions by ID and normalized prompt text to guarantee 100% uniqueness across datasets
