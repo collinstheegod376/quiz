@@ -78,3 +78,10 @@
   - **Dataset Creation**: Generated and validated `questions_sololeveling.ts` with 130 lore-accurate questions distributed evenly (13 per level) from E-Rank Hunter basics through the Cartenon Temple Double Dungeon, System Daily Quests, Kasaka, Igris, Red Gate, Demon Castle, Jeju Island Beru raid, National Level Hunters, Ashborn, and the final war with Antares.
   - **Topic Registration & Assets**: Registered `solo-leveling` under `anime` in `src/data/topics.ts` with local banner image `public/images/topics/solo-leveling.jpg`. Wired into `RAW_SEED_QUESTIONS` in `src/data/questions.ts` and added featured card to `EntertainmentScreen.tsx`.
   - **Static Build Verification**: Clean static build passed with 44/44 pages prerendered (including `/topic/solo-leveling`), 0 TypeScript compiler warnings, and 0 linting errors.
+- **5 Movie Topics & 650 Questions Integrated via 5 Concurrent Subagents**:
+  - **The Dark Knight Trilogy** (`questions_thedarkknight.ts`, 130 questions, 10 tiers): Batman Begins, The Dark Knight, The Dark Knight Rises, Joker, Bane, and Nolan trilogy lore. Banner: `dark-knight.jpg`.
+  - **Marvel Cinematic Universe (MCU)** (`questions_mcu.ts`, 130 questions, 10 tiers): 23-film Infinity Saga from Iron Man (2008) to Avengers: Endgame, Thanos, and Infinity Stones. Banner: `mcu-avengers.jpg`.
+  - **Harry Potter & Wizarding World** (`questions_harrypotter.ts`, 130 questions, 10 tiers): Complete 8-film Warner Bros. cinematic saga from Sorcerer's Stone to Deathly Hallows Part 2. Banner: `harry-potter.jpg`.
+  - **Inception & Christopher Nolan Sci-Fi** (`questions_inception.ts`, 130 questions, 10 tiers): Inception, Interstellar, Tenet, and Oppenheimer cinematic craftsmanship. Banner: `inception.jpg`.
+  - **Dune: Part One & Part Two** (`questions_dune.ts`, 130 questions, 10 tiers): Denis Villeneuve's sci-fi epic, House Atreides, Fremen, Sandworms, and Paul Muad'Dib. Banner: `dune.jpg`.
+  - **Integration & Build**: Registered in `topics.ts`, `questions.ts`, and `EntertainmentScreen.tsx`. Full static production build passed with **49/49 static pages** prerendered and 0 errors. Dev server running at `http://localhost:3000`.

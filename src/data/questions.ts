@@ -27,6 +27,11 @@ import { SAKAMOTO_DAYS_QUESTIONS } from './questions_sakamotodays';
 import { RICK_AND_MORTY_QUESTIONS } from './questions_rickandmorty';
 import { SPIDER_MAN_BND_QUESTIONS } from './questions_spidermanbnd';
 import { SOLO_LEVELING_QUESTIONS } from './questions_sololeveling';
+import { THE_DARK_KNIGHT_QUESTIONS } from './questions_thedarkknight';
+import { MCU_QUESTIONS } from './questions_mcu';
+import { HARRY_POTTER_QUESTIONS } from './questions_harrypotter';
+import { INCEPTION_QUESTIONS } from './questions_inception';
+import { DUNE_QUESTIONS } from './questions_dune';
 
 const RAW_SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -57,6 +62,11 @@ const RAW_SEED_QUESTIONS: Question[] = [
   ...RICK_AND_MORTY_QUESTIONS,
   ...SPIDER_MAN_BND_QUESTIONS,
   ...SOLO_LEVELING_QUESTIONS,
+  ...THE_DARK_KNIGHT_QUESTIONS,
+  ...MCU_QUESTIONS,
+  ...HARRY_POTTER_QUESTIONS,
+  ...INCEPTION_QUESTIONS,
+  ...DUNE_QUESTIONS,
 ];
 
 // Deduplicate questions by ID and normalized prompt text to guarantee 100% uniqueness across datasets
