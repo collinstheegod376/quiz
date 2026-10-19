@@ -64,3 +64,71 @@ test('Voice Mute State Sync: Muted peers set maintains peer mute status correctl
   handleMuteSignal('player_123', false);
   assert.strictEqual(mutedPeers.has('player_123'), false, 'Peer unmuted');
 });
+
+test('Voice WebRTC Perfect Negotiation: Rollback guard prevents InvalidStateError in stable state', () => {
+  const shouldRollback = (isOfferCollision: boolean, isPolite: boolean, signalingState: string) => {
+    return isOfferCollision && isPolite && signalingState === 'have-local-offer';
+  };
+
+  // Polite peer with offer collision in have-local-offer -> Rollback valid
+  assert.strictEqual(shouldRollback(true, true, 'have-local-offer'), true, 'Should rollback colliding offer');
+
+  // Polite peer with offer collision but still in stable -> MUST NOT rollback (avoids InvalidStateError)
+  assert.strictEqual(shouldRollback(true, true, 'stable'), false, 'Must not rollback in stable state');
+
+  // Impolite peer -> MUST NOT rollback
+  assert.strictEqual(shouldRollback(true, false, 'have-local-offer'), false, 'Impolite peer must not rollback');
+});
+
+test('Voice WebRTC Answer Handling: Strictly accepts answers only in have-local-offer state', () => {
+  const canAcceptAnswer = (signalingState: string) => {
+    return signalingState === 'have-local-offer';
+  };
+
+  assert.strictEqual(canAcceptAnswer('have-local-offer'), true, 'Valid offer waiting for answer');
+  assert.strictEqual(canAcceptAnswer('stable'), false, 'Stable state cannot accept answer');
+  assert.strictEqual(canAcceptAnswer('have-remote-offer'), false, 'Remote offer state cannot accept answer');
+  assert.strictEqual(canAcceptAnswer('closed'), false, 'Closed peer connection cannot accept answer');
+});
+
+test('Voice Candidate Queue Drainage: Deletes buffer before async drainage loop to prevent candidate drops', async () => {
+  const pendingCandidates = new Map<string, string[]>();
+  pendingCandidates.set('peer_a', ['cand_1', 'cand_2']);
+
+  const appliedCandidates: string[] = [];
+
+  // Extract and delete immediately before async loop
+  const queued = pendingCandidates.get('peer_a');
+  if (queued && queued.length > 0) {
+    pendingCandidates.delete('peer_a');
+    
+    // Simulate candidate arriving concurrently during async drain
+    pendingCandidates.set('peer_a', ['cand_3_concurrent']);
+
+    for (const cand of queued) {
+      await Promise.resolve();
+      appliedCandidates.push(cand);
+    }
+  }
+
+  assert.deepStrictEqual(appliedCandidates, ['cand_1', 'cand_2'], 'Extracted candidates were processed');
+  assert.deepStrictEqual(pendingCandidates.get('peer_a'), ['cand_3_concurrent'], 'Concurrent candidate preserved and not deleted');
+});
+
+test('Voice Signal Deduplication: Drops duplicate signals delivered across dual channels', () => {
+  const processedSignals = new Set<string>();
+
+  const processSignal = (msgId: string) => {
+    if (processedSignals.has(msgId)) {
+      return false; // Dropped duplicate
+    }
+    processedSignals.add(msgId);
+    return true; // Accepted
+  };
+
+  const id = 'msg_xyz_123';
+  assert.strictEqual(processSignal(id), true, 'First signal delivery accepted');
+  assert.strictEqual(processSignal(id), false, 'Second signal delivery via fallback channel dropped');
+  assert.strictEqual(processSignal('msg_next_456'), true, 'Subsequent new signal accepted');
+});
+

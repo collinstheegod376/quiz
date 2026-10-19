@@ -135,6 +135,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const botAnsweredIndexRef = useRef<Record<string, number>>({});
   const botTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isFinishingRef = useRef<boolean>(false);
+  const isLeavingRef = useRef<boolean>(false);
 
   // Initialize session history from sessionStorage if available
   useEffect(() => {
@@ -198,9 +199,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           filter: `code=eq.${roomCode}`,
         },
         (payload) => {
+          if (isLeavingRef.current || !roomRef.current) return;
           // FE-13: typed properly — no `as any`
           const incomingRoom = (payload.new as { state?: Room })?.state;
-          if (!incomingRoom) return;
+          if (!incomingRoom || isLeavingRef.current || !roomRef.current) return;
 
           // Sync questions if present
           if (incomingRoom.questions && incomingRoom.questions.length > 0) {
@@ -303,6 +305,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               };
             }
           }
+          if (isLeavingRef.current || !roomRef.current) return;
           setRoom(finalIncomingRoom);
         }
       )
@@ -322,48 +325,62 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
       supabase
         .from('realtime_rooms')
-        .select('state')
+        .select('state, updated_at')
         .eq('code', roomCode)
         .maybeSingle()
         .then(({ data, error }) => {
-          if (!error && data?.state) {
-            const restored = data.state as Room;
-            if (restored.status !== 'FINISHED') {
-              const matchedPlayer = restored.players.find((p) => p.id === playerId);
-              if (matchedPlayer) {
-                const onlinePlayer: Player = {
-                  ...matchedPlayer,
-                  isOnline: true,
-                  status: matchedPlayer.isFinished ? 'finished' : 'playing',
-                };
-                const updatedPlayers = restored.players.map((p) =>
-                  p.id === playerId ? onlinePlayer : p
-                );
-                const updatedRoom: Room = { ...restored, players: updatedPlayers };
+          if (isLeavingRef.current) return;
+          if (error || !data?.state) {
+            sessionStorage.removeItem('quiz_active_session');
+            return;
+          }
 
-                setCurrentPlayer(onlinePlayer);
-                setRoom(updatedRoom);
-                if (updatedRoom.questions && updatedRoom.questions.length > 0) {
-                  const hydrated = hydrateQuestions(updatedRoom.questions);
-                  setGameQuestions(hydrated);
-                  updatedRoom.questions = hydrated;
-                }
-                if (
-                  updatedRoom.status === 'QUESTION' ||
-                  updatedRoom.status === 'REVEAL' ||
-                  updatedRoom.status === 'FINAL_RESULTS' ||
-                  updatedRoom.status === 'NEXT_ROUND'
-                ) {
-                  setCurrentView('game');
-                } else if (updatedRoom.status === 'LOBBY') {
-                  setCurrentView('lobby');
-                }
-                subscribeToRoom(roomCode);
-                saveRoomToSupabase(updatedRoom);
-              }
-            } else {
-              sessionStorage.removeItem('quiz_active_session');
+          // Check 30 minutes inactivity cutoff
+          const updatedAt = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+          const isStale = Date.now() - updatedAt > 30 * 60 * 1000;
+          const restored = data.state as Room;
+
+          if (isStale || restored.status === 'FINISHED') {
+            sessionStorage.removeItem('quiz_active_session');
+            if (isStale) {
+              supabase.from('realtime_rooms').delete().eq('code', roomCode).then();
             }
+            return;
+          }
+
+          const matchedPlayer = restored.players.find((p) => p.id === playerId);
+          if (matchedPlayer) {
+            const onlinePlayer: Player = {
+              ...matchedPlayer,
+              isOnline: true,
+              status: matchedPlayer.isFinished ? 'finished' : 'playing',
+            };
+            const updatedPlayers = restored.players.map((p) =>
+              p.id === playerId ? onlinePlayer : p
+            );
+            const updatedRoom: Room = { ...restored, players: updatedPlayers };
+
+            setCurrentPlayer(onlinePlayer);
+            setRoom(updatedRoom);
+            if (updatedRoom.questions && updatedRoom.questions.length > 0) {
+              const hydrated = hydrateQuestions(updatedRoom.questions);
+              setGameQuestions(hydrated);
+              updatedRoom.questions = hydrated;
+            }
+            if (
+              updatedRoom.status === 'QUESTION' ||
+              updatedRoom.status === 'REVEAL' ||
+              updatedRoom.status === 'FINAL_RESULTS' ||
+              updatedRoom.status === 'NEXT_ROUND'
+            ) {
+              setCurrentView('game');
+            } else if (updatedRoom.status === 'LOBBY') {
+              setCurrentView('lobby');
+            }
+            subscribeToRoom(roomCode);
+            saveRoomToSupabase(updatedRoom);
+          } else {
+            sessionStorage.removeItem('quiz_active_session');
           }
         });
     } catch {
@@ -425,9 +442,30 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [roomStatus, currentQuestionIdx, room?.timePerQuestion]);
 
+  // ─── Delete Inactive Rooms (30 min inactivity) ───────────────────────────
+  const cleanupStaleRooms = useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    try {
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      await supabase
+        .from('realtime_rooms')
+        .delete()
+        .lt('updated_at', cutoff);
+    } catch (err) {
+      console.warn('[Room cleanup] Error pruning stale rooms:', err);
+    }
+  }, []);
+
+  // Run periodic room cleanup on mount and every 5 minutes
+  useEffect(() => {
+    cleanupStaleRooms();
+    const cleanupInterval = setInterval(cleanupStaleRooms, 5 * 60 * 1000);
+    return () => clearInterval(cleanupInterval);
+  }, [cleanupStaleRooms]);
+
   // ─── Periodic Room Polling (guarantees cross-device sync) ────────────────
   useEffect(() => {
-    if (!room?.code || !isSupabaseConfigured) return;
+    if (!room?.code || !isSupabaseConfigured || isLeavingRef.current || !roomRef.current) return;
 
     // Fast poll during active gameplay or next round ready staging, relaxed poll in lobby
     const pollIntervalMs =
@@ -436,17 +474,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         : 1500;
 
     const interval = setInterval(async () => {
+      if (isLeavingRef.current || !roomRef.current) return;
       try {
         const { data, error } = await supabase
           .from('realtime_rooms')
-          .select('state')
+          .select('state, updated_at')
           .eq('code', room.code)
           .maybeSingle();
+
+        if (isLeavingRef.current || !roomRef.current) return;
+
+        // If room is missing from database (e.g. host deleted room or deleted due to inactivity)
+        if (!error && !data) {
+          try {
+            sessionStorage.removeItem('quiz_active_session');
+          } catch {}
+          setRoom(null);
+          setCurrentPlayer(null);
+          setCurrentView('landing');
+          return;
+        }
+
+        // If room has been inactive for > 30 minutes
+        if (data?.updated_at) {
+          const updatedAt = new Date(data.updated_at).getTime();
+          if (Date.now() - updatedAt > 30 * 60 * 1000) {
+            try {
+              sessionStorage.removeItem('quiz_active_session');
+            } catch {}
+            await supabase.from('realtime_rooms').delete().eq('code', room.code);
+            setRoom(null);
+            setCurrentPlayer(null);
+            setCurrentView('landing');
+            return;
+          }
+        }
 
         if (!error && data?.state) {
           const remoteRoom = data.state as Room;
           setRoom((prev) => {
-            if (!prev) return remoteRoom;
+            if (!prev || isLeavingRef.current || !roomRef.current) return null;
 
             // Check if there are any meaningful differences
             const playersChanged =
@@ -795,7 +862,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('realtime_rooms')
-        .select('state')
+        .select('state, updated_at')
         .eq('code', cleanCode)
         .maybeSingle();
 
@@ -809,6 +876,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           success: false,
           error: `Room "${cleanCode}" was not found in Supabase. Verify the 6-character code.`,
         };
+      }
+
+      // Check 30 minutes inactivity cutoff
+      if (data.updated_at) {
+        const updatedAt = new Date(data.updated_at).getTime();
+        if (Date.now() - updatedAt > 30 * 60 * 1000) {
+          await supabase.from('realtime_rooms').delete().eq('code', cleanCode);
+          return {
+            success: false,
+            error: `Room "${cleanCode}" has expired after 30 minutes of inactivity.`,
+          };
+        }
       }
 
       const targetRoom = data.state as Room;
@@ -936,49 +1015,80 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const leaveRoom = async () => {
     sound.playClick();
+
+    // 1. Immediately flag leaving state to prevent any race condition or incoming poll / realtime event
+    isLeavingRef.current = true;
+
+    // Capture leaving snapshots before clearing state
+    const roomToLeave = roomRef.current || room;
+    const playerLeaving = currentPlayerRef.current || currentPlayer;
+
+    // 2. Immediately unsubscribe and clear realtime channel
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
+    }
+
+    // 3. Immediately clear session storage
     try {
       sessionStorage.removeItem('quiz_active_session');
     } catch {
       // ignore
     }
 
-    if (currentPlayer && room) {
-      logActivity(`${currentPlayer.displayName} left the arena`, 'leave');
-      const remainingPlayers = room.players.filter((p) => p.id !== currentPlayer.id);
-      if (remainingPlayers.length > 0) {
-        let newHostId = room.hostId;
-        if (currentPlayer.isHost) {
-          const nextHost = remainingPlayers.find((p) => !p.id.startsWith('bot_')) || remainingPlayers[0];
-          newHostId = nextHost.id;
-          remainingPlayers.forEach((p) => {
-            p.isHost = p.id === newHostId;
-          });
-        }
-        const allRemainingFinished = remainingPlayers.every(
-          (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
-        );
-        const updatedRoom: Room = {
-          ...room,
-          hostId: newHostId,
-          players: remainingPlayers,
-          status: room.status === 'QUESTION' && allRemainingFinished ? 'FINAL_RESULTS' : room.status,
-        };
-        await saveRoomToSupabase(updatedRoom);
-      } else {
-        await supabase.from('realtime_rooms').delete().eq('code', room.code);
-      }
-    }
+    // 4. Immediately clear refs so polling immediately aborts
+    roomRef.current = null;
+    currentPlayerRef.current = null;
 
-    if (realtimeChannelRef.current) {
-      supabase.removeChannel(realtimeChannelRef.current);
-      realtimeChannelRef.current = null;
-    }
-
+    // 5. Immediately reset React state synchronously
     setRoom(null);
     setCurrentPlayer(null);
     setGameQuestions([]);
     setIsMatchFinished(false);
     setCurrentView('landing');
+
+    // 6. Asynchronously clean up Supabase in background
+    if (playerLeaving && roomToLeave && isSupabaseConfigured) {
+      try {
+        logActivity(`${playerLeaving.displayName} left the arena`, 'leave');
+        const remainingPlayers = roomToLeave.players.filter((p) => p.id !== playerLeaving.id);
+        if (remainingPlayers.length > 0) {
+          let newHostId = roomToLeave.hostId;
+          if (playerLeaving.isHost) {
+            const nextHost = remainingPlayers.find((p) => !p.id.startsWith('bot_')) || remainingPlayers[0];
+            newHostId = nextHost.id;
+            remainingPlayers.forEach((p) => {
+              p.isHost = p.id === newHostId;
+            });
+          }
+          const allRemainingFinished = remainingPlayers.every(
+            (p) => p.isFinished || p.status === 'finished' || p.isOnline === false || p.status === 'disconnected'
+          );
+          const updatedRoom: Room = {
+            ...roomToLeave,
+            hostId: newHostId,
+            players: remainingPlayers,
+            status: roomToLeave.status === 'QUESTION' && allRemainingFinished ? 'FINAL_RESULTS' : roomToLeave.status,
+          };
+          // Persist updated room directly without re-merging leaving player
+          await supabase
+            .from('realtime_rooms')
+            .upsert(
+              { code: updatedRoom.code, state: updatedRoom, updated_at: new Date().toISOString() },
+              { onConflict: 'code' }
+            );
+        } else {
+          // No players remain: delete the room row completely
+          await supabase.from('realtime_rooms').delete().eq('code', roomToLeave.code);
+        }
+      } catch (err) {
+        console.warn('[leaveRoom] Supabase cleanup error:', err);
+      } finally {
+        isLeavingRef.current = false;
+      }
+    } else {
+      isLeavingRef.current = false;
+    }
   };
 
   // Auto-leave room if user logs out

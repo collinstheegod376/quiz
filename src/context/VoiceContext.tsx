@@ -123,10 +123,11 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
   const manualMuteOverrideRef = useRef<boolean>(false);
   const wasMutedBeforeQuestionRef = useRef<boolean>(false);
 
-  // Channels
+  // Channels & Deduplication
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const realtimeChannelRef = useRef<any>(null);
   const localBroadcastRef = useRef<BroadcastChannel | null>(null);
+  const processedSignalsRef = useRef<Set<string>>(new Set());
 
   // Keep refs to state for async event handlers
   const isMicMutedRef = useRef(isMicMuted);
@@ -167,6 +168,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         ...payload,
         fromPlayerId: activeId,
         timestamp: Date.now(),
+        msgId: `${activeId || 'anon'}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       };
 
       // 1. Supabase Realtime channel broadcast (multi-device)
@@ -205,6 +207,15 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     if (audioEl) {
       try {
         audioEl.pause();
+        if (audioEl.srcObject && 'getTracks' in (audioEl.srcObject as MediaStream)) {
+          (audioEl.srcObject as MediaStream).getTracks().forEach((track) => {
+            try {
+              track.stop();
+            } catch {
+              // Safe stop
+            }
+          });
+        }
         audioEl.srcObject = null;
         if (audioEl.parentNode) {
           audioEl.parentNode.removeChild(audioEl);
@@ -297,6 +308,17 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         audioEl.srcObject = remoteStream;
         audioEl.play().catch((playErr) => {
           console.warn('[Voice] Remote audio play policy deferred:', playErr);
+          const resumeAudioOnGesture = () => {
+            audioEl?.play().catch(() => {});
+            if (typeof window !== 'undefined') {
+              window.removeEventListener('pointerdown', resumeAudioOnGesture);
+              window.removeEventListener('keydown', resumeAudioOnGesture);
+            }
+          };
+          if (typeof window !== 'undefined') {
+            window.addEventListener('pointerdown', resumeAudioOnGesture, { once: true });
+            window.addEventListener('keydown', resumeAudioOnGesture, { once: true });
+          }
         });
 
         setPeersInVoice((prev) => new Set([...prev, targetPeerId]));
@@ -402,20 +424,20 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
             return;
           }
 
-          if (isOfferCollision && isPolite) {
+          if (isOfferCollision && isPolite && pc.signalingState === 'have-local-offer') {
             console.log('[WebRTC] Polite peer rolling back colliding local offer for', peerId);
             await pc.setLocalDescription({ type: 'rollback' });
           }
 
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
-          // Drain buffered candidates
+          // Drain buffered candidates (delete from map first to prevent async arrival race)
           const queued = pendingCandidatesRef.current.get(peerId);
           if (queued && queued.length > 0) {
+            pendingCandidatesRef.current.delete(peerId);
             for (const cand of queued) {
               await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
             }
-            pendingCandidatesRef.current.delete(peerId);
           }
 
           const answer = await pc.createAnswer();
@@ -432,16 +454,16 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
           setPeersInVoice((prev) => new Set([...prev, peerId]));
         } else if (signal.type === 'answer' && signal.sdp) {
           const pc = peerConnectionsRef.current.get(peerId);
-          if (pc && pc.signalingState !== 'stable') {
+          if (pc && pc.signalingState === 'have-local-offer') {
             await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
 
-            // Drain buffered candidates
+            // Drain buffered candidates (delete from map first to prevent async arrival race)
             const queued = pendingCandidatesRef.current.get(peerId);
             if (queued && queued.length > 0) {
+              pendingCandidatesRef.current.delete(peerId);
               for (const cand of queued) {
                 await pc.addIceCandidate(new RTCIceCandidate(cand)).catch(() => {});
               }
-              pendingCandidatesRef.current.delete(peerId);
             }
 
             setPeersInVoice((prev) => new Set([...prev, peerId]));
@@ -466,6 +488,8 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
 
   // ─── Leave Voice Chat (Full teardown) ─────────────────────────────────────
   const leaveVoice = useCallback(() => {
+    isVoiceJoinedRef.current = false;
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -507,10 +531,19 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     makingOfferRef.current.clear();
     ignoreOfferRef.current.clear();
 
-    // Clean up DOM audio elements
+    // Clean up DOM audio elements & media tracks
     remoteAudioElementsRef.current.forEach((el) => {
       try {
         el.pause();
+        if (el.srcObject && 'getTracks' in (el.srcObject as MediaStream)) {
+          (el.srcObject as MediaStream).getTracks().forEach((track) => {
+            try {
+              track.stop();
+            } catch {
+              // Safe stop
+            }
+          });
+        }
         el.srcObject = null;
         if (el.parentNode) {
           el.parentNode.removeChild(el);
@@ -556,6 +589,18 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
       const data = payload as any;
       const myId = currentPlayerRef.current?.id || lastKnownPlayerIdRef.current;
       if (!data || data.fromPlayerId === myId) return;
+
+      // Drop duplicate signals received across both local and realtime channels
+      if (data.msgId) {
+        if (processedSignalsRef.current.has(data.msgId)) {
+          return;
+        }
+        processedSignalsRef.current.add(data.msgId);
+        if (processedSignalsRef.current.size > 500) {
+          const oldest = processedSignalsRef.current.values().next().value;
+          if (oldest) processedSignalsRef.current.delete(oldest);
+        }
+      }
 
       // Drop signals from players not in current room roster
       if (roomRef.current && !roomRef.current.players.some((p) => p.id === data.fromPlayerId)) {
@@ -650,6 +695,9 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
     realtimeChannelRef.current = channel;
 
     return () => {
+      if (isVoiceJoinedRef.current) {
+        leaveVoice();
+      }
       supabase.removeChannel(channel);
       if (localBroadcastRef.current) {
         localBroadcastRef.current.close();
@@ -756,17 +804,26 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Voice-optimized audio constraints (mono, 48kHz, echo cancellation)
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          channelCount: 1,
-          sampleRate: 48000,
-        },
-        video: false,
-      });
+      // Voice-optimized audio constraints (mono, ideal 48kHz, echo cancellation)
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1,
+            sampleRate: { ideal: 48000 },
+          },
+          video: false,
+        });
+      } catch (gUMError) {
+        console.warn('[Voice] Strict audio constraints failed, falling back to basic audio:', gUMError);
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false,
+        });
+      }
 
       localStreamRef.current = stream;
 
@@ -781,6 +838,7 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         };
       }
 
+      isVoiceJoinedRef.current = true;
       setIsVoiceJoined(true);
       setIsMicMuted(false);
       manualMuteOverrideRef.current = false;
@@ -802,6 +860,8 @@ export function VoiceProvider({ children }: { children: React.ReactNode }) {
         setMicErrorMessage('No microphone detected. Please connect a headset or microphone.');
       } else if (errorObj.name === 'NotReadableError' || errorObj.name === 'TrackStartError') {
         setMicErrorMessage('Microphone is in use by another application.');
+      } else if (errorObj.name === 'OverconstrainedError') {
+        setMicErrorMessage('Microphone hardware does not support requested audio constraints.');
       } else {
         setMicErrorMessage('Unable to access microphone: ' + (errorObj.message || 'Unknown error'));
       }

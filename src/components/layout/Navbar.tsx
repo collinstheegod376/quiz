@@ -27,6 +27,7 @@ export function Navbar() {
     setSelectedCategoryId,
     room,
     currentPlayer,
+    leaveRoom,
     joinRoom,
     setIsJoinModalOpen,
     setIsGlobalLeaderboardOpen,
@@ -137,13 +138,29 @@ export function Navbar() {
 
             {/* Active room live badge */}
             {room && currentPlayer && (
-              <button
-                onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
-                className="flex items-center gap-1.5 px-3 py-1 bg-black dark:bg-[#2A2929] text-white text-xs font-nunito font-bold rounded-full cursor-pointer border border-transparent dark:border-[#363535]"
-              >
-                <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
-                <span>{room.code}</span>
-              </button>
+              <div className="flex items-center bg-black dark:bg-[#2A2929] text-white text-xs font-nunito font-bold rounded-full border border-transparent dark:border-[#363535] overflow-hidden pl-3 pr-1.5 py-0.5 gap-1.5 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setCurrentView(room.status === 'LOBBY' ? 'lobby' : 'game')}
+                  className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity"
+                  title="Return to match"
+                >
+                  <span className="w-2 h-2 rounded-full bg-[#4CA471] animate-pulse" />
+                  <span>{room.code}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    leaveRoom();
+                  }}
+                  className="p-1 hover:bg-white/20 rounded-full transition-colors cursor-pointer text-white/70 hover:text-white"
+                  title="Leave room"
+                  aria-label="Leave room"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
 
             {/* Search — desktop only */}
