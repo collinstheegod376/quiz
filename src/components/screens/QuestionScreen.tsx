@@ -16,6 +16,7 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  LogOut,
 } from 'lucide-react';
 import { validateAnswerOption } from '@/lib/utils';
 import { useVoice } from '@/context/VoiceContext';
@@ -31,6 +32,7 @@ export function QuestionScreen() {
     isAnswerSubmitted,
     submitAnswer,
     timerSeconds,
+    leaveRoom,
   } = useGame();
 
   const {
@@ -131,6 +133,16 @@ export function QuestionScreen() {
               <Clock className="w-4 h-4" />
               <span>{isReveal ? '✓' : `${timerSeconds.toString().padStart(2, '0')}s`}</span>
             </div>
+
+            <button
+              type="button"
+              onClick={leaveRoom}
+              className="p-1.5 rounded hover:bg-[#FF94AB]/15 text-[#595955] hover:text-[#FF94AB] dark:text-[#A4A3A3] dark:hover:text-[#FF94AB] transition-colors cursor-pointer border border-transparent hover:border-[#FF94AB]/30"
+              title="Leave Match"
+              aria-label="Leave Match"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
 

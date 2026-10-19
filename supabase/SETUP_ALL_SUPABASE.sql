@@ -605,7 +605,38 @@ DO $$ BEGIN
 END $$;
 
 
--- 6. PURGE STALE ROOMS
-DELETE FROM realtime_rooms 
-WHERE updated_at < NOW() - INTERVAL '24 hours' 
-   OR state->>'status' = 'FINISHED';
+-- 6. PURGE STALE ROOMS (30 MINUTES INACTIVITY)
+CREATE OR REPLACE FUNCTION delete_stale_rooms()
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  deleted_count integer;
+BEGIN
+  DELETE FROM realtime_rooms 
+  WHERE updated_at < NOW() - INTERVAL '30 minutes' 
+     OR state->>'status' = 'FINISHED';
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  RETURN deleted_count;
+END;
+$$;
+
+SELECT delete_stale_rooms();
+
+-- Optional pg_cron automated schedule (runs if pg_cron is enabled in Supabase)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    BEGIN
+      PERFORM cron.schedule(
+        'cleanup-stale-rooms-30min',
+        '*/5 * * * *',
+        'SELECT delete_stale_rooms()'
+      );
+    EXCEPTION WHEN OTHERS THEN
+      NULL;
+    END;
+  END IF;
+END $$;
+
