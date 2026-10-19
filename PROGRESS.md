@@ -85,3 +85,10 @@
   - **Inception & Christopher Nolan Sci-Fi** (`questions_inception.ts`, 130 questions, 10 tiers): Inception, Interstellar, Tenet, and Oppenheimer cinematic craftsmanship. Banner: `inception.jpg`.
   - **Dune: Part One & Part Two** (`questions_dune.ts`, 130 questions, 10 tiers): Denis Villeneuve's sci-fi epic, House Atreides, Fremen, Sandworms, and Paul Muad'Dib. Banner: `dune.jpg`.
   - **Integration & Build**: Registered in `topics.ts`, `questions.ts`, and `EntertainmentScreen.tsx`. Full static production build passed with **49/49 static pages** prerendered and 0 errors. Dev server running at `http://localhost:3000`.
+- **5 Animated TV Series Topics & 650 Questions Integrated via 5 Concurrent Subagents**:
+  - **Avatar: The Last Airbender** (`questions_avatar.ts`, 130 questions, 10 tiers): Book 1 Water, Book 2 Earth, Book 3 Fire, Aang, Zuko, Katara, Sokka, Toph, Azula, Iroh, Sozin's Comet, and Ozai. Banner: `avatar.jpg`.
+  - **Arcane: League of Legends** (`questions_arcane.ts`, 130 questions, 10 tiers): Piltover & Zaun, Vi, Powder/Jinx, Silco, Vander, Jayce, Viktor, Mel, Hextech, Shimmer, and Fortiche animation lore. Banner: `arcane.jpg`.
+  - **Batman: The Animated Series** (`questions_batmantas.ts`, 130 questions, 10 tiers): Kevin Conroy, Mark Hamill Joker, Dark Deco Gotham, Paul Dini & Bruce Timm lore, Harley Quinn origin, and Mr. Freeze (*Heart of Ice*). Banner: `batman-tas.jpg`.
+  - **Invincible** (`questions_invincible.ts`, 130 questions, 10 tiers): Mark Grayson, Omni-Man, Guardians of the Globe, Viltrumite Empire, Allen the Alien, Battle Beast, Cecil, and Season 2 multiverse. Banner: `invincible.jpg`.
+  - **BoJack Horseman** (`questions_bojack.ts`, 130 questions, 10 tiers): Hollywoo satire, BoJack, Diane, Princess Carolyn, Todd, Mr. Peanutbutter, *Free Churro*, and *The View from Halfway Down*. Banner: `bojack.jpg`.
+  - **Integration & Build**: Registered in `topics.ts`, `questions.ts`, and `EntertainmentScreen.tsx`. Full static production build passed with **54/54 static pages** prerendered and 0 errors. Dev server running at `http://localhost:3000`.

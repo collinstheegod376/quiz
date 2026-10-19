@@ -32,6 +32,11 @@ import { MCU_QUESTIONS } from './questions_mcu';
 import { HARRY_POTTER_QUESTIONS } from './questions_harrypotter';
 import { INCEPTION_QUESTIONS } from './questions_inception';
 import { DUNE_QUESTIONS } from './questions_dune';
+import { AVATAR_QUESTIONS } from './questions_avatar';
+import { ARCANE_QUESTIONS } from './questions_arcane';
+import { BATMAN_TAS_QUESTIONS } from './questions_batmantas';
+import { INVINCIBLE_QUESTIONS } from './questions_invincible';
+import { BOJACK_QUESTIONS } from './questions_bojack';
 
 const RAW_SEED_QUESTIONS: Question[] = [
   ...AOT_QUESTIONS,
@@ -67,6 +72,11 @@ const RAW_SEED_QUESTIONS: Question[] = [
   ...HARRY_POTTER_QUESTIONS,
   ...INCEPTION_QUESTIONS,
   ...DUNE_QUESTIONS,
+  ...AVATAR_QUESTIONS,
+  ...ARCANE_QUESTIONS,
+  ...BATMAN_TAS_QUESTIONS,
+  ...INVINCIBLE_QUESTIONS,
+  ...BOJACK_QUESTIONS,
 ];
 
 // Deduplicate questions by ID and normalized prompt text to guarantee 100% uniqueness across datasets
